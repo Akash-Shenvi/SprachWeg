@@ -89,7 +89,7 @@ const languageCards = [
         price: '₹12,999',
         bgColor: 'bg-blue-50 dark:bg-blue-950/30',
         borderColor: 'border-blue-200 dark:border-blue-800',
-        route: '/language-details/english'
+        route: '/training/english'
     },
     {
         code: 'DE',
@@ -103,7 +103,7 @@ const languageCards = [
         price: '₹15,999',
         bgColor: 'bg-pink-50 dark:bg-pink-950/30',
         borderColor: 'border-pink-200 dark:border-pink-800',
-        route: '/language-details/german'
+        route: '/training/german'
     },
     {
         code: 'JP',
@@ -117,7 +117,7 @@ const languageCards = [
         price: '₹16,999',
         bgColor: 'bg-pink-50 dark:bg-pink-950/30',
         borderColor: 'border-pink-200 dark:border-pink-800',
-        route: '/language-details/japanese'
+        route: '/training/japanese'
     }
 ];
 

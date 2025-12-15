@@ -1,9 +1,9 @@
-import { Batch } from '../components/course/BatchCard';
-import { CurriculumModule } from '../components/course/CurriculumAccordion';
-import { FAQItem } from '../components/course/FAQAccordion';
-import { PricingPlan } from '../components/course/PricingCard';
-import { Review } from '../components/course/ReviewsList';
-import { Trainer } from '../components/course/TrainerCard';
+import type { Batch } from '../components/course/BatchCard';
+import type { CurriculumModule } from '../components/course/CurriculumAccordion';
+import type { FAQItem } from '../components/course/FAQAccordion';
+import type { PricingPlan } from '../components/course/PricingCard';
+import type { Review } from '../components/course/ReviewsList';
+import type { Trainer } from '../components/course/TrainerCard';
 import { useEffect, useState } from 'react';
 
 export interface CourseData {
@@ -22,9 +22,10 @@ export interface CourseData {
     whoIsFor: string[];
   };
   curriculum: CurriculumModule[];
-  batches: Batch[];
+  batchesLive: Batch[];
   trainers: Trainer[];
-  pricing: PricingPlan[];
+  pricingLive: PricingPlan[];
+  pricingRecorded: PricingPlan[];
   reviewsSummary: {
     rating: number;
     totalReviews: number;
@@ -85,7 +86,7 @@ export const englishCourseData: CourseData = {
       ],
     },
   ],
-  batches: [
+  batchesLive: [
     {
       id: 'eng-batch-1',
       startDate: '15 Jan 2026',
@@ -120,21 +121,38 @@ export const englishCourseData: CourseData = {
       linkedinUrl: 'https://www.linkedin.com',
     },
   ],
-  pricing: [
+  pricingLive: [
     {
-      id: 'eng-standard',
-      name: 'Standard Track',
+      id: 'eng-live-standard',
+      name: 'Live Standard',
       price: '₹12,999',
       description: 'Ideal for learners balancing work and study.',
-      features: ['24 live sessions', 'All recorded lessons', 'Email support'],
-      discountLabel: 'Limited-time 10% off',
+      features: ['24 Live Interactive Sessions', 'Real-time feedback', 'Class recordings access', 'Certificate of Completion'],
+      discountLabel: 'Most Popular',
+      isBestValue: true,
     },
     {
-      id: 'eng-pro',
-      name: 'Pro Track',
+      id: 'eng-live-premium',
+      name: 'Live Premium',
       price: '₹18,999',
-      description: 'For learners who want extra feedback and mentoring.',
-      features: ['Everything in Standard', '1:1 feedback sessions', 'Interview preparation'],
+      description: 'For maximum personal attention.',
+      features: ['Everything in Standard', '4 Private 1:1 Sessions', 'Resume & Interview Prep', 'Priority Support'],
+    },
+  ],
+  pricingRecorded: [
+    {
+      id: 'eng-rec-basic',
+      name: 'Self-Paced Basic',
+      price: '₹4,999',
+      description: 'Learn at your own speed.',
+      features: ['Full Video Library Access', 'Practice Worksheets', 'Community Forum Access', 'Mobile App Support'],
+    },
+    {
+      id: 'eng-rec-plus',
+      name: 'Self-Paced Plus',
+      price: '₹7,999',
+      description: 'Self-paced with some guidance.',
+      features: ['Everything in Basic', '2 Written Assignment Reviews', 'Monthly Q&A Webinar Access', 'Digital Workbook'],
       isBestValue: true,
     },
   ],
@@ -214,7 +232,7 @@ export const germanCourseData: CourseData = {
       ],
     },
   ],
-  batches: [
+  batchesLive: [
     {
       id: 'de-batch-1',
       startDate: '20 Jan 2026',
@@ -233,13 +251,23 @@ export const germanCourseData: CourseData = {
       linkedinUrl: 'https://www.linkedin.com',
     },
   ],
-  pricing: [
+  pricingLive: [
     {
-      id: 'de-standard',
-      name: 'Standard Track',
+      id: 'de-live-standard',
+      name: 'Intensive Live Track',
       price: '₹15,999',
-      description: 'Structured A1–A2 learning path.',
-      features: ['Live classes', 'Grammar clinics', 'Community support'],
+      description: 'Fast-track your German learning.',
+      features: ['Live daily classes', 'Goethe-Institut Exam Prep', 'Ticket to Berlin (Virtual Tour)', 'Visa Guidance Session'],
+      isBestValue: true,
+    },
+  ],
+  pricingRecorded: [
+    {
+      id: 'de-rec-standard',
+      name: 'Self-Paced German',
+      price: '₹6,999',
+      description: 'Learn German at your own convenience.',
+      features: ['Complete A1-A2 Video Course', 'Grammar Spreadsheets', 'Vocabulary Flashcards', '24/7 Access'],
     },
   ],
   reviewsSummary: {
@@ -277,7 +305,7 @@ export const japaneseCourseData: CourseData = {
     subtitle:
       'Learn Japanese from N5 to N2 with structured grammar, kanji, and speaking practice tailored to JLPT.',
     levelBadge: 'N5 to N2',
-    hasLiveSession: false,
+    hasLiveSession: true,
   },
   overview: {
     summary:
@@ -306,7 +334,7 @@ export const japaneseCourseData: CourseData = {
       ],
     },
   ],
-  batches: [
+  batchesLive: [
     {
       id: 'jp-batch-1',
       startDate: '10 Feb 2026',
@@ -325,13 +353,23 @@ export const japaneseCourseData: CourseData = {
       linkedinUrl: 'https://www.linkedin.com',
     },
   ],
-  pricing: [
+  pricingLive: [
     {
-      id: 'jp-standard',
-      name: 'Standard Track',
+      id: 'jp-live-standard',
+      name: 'Live JLPT Prep',
       price: '₹16,999',
-      description: 'Perfect for JLPT-focused learners.',
-      features: ['Live JLPT prep', 'Kanji practice sets', 'Mock tests'],
+      description: 'Comprehensive N5-N4 Live Course.',
+      features: ['Live Kanji Workshops', 'Weekly Conversation Labs', 'JLPT N5 Mock Tests', 'Study Material (PDFs)'],
+      isBestValue: true,
+    },
+  ],
+  pricingRecorded: [
+    {
+      id: 'jp-rec-grammar',
+      name: 'Grammar Mastery (Video)',
+      price: '₹5,999',
+      description: 'Master Japanese grammar rules.',
+      features: ['50+ Grammar Video Lessons', 'Kanji Worksheets', 'Quizzes & Exercises', 'Anki Decks'],
     },
   ],
   reviewsSummary: {

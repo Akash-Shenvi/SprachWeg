@@ -8,6 +8,9 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import SkillDashboard from './pages/Admin/SkillDashboard';
 import LanguageTraining from './pages/LanguageTraining';
+import CourseEnglishPage from './pages/CourseEnglishPage';
+import CourseGermanPage from './pages/CourseGermanPage';
+import CourseJapanesePage from './pages/CourseJapanesePage';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -65,6 +68,9 @@ const App = () => {
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/language-training" element={<LanguageTraining />} />
+              <Route path="/training/english" element={<CourseEnglishPage />} />
+              <Route path="/training/german" element={<CourseGermanPage />} />
+              <Route path="/training/japanese" element={<CourseJapanesePage />} />
               <Route
                 path="/login"
                 element={

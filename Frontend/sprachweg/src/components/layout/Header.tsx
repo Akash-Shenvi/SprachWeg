@@ -46,9 +46,9 @@ const Header: React.FC = () => {
                                 <ChevronDown className="w-4 h-4" />
                             </Link>
                             <div className="absolute left-0 mt-0 w-48 bg-white dark:bg-[#0a192f] border border-gray-100 dark:border-gray-800 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                                <Link to="/language-details/english" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">English Training</Link>
-                                <Link to="/language-details/german" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">German Training</Link>
-                                <Link to="/language-details/japanese" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Japanese Training</Link>
+                                <Link to="/training/english" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">English Training</Link>
+                                <Link to="/training/german" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">German Training</Link>
+                                <Link to="/training/japanese" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Japanese Training</Link>
                                 <Link to="/language-training" className="block px-4 py-2 text-[#d6b161] font-medium text-sm border-t border-gray-100 dark:border-gray-800">View All Languages →</Link>
                             </div>
                         </div>

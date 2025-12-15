@@ -9,7 +9,7 @@ import TrainerCard from './TrainerCard';
 import PricingCard from './PricingCard';
 import ReviewsList from './ReviewsList';
 import FAQAccordion from './FAQAccordion';
-import { CourseData } from '../../lib/courseData';
+import type { CourseData } from '../../lib/courseData';
 import { Link, useNavigate } from 'react-router-dom';
 
 export interface CourseDetailTemplateProps {
@@ -18,6 +18,7 @@ export interface CourseDetailTemplateProps {
 
 const CourseDetailTemplate: React.FC<CourseDetailTemplateProps> = ({ course }) => {
   const navigate = useNavigate();
+  const [activeTrack, setActiveTrack] = React.useState<'LIVE' | 'RECORDED'>('LIVE');
 
   useEffect(() => {
     document.title = course.metaTitle;
@@ -26,6 +27,8 @@ const CourseDetailTemplate: React.FC<CourseDetailTemplateProps> = ({ course }) =
       descriptionMeta.setAttribute('content', course.metaDescription);
     }
   }, [course.metaTitle, course.metaDescription]);
+
+  const activePricing = activeTrack === 'LIVE' ? course.pricingLive : course.pricingRecorded;
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-50">
@@ -74,16 +77,8 @@ const CourseDetailTemplate: React.FC<CourseDetailTemplateProps> = ({ course }) =
         subtitle={course.hero.subtitle}
         levelBadge={course.hero.levelBadge}
         hasLiveSession={course.hero.hasLiveSession}
-        primaryCtaLabel="Enroll now"
-        secondaryCtaLabel="View syllabus"
-        onPrimaryCta={() => {
-          const pricingSection = document.getElementById('pricing');
-          pricingSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }}
-        onSecondaryCta={() => {
-          const curriculumSection = document.getElementById('curriculum');
-          curriculumSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }}
+        activeTrack={activeTrack}
+        onTrackChange={setActiveTrack}
       />
 
       <main className="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:px-6 lg:px-8">
@@ -134,24 +129,56 @@ const CourseDetailTemplate: React.FC<CourseDetailTemplateProps> = ({ course }) =
           <div id="curriculum">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-base font-semibold text-[#0a192f] dark:text-gray-50">
-                Curriculum
+                Curriculum ({activeTrack === 'LIVE' ? 'Live + Recorded' : 'Self-Paced'})
               </h2>
               <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                Live + recorded modules
+                {activeTrack === 'LIVE' ? 'Interactive Modules' : 'Video Library Access'}
               </span>
             </div>
             <CurriculumAccordion modules={course.curriculum} />
           </div>
 
           <div>
-            <h2 className="mb-3 text-base font-semibold text-[#0a192f] dark:text-gray-50">
-              Upcoming batches
-            </h2>
-            <div className="grid gap-3">
-              {course.batches.map((batch) => (
-                <BatchCard key={batch.id} batch={batch} />
-              ))}
-            </div>
+            <motion.div
+              initial={false}
+              animate={{ opacity: 1 }}
+              key={activeTrack}
+              transition={{ duration: 0.3 }}
+            >
+              {activeTrack === 'LIVE' ? (
+                <>
+                  <h2 className="mb-3 text-base font-semibold text-[#0a192f] dark:text-gray-50">
+                    Upcoming live batches
+                  </h2>
+                  <div className="grid gap-3">
+                    {course.batchesLive.map((batch) => (
+                      <BatchCard key={batch.id} batch={batch} />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+                  <h3 className="font-semibold text-[#0a192f] dark:text-white mb-2">Self-Paced Learning</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Start learning immediately with our comprehensive video library. No waiting for batches!
+                  </p>
+                  <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                      Instant Access
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                      Lifetime Validity
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                      Learn at your pace
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </motion.div>
           </div>
         </section>
 
@@ -170,13 +197,16 @@ const CourseDetailTemplate: React.FC<CourseDetailTemplateProps> = ({ course }) =
 
           <div id="pricing">
             <h2 className="mb-3 text-base font-semibold text-[#0a192f] dark:text-gray-50">
-              Pricing & plans
+              Pricing & plans ({activeTrack === 'LIVE' ? 'Live' : 'Recorded'})
             </h2>
-            <div className="grid gap-3">
-              {course.pricing.map((plan) => (
+            <motion.div
+              className="grid gap-3"
+              layout
+            >
+              {activePricing.map((plan) => (
                 <PricingCard key={plan.id} plan={plan} />
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
 
@@ -215,15 +245,21 @@ const CourseDetailTemplate: React.FC<CourseDetailTemplateProps> = ({ course }) =
               Ready to start?
             </p>
             <p className="text-[11px] text-gray-600 dark:text-gray-400">
-              Enroll now and secure your seat in the next live batch.
+              {activeTrack === 'LIVE'
+                ? 'Secure your seat in the next live cohort.'
+                : 'Get instant access to all recorded lessons.'}
             </p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <button
               type="button"
               className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-[#d6b161] px-4 py-2 text-xs font-semibold text-[#0a192f] shadow-md hover:bg-[#c4a055] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b161]"
+              onClick={() => {
+                const pricingSection = document.getElementById('pricing');
+                pricingSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
             >
-              Enroll now
+              {activeTrack === 'LIVE' ? 'Enroll in Live Batch' : 'Buy Recorded Course'}
             </button>
             <button
               type="button"
