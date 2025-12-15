@@ -1,33 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     CheckCircle,
     Star,
     Globe,
     Play,
-    Menu,
-    X,
-    ChevronDown,
-    MapPin,
-    Mail,
-    Phone,
-    Facebook,
-    Instagram,
-    Linkedin,
-    Youtube,
-    Sun,
-    Moon,
     GraduationCap
 } from 'lucide-react';
 import Button from '../components/ui/Button';
-import { useTheme } from '../context/ThemeContext';
+import { Header, Footer } from '../components/layout';
 import { skillAPI } from '../lib/api';
 import type { SkillCourse } from '../types/skill';
 
 const LandingPage: React.FC = () => {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const { theme, toggleTheme } = useTheme();
     const [skillCourses, setSkillCourses] = useState<SkillCourse[]>([]);
     const [loadingSkills, setLoadingSkills] = useState(true);
 
@@ -92,97 +78,8 @@ const LandingPage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-white dark:bg-[#0a192f] transition-colors duration-300 font-sans">
-            {/* Navbar */}
-            <nav className="fixed w-full z-50 bg-white/90 dark:bg-[#0a192f]/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-20">
-                        {/* Logo */}
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-[#dbf4e2] dark:bg-[#d6b161] flex items-center justify-center">
-                                <span className="font-serif font-bold text-xl text-[#0a192f]">S</span>
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="font-serif font-bold text-xl leading-none text-gray-900 dark:text-white">SoVir Akademie</span>
-                                <span className="text-xs tracking-wider text-gray-500 dark:text-gray-400">A Division of SoVir Technologies LLP</span>
-                            </div>
-                        </div>
-
-                        {/* Desktop Navigation */}
-                        <div className="hidden lg:flex items-center gap-6 xl:gap-8">
-                            <Link to="/" className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm xl:text-base">Home</Link>
-                            <a href="#about" className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm xl:text-base">About Us</a>
-                            <a href="#skill-training" className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm xl:text-base">Skill Training</a>
-                            <a href="#language-training" className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm xl:text-base">Language Training</a>
-                            <a href="#exam-prep" className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm xl:text-base">Exam Prep</a>
-                            <a href="#careers" className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm xl:text-base">Careers Abroad</a>
-                        </div>
-
-                        {/* Right Area */}
-                        <div className="hidden lg:flex items-center gap-6">
-                            <button
-                                onClick={toggleTheme}
-                                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-yellow-400 transition-colors"
-                            >
-                                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                            </button>
-                            <Link to="/login" className="text-gray-700 dark:text-white font-medium hover:text-[#d6b161] transition-colors">
-                                Sign In
-                            </Link>
-                            <Link to="/register">
-                                <Button className="bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] font-semibold px-6 rounded-full">
-                                    Enroll Now
-                                </Button>
-                            </Link>
-                        </div>
-
-                        {/* Mobile Menu Button */}
-                        <div className="lg:hidden flex items-center gap-4">
-                            <button
-                                onClick={toggleTheme}
-                                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-yellow-400"
-                            >
-                                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                            </button>
-                            <button
-                                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                className="text-gray-700 dark:text-white"
-                            >
-                                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Mobile Menu */}
-                <AnimatePresence>
-                    {isMenuOpen && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="lg:hidden bg-white dark:bg-[#0a192f] border-t border-gray-100 dark:border-gray-800"
-                        >
-                            <div className="px-4 py-6 space-y-4">
-                                <Link to="/" className="block text-gray-700 dark:text-gray-300 font-medium">Home</Link>
-                                <a href="#about" className="block text-gray-700 dark:text-gray-300 font-medium" onClick={() => setIsMenuOpen(false)}>About Us</a>
-                                <a href="#skill-training" className="block text-gray-700 dark:text-gray-300 font-medium" onClick={() => setIsMenuOpen(false)}>Skill Training</a>
-                                <a href="#language-training" className="block text-gray-700 dark:text-gray-300 font-medium" onClick={() => setIsMenuOpen(false)}>Language Training</a>
-                                <a href="#exam-prep" className="block text-gray-700 dark:text-gray-300 font-medium" onClick={() => setIsMenuOpen(false)}>Exam Preparation</a>
-                                <a href="#careers" className="block text-gray-700 dark:text-gray-300 font-medium" onClick={() => setIsMenuOpen(false)}>Careers Abroad</a>
-                                <div className="pt-4 flex flex-col gap-3">
-                                    <Link to="/login" className="text-center text-gray-700 dark:text-white font-medium py-2">Sign In</Link>
-                                    <Link to="/register">
-                                        <Button className="w-full bg-[#d6b161] text-[#0a192f] font-semibold rounded-full">
-                                            Enroll Now
-                                        </Button>
-                                    </Link>
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </nav>
-
+            {/* Header */}
+            <Header />
             {/* Hero Section */}
             <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1002,86 +899,7 @@ const LandingPage: React.FC = () => {
             </section>
 
             {/* Footer */}
-            <footer className="bg-[#050c18] border-t border-white/5 text-white pt-20 pb-10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-                        <div>
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="w-10 h-10 rounded-full bg-[#d6b161] flex items-center justify-center">
-                                    <span className="font-serif font-bold text-xl text-[#0a192f]">S</span>
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="font-serif font-bold text-xl leading-none text-white">SprachWeg</span>
-                                    <span className="text-xs tracking-wider text-gray-400">AKADEMIE</span>
-                                </div>
-                            </div>
-                            <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                                Your gateway to language mastery and international career opportunities. Join thousands of successful learners worldwide.
-                            </p>
-                            <div className="space-y-3 text-sm text-gray-400">
-                                <a href="mailto:info@sprachweg.com" className="flex items-center gap-3 hover:text-[#d6b161] transition-colors"><Mail className="w-4 h-4" /> info@sprachweg.com</a>
-                                <a href="tel:+4930123456" className="flex items-center gap-3 hover:text-[#d6b161] transition-colors"><Phone className="w-4 h-4" /> +49 30 123 456 789</a>
-                                <div className="flex items-center gap-3"><MapPin className="w-4 h-4 shrink-0" /> Friedrichstraße 123, 10117 Berlin</div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 className="font-bold text-white mb-6">Language Training</h3>
-                            <ul className="space-y-3 text-sm text-gray-400">
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors">English Training</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors">Spanish Classes</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors">French Courses</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors">German A1-B2</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors">Japanese & Chinese</Link></li>
-                            </ul>
-                        </div>
-
-                        <div>
-                            <h3 className="font-bold text-white mb-6">Company</h3>
-                            <ul className="space-y-3 text-sm text-gray-400">
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors">About Us</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors">Our Team</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors">Careers</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors">Press & Media</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors">Contact</Link></li>
-                            </ul>
-                        </div>
-
-                        <div>
-                            <h3 className="font-serif text-2xl mb-4">Stay Updated</h3>
-                            <p className="text-gray-400 text-sm mb-6">Get the latest courses, career tips, and exclusive offers.</p>
-                            <div className="flex gap-2">
-                                <input
-                                    type="email"
-                                    placeholder="Enter your email"
-                                    className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#d6b161] w-full"
-                                />
-                                <Button className="bg-[#d6b161] text-[#0a192f] font-bold px-6 rounded-lg pointer-events-none">
-                                    Subscribe
-                                </Button>
-                            </div>
-                            <div className="flex items-center gap-4 mt-8">
-                                <span className="text-sm text-gray-400">Follow us</span>
-                                <div className="flex gap-2">
-                                    <a href="#" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-[#d6b161] hover:text-[#0a192f] transition-all"><Facebook className="w-4 h-4" /></a>
-                                    <a href="#" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-[#d6b161] hover:text-[#0a192f] transition-all"><Instagram className="w-4 h-4" /></a>
-                                    <a href="#" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-[#d6b161] hover:text-[#0a192f] transition-all"><Linkedin className="w-4 h-4" /></a>
-                                    <a href="#" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-[#d6b161] hover:text-[#0a192f] transition-all"><Youtube className="w-4 h-4" /></a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
-                        <p>&copy; 2025 SprachWeg Akademie. All rights reserved.</p>
-                        <div className="flex gap-6">
-                            <Link to="#" className="hover:text-white transition-colors">Privacy Policy</Link>
-                            <Link to="#" className="hover:text-white transition-colors">Terms of Service</Link>
-                            <Link to="#" className="hover:text-white transition-colors">Cookie Policy</Link>
-                        </div>
-                    </div>
-                </div>
-            </footer>
+            <Footer />
         </div>
     );
 };

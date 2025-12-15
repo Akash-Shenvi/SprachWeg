@@ -1,14 +1,192 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 @import "tailwindcss";
 
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-sans: 'Lexend', system-ui, sans-serif;
     --font-serif: 'Playfair Display', Georgia, serif;
+
+    /* Consistent Spacing Scale */
+    --spacing-xs: 8px;
+    --spacing-sm: 16px;
+    --spacing-md: 24px;
+    --spacing-lg: 32px;
+    --spacing-xl: 48px;
+    --spacing-2xl: 64px;
 }
 
-/* Custom Scrollbar */
+/* ===== BASE LAYOUT & ALIGNMENT ===== */
+
+/* Prevent horizontal overflow */
+html,
+body {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+}
+
+/* Global box-sizing */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* Container defaults */
+.container {
+    width: 100%;
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+@media (min-width: 640px) {
+    .container {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .container {
+        padding-left: 32px;
+        padding-right: 32px;
+    }
+}
+
+/* ===== TYPOGRAPHY ALIGNMENT ===== */
+
+/* Body text - optimal line length for readability */
+p,
+.prose {
+    max-width: 75ch;
+    line-height: 1.7;
+}
+
+/* Headings - left aligned by default */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    text-align: left;
+    line-height: 1.2;
+    text-wrap: balance;
+}
+
+/* Lists - proper indentation */
+ul,
+ol {
+    padding-left: 24px;
+}
+
+ul li,
+ol li {
+    margin-bottom: 8px;
+}
+
+/* ===== IMAGE ALIGNMENT ===== */
+
+/* Responsive images by default */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Centered standalone images */
+figure {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 24px 0;
+}
+
+figure img {
+    border-radius: 8px;
+}
+
+figcaption {
+    margin-top: 12px;
+    font-size: 0.875rem;
+    color: #6b7280;
+    text-align: center;
+}
+
+/* ===== FORM ELEMENTS ALIGNMENT ===== */
+
+/* Form field consistent styling */
+input,
+select,
+textarea {
+    width: 100%;
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+/* Form labels */
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+/* Form groups */
+.form-group {
+    margin-bottom: 24px;
+}
+
+/* ===== CARD & CONTAINER ALIGNMENT ===== */
+
+/* Cards grid - equal height */
+.card-grid {
+    display: grid;
+    gap: 24px;
+}
+
+.card-grid>* {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Section spacing */
+section {
+    padding-top: 48px;
+    padding-bottom: 48px;
+}
+
+@media (min-width: 1024px) {
+    section {
+        padding-top: 64px;
+        padding-bottom: 64px;
+    }
+}
+
+/* ===== FLEXBOX UTILITIES ===== */
+
+.flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.flex-start {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+/* ===== CUSTOM SCROLLBAR ===== */
+
 ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -26,15 +204,173 @@
     @apply bg-gray-400 dark:bg-gray-500;
 }
 
-/* Smooth Transitions */
+/* ===== SMOOTH TRANSITIONS ===== */
+
 * {
     @apply transition-colors duration-200;
 }
 
-/* Remove transition for specific elements to avoid weird effects */
+/* Remove transition for specific elements */
 button,
 input,
 select,
 textarea {
     transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+}
+
+/* ===== RESPONSIVE UTILITIES ===== */
+
+/* Hide on mobile, show on desktop */
+@media (max-width: 1023px) {
+    .hide-mobile {
+        display: none !important;
+    }
+}
+
+/* Hide on desktop, show on mobile */
+@media (min-width: 1024px) {
+    .hide-desktop {
+        display: none !important;
+    }
+}
+
+/* Stack on mobile */
+@media (max-width: 767px) {
+    .stack-mobile {
+        flex-direction: column !important;
+    }
+
+    .stack-mobile>* {
+        width: 100% !important;
+    }
+}
+
+/* ===== BUTTON ALIGNMENT ===== */
+
+/* Button groups - consistent left alignment */
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+}
+
+/* Center buttons in hero sections */
+.hero .button-group {
+    justify-content: flex-start;
+}
+
+@media (max-width: 639px) {
+    .button-group {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .button-group>* {
+        width: 100%;
+    }
+}
+
+/* ===== CONTENT ALIGNMENT ===== */
+
+/* Text content max-width for readability */
+.content-text {
+    max-width: 65ch;
+}
+
+/* Wide content for cards/grids */
+.content-wide {
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Full-width sections */
+.full-width {
+    width: 100%;
+    max-width: none;
+}
+
+/* ===== SECTION HEADERS ===== */
+
+.section-header {
+    text-align: center;
+    margin-bottom: 48px;
+}
+
+.section-header h2 {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.section-header p {
+    text-align: center;
+    max-width: 65ch;
+    margin-left: auto;
+    margin-right: auto;
+    color: #6b7280;
+}
+
+/* ===== GRID LAYOUTS ===== */
+
+/* Responsive grid utilities */
+.grid-auto {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+/* Fixed column grids */
+.grid-2 {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(1, 1fr);
+}
+
+.grid-3 {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(1, 1fr);
+}
+
+.grid-4 {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(1, 1fr);
+}
+
+@media (min-width: 640px) {
+    .grid-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .grid-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .grid-4 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* ===== EQUAL HEIGHT CARDS ===== */
+
+.equal-height {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.equal-height>*:last-child {
+    margin-top: auto;
 }
