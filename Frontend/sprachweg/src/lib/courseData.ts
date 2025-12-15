@@ -1,9 +1,62 @@
-import type { Batch } from '../components/course/BatchCard';
-import type { CurriculumModule } from '../components/course/CurriculumAccordion';
-import type { FAQItem } from '../components/course/FAQAccordion';
-import type { PricingPlan } from '../components/course/PricingCard';
-import type { Review } from '../components/course/ReviewsList';
-import type { Trainer } from '../components/course/TrainerCard';
+// Type Definitions moved from components
+export interface Batch {
+  id: string;
+  startDate: string;
+  time: string;
+  timezone: string;
+  seatsLeft: number;
+  isWaitlist?: boolean;
+}
+
+export type CurriculumItemType = 'LIVE' | 'RECORDED' | 'NEW';
+
+export interface CurriculumItem {
+  title: string;
+  duration: string;
+  type: CurriculumItemType;
+}
+
+export interface CurriculumModule {
+  id: string;
+  weekLabel: string;
+  title: string;
+  summary: string;
+  items: CurriculumItem[];
+}
+
+export interface FAQItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export interface PricingPlan {
+  id: string;
+  name: string;
+  price: string;
+  description: string;
+  features: string[];
+  isBestValue?: boolean;
+  discountLabel?: string;
+}
+
+export interface Review {
+  id: string;
+  name: string;
+  role: string;
+  rating: number;
+  quote: string;
+}
+
+export interface Trainer {
+  id: string;
+  name: string;
+  role: string;
+  bio: string;
+  avatarUrl: string;
+  linkedinUrl?: string;
+  twitterUrl?: string;
+}
 import { useEffect, useState } from 'react';
 
 export interface CourseData {
