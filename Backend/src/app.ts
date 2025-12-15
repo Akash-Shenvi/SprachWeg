@@ -22,7 +22,7 @@ app.use(express.json());
 
 import itemRoutes from './routes/item.routes';
 import authRoutes from './routes/auth.routes';
-import skillRoutes from './routes/skillCourse.route';
+import skillRoutes from './routes/skillCourse.routes';
 
 // ... (middlewares)
 
