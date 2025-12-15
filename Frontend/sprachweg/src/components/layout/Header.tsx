@@ -38,16 +38,18 @@ const Header: React.FC = () => {
 
                         {/* Language Training Dropdown */}
                         <div className="relative group">
-                            <button className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-3 py-2 flex items-center gap-1">
+                            <Link
+                                to="/language-training"
+                                className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-3 py-2 flex items-center gap-1"
+                            >
                                 Language Training
                                 <ChevronDown className="w-4 h-4" />
-                            </button>
+                            </Link>
                             <div className="absolute left-0 mt-0 w-48 bg-white dark:bg-[#0a192f] border border-gray-100 dark:border-gray-800 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                                <Link to="#" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">English Training</Link>
-                                <Link to="#" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Spanish Classes</Link>
-                                <Link to="#" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">French Courses</Link>
-                                <Link to="#" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">German A1-B2</Link>
-                                <Link to="#" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Japanese & Chinese</Link>
+                                <Link to="/language-details/english" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">English Training</Link>
+                                <Link to="/language-details/german" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">German Training</Link>
+                                <Link to="/language-details/japanese" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Japanese Training</Link>
+                                <Link to="/language-training" className="block px-4 py-2 text-[#d6b161] font-medium text-sm border-t border-gray-100 dark:border-gray-800">View All Languages →</Link>
                             </div>
                         </div>
 
@@ -142,20 +144,20 @@ const Header: React.FC = () => {
                         <div className="px-4 py-4 space-y-2">
                             <Link to="/" className="block text-gray-700 dark:text-gray-300 font-medium py-2 text-sm" onClick={() => setIsMenuOpen(false)}>Home</Link>
 
-                            <button
-                                onClick={() => toggleDropdown('language')}
+                            <Link
+                                to="/language-training"
                                 className="w-full text-left text-gray-700 dark:text-gray-300 font-medium py-2 text-sm flex items-center justify-between"
+                                onClick={() => { toggleDropdown('language'); }}
                             >
                                 Language Training
                                 <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === 'language' ? 'rotate-180' : ''}`} />
-                            </button>
+                            </Link>
                             {openDropdown === 'language' && (
                                 <div className="bg-gray-50 dark:bg-white/5 rounded pl-4 space-y-1">
-                                    <Link to="#" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>English Training</Link>
-                                    <Link to="#" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Spanish Classes</Link>
-                                    <Link to="#" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>French Courses</Link>
-                                    <Link to="#" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>German A1-B2</Link>
-                                    <Link to="#" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Japanese & Chinese</Link>
+                                    <Link to="/language-details/english" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>English Training</Link>
+                                    <Link to="/language-details/german" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>German Training</Link>
+                                    <Link to="/language-details/japanese" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Japanese Training</Link>
+                                    <Link to="/language-training" className="block text-[#d6b161] font-medium py-1 text-xs" onClick={() => setIsMenuOpen(false)}>View All Languages →</Link>
                                 </div>
                             )}
 

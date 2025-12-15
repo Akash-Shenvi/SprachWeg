@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import SkillDashboard from './pages/Admin/SkillDashboard';
+import LanguageTraining from './pages/LanguageTraining';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -63,6 +64,7 @@ const App = () => {
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
+              <Route path="/language-training" element={<LanguageTraining />} />
               <Route
                 path="/login"
                 element={
