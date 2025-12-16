@@ -23,13 +23,13 @@ const ForgotPasswordPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
+        <div className="min-h-screen bg-white dark:bg-[#0a192f] font-sans">
             <Header />
             <a href="#main" className="sr-only focus:not-sr-only">Skip to content</a>
 
             <main id="main" role="main" className="min-h-screen pt-20 flex">
                 {/* Left Panel - Hero */}
-                <div className="hidden lg:flex lg:w-1/2 bg-[#0e5cad] text-white p-16 flex-col justify-between relative overflow-hidden">
+                <div className="hidden lg:flex lg:w-1/2 bg-[#0a192f] text-white p-16 flex-col justify-between relative overflow-hidden">
                     {/* Decorative Elements */}
                     <div className="absolute top-12 right-12 w-32 h-32 border border-white/20 rounded-3xl transform rotate-12" />
                     <div className="absolute bottom-12 left-12 w-24 h-24 border border-white/10 rounded-full" />
@@ -38,7 +38,7 @@ const ForgotPasswordPage: React.FC = () => {
                     <div className="relative z-10">
                         <div className="flex items-center gap-3 mb-12">
                             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
-                                <span className="text-[#0e5cad] font-serif font-bold text-xl">S</span>
+                                <span className="text-[#0a192f] font-serif font-bold text-xl">S</span>
                             </div>
                             <span className="font-serif font-bold text-xl tracking-wide">SOVIR Akademie</span>
                         </div>
@@ -95,10 +95,10 @@ const ForgotPasswordPage: React.FC = () => {
                 <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative">
                     {/* Mobile Header (Visible only on small screens) */}
                     <div className="lg:hidden absolute top-4 left-8 flex items-center gap-2">
-                        <div className="w-8 h-8 bg-[#0e5cad] rounded-lg flex items-center justify-center text-white">
+                        <div className="w-8 h-8 bg-[#0a192f] rounded-lg flex items-center justify-center text-white">
                             <span className="font-serif font-bold">S</span>
                         </div>
-                        <span className="font-serif font-bold text-[#0e5cad] dark:text-white">SOVIR</span>
+                        <span className="font-serif font-bold text-[#0a192f] dark:text-white">SOVIR</span>
                     </div>
 
                     <div className="w-full max-w-md">
@@ -111,10 +111,10 @@ const ForgotPasswordPage: React.FC = () => {
                             {!success ? (
                                 <>
                                     <div className="mb-8 text-center">
-                                        <div className="w-16 h-16 bg-[#0e5cad]/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-[#0e5cad]">
+                                        <div className="w-16 h-16 bg-[#d6b161]/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-[#d6b161]">
                                             <Mail className="w-8 h-8" />
                                         </div>
-                                        <h2 className="font-serif text-3xl font-bold text-[#0e5cad] dark:text-white mb-3">Forgot Password?</h2>
+                                        <h2 className="font-serif text-3xl font-bold text-[#0a192f] dark:text-white mb-3">Forgot Password?</h2>
                                         <p className="text-gray-500 dark:text-gray-400">
                                             Enter your email address and we'll send you a link to reset your password.
                                         </p>
@@ -133,7 +133,7 @@ const ForgotPasswordPage: React.FC = () => {
                                                     id="email"
                                                     type="email"
                                                     placeholder="you@example.com"
-                                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pl-10 text-gray-900 placeholder:text-gray-400 transition-all focus:outline-none focus:ring-2 focus:ring-[#0e5cad] focus:bg-white dark:bg-gray-900 dark:border-gray-700 dark:text-white"
+                                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pl-10 text-gray-900 placeholder:text-gray-400 transition-all focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:bg-white dark:bg-gray-900 dark:border-gray-700 dark:text-white"
                                                     value={email}
                                                     onChange={(e) => setEmail(e.target.value)}
                                                     required
@@ -143,7 +143,7 @@ const ForgotPasswordPage: React.FC = () => {
 
                                         <Button
                                             type="submit"
-                                            className="w-full bg-[#0e5cad] hover:bg-[#0a4a82] text-white py-3.5 rounded-xl font-semibold shadow-lg shadow-blue-900/10 flex items-center justify-center gap-2"
+                                            className="w-full bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] py-3.5 rounded-xl font-semibold shadow-lg shadow-amber-900/10 flex items-center justify-center gap-2"
                                             disabled={loading}
                                             data-testid="reset-button"
                                         >
@@ -163,7 +163,7 @@ const ForgotPasswordPage: React.FC = () => {
                                         <div className="text-center">
                                             <Link
                                                 to="/login"
-                                                className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#0e5cad] font-medium transition-colors"
+                                                className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#d6b161] font-medium transition-colors"
                                             >
                                                 <ArrowLeft className="w-4 h-4" />
                                                 Back to Login
@@ -201,7 +201,7 @@ const ForgotPasswordPage: React.FC = () => {
                                         <div className="pt-4">
                                             <Link
                                                 to="/login"
-                                                className="text-sm text-[#0e5cad] font-semibold hover:underline"
+                                                className="text-sm text-[#d6b161] font-semibold hover:underline"
                                             >
                                                 Back to Sign In
                                             </Link>
