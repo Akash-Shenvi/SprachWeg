@@ -9,14 +9,16 @@ const Footer: React.FC = () => {
     return (
         <footer className="bg-[#050c18] text-white pt-16 pb-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Main Grid - 4 Columns matching image layout */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+                {/* Main Grid - 5 Columns with equal spacing */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12 mb-16">
                     {/* Column 1: Company Info */}
-                    <div className="space-y-6 lg:pr-4">
+                    <div className="space-y-6 lg:col-span-1">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-[#d6b161] flex items-center justify-center flex-shrink-0">
-                                <span className="font-serif font-bold text-xl text-[#0a192f]">S</span>
-                            </div>
+                            <img
+                                src="/src/assets/sovir-logo.png"
+                                alt="SoVir Logo"
+                                className="h-10 w-auto object-contain"
+                            />
                             <div>
                                 <span className="font-serif font-bold text-lg leading-tight text-white block">SoVir Academy</span>
                                 <span className="text-xs tracking-wider text-gray-400">A Division of SoVir Technologies LLP</span>
@@ -66,28 +68,28 @@ const Footer: React.FC = () => {
                         </ul>
                     </div>
 
-                    {/* Column 4: Company & Resources - SIDE BY SIDE as in image */}
-                    <div className="grid grid-cols-2 gap-8">
-                        <div>
-                            <h3 className="font-bold text-white mb-6 text-base">Company</h3>
-                            <ul className="space-y-3 text-sm text-gray-400">
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">About Us</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Our Team</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Careers at SoVir</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Press & Media</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Contact</Link></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-white mb-6 text-base">Resources</h3>
-                            <ul className="space-y-3 text-sm text-gray-400">
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Student Dashboard</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Knowledge Base</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Blog</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Events</Link></li>
-                                <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Partner With Us</Link></li>
-                            </ul>
-                        </div>
+                    {/* Column 4: Company */}
+                    <div>
+                        <h3 className="font-bold text-white mb-6 text-base">Company</h3>
+                        <ul className="space-y-3 text-sm text-gray-400">
+                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">About Us</Link></li>
+                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Our Team</Link></li>
+                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Careers at SoVir</Link></li>
+                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Press & Media</Link></li>
+                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Contact</Link></li>
+                        </ul>
+                    </div>
+
+                    {/* Column 5: Resources */}
+                    <div>
+                        <h3 className="font-bold text-white mb-6 text-base">Resources</h3>
+                        <ul className="space-y-3 text-sm text-gray-400">
+                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Student Dashboard</Link></li>
+                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Knowledge Base</Link></li>
+                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Blog</Link></li>
+                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Events</Link></li>
+                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Partner With Us</Link></li>
+                        </ul>
                     </div>
                 </div>
 

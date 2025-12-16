@@ -39,9 +39,11 @@ const Header: React.FC = () => {
                 <div className="flex justify-between items-center h-16">
                     {/* Logo */}
                     <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-                        <div className="w-8 h-8 rounded-full bg-[#d6b161] flex items-center justify-center flex-shrink-0">
-                            <span className="font-serif font-bold text-lg text-[#0a192f]">S</span>
-                        </div>
+                        <img
+                            src="/src/assets/sovir-logo.png"
+                            alt="SoVir Logo"
+                            className="h-8 w-auto object-contain"
+                        />
                         <span className="font-serif font-bold text-base lg:text-lg text-gray-900 dark:text-white">SoVir Academy</span>
                     </Link>
 
