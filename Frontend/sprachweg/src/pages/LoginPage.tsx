@@ -64,12 +64,7 @@ const LoginPage: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
 
                     <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-12">
-                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
-                                <span className="text-[#0a192f] font-sans font-bold text-xl">S</span>
-                            </div>
-                            <span className="font-sans font-bold text-xl tracking-wide">SOVIR Academy</span>
-                        </div>
+
 
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}

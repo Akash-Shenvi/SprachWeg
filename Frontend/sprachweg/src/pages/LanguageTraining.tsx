@@ -69,10 +69,10 @@ const AnimatedSection: React.FC<{ children: React.ReactNode; className?: string 
 
 // Stats data
 const stats = [
-    { icon: Users, value: '10,000+', label: 'Active Students' },
-    { icon: Award, value: '95%', label: 'Success Rate' },
-    { icon: Globe, value: '50+', label: 'Countries' },
-    { icon: Building2, value: '120+', label: 'Partner Companies' }
+    { icon: Users, value: '30+', label: 'Active Students' },
+    { icon: Award, value: '76%', label: 'Success Rate' },
+    { icon: Globe, value: '3+', label: 'Countries' },
+    { icon: Building2, value: '5', label: 'Partner Companies' }
 ];
 
 // Language cards data
