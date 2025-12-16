@@ -9,13 +9,13 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
-import TrainerDashboard from './pages/TrainerDashboard';
 import SkillDashboard from './pages/Admin/SkillDashboard';
 import LanguageTraining from './pages/LanguageTraining';
 import CourseEnglishPage from './pages/CourseEnglishPage';
 import CourseGermanPage from './pages/CourseGermanPage';
 import CourseJapanesePage from './pages/CourseJapanesePage';
 import NotFound404 from './pages/NotFound404';
+
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -101,15 +101,6 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/trainer-dashboard"
-                element={
-                  <ProtectedRoute>
-                    <TrainerDashboard />
-                  </ProtectedRoute>
-                }
-              />
-
               {/* Admin Routes */}
               <Route
                 path="/admin/skills"
