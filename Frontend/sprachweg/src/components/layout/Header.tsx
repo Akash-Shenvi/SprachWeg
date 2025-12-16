@@ -1,5 +1,5 @@
 // Header.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Sun, Moon, ChevronDown } from 'lucide-react';
@@ -10,13 +10,31 @@ const Header: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const { theme, toggleTheme } = useTheme();
+    const navRef = useRef<HTMLElement>(null);
 
     const toggleDropdown = (dropdown: string) => {
         setOpenDropdown(openDropdown === dropdown ? null : dropdown);
     };
 
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (navRef.current && !navRef.current.contains(event.target as Node)) {
+                setOpenDropdown(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside as unknown as EventListener);
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside as unknown as EventListener);
+        };
+    }, []);
+
     return (
-        <nav className="fixed w-full z-50 bg-white/90 dark:bg-[#0a192f]/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
+        <nav ref={navRef} className="fixed w-full z-50 bg-white/90 dark:bg-[#0a192f]/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
                     {/* Logo */}
@@ -38,14 +56,14 @@ const Header: React.FC = () => {
 
                         {/* Language Training Mega Menu */}
                         <div className="relative group">
-                            <Link
-                                to="/language-training"
+                            <button
+                                onClick={() => toggleDropdown('language-desktop')}
                                 className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-3 py-2 flex items-center gap-1"
                             >
                                 Language Training
-                                <ChevronDown className="w-4 h-4" />
-                            </Link>
-                            <div className="absolute left-0 top-full mt-2 w-[650px] bg-white/95 dark:bg-[#0a192f]/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === 'language-desktop' ? 'rotate-180' : ''}`} />
+                            </button>
+                            <div className={`absolute left-0 top-full mt-2 w-[650px] bg-white/95 dark:bg-[#0a192f]/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl transition-all duration-200 z-50 ${openDropdown === 'language-desktop' ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'}`}>
                                 <div className="grid grid-cols-3 gap-6 p-6">
                                     {/* LANGUAGES Column */}
                                     <div>
@@ -154,11 +172,14 @@ const Header: React.FC = () => {
 
                         {/* Skill Training Mega Menu */}
                         <div className="relative group">
-                            <button className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-3 py-2 flex items-center gap-1">
+                            <button
+                                onClick={() => toggleDropdown('skill-desktop')}
+                                className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-3 py-2 flex items-center gap-1"
+                            >
                                 Skill Training
-                                <ChevronDown className="w-4 h-4" />
+                                <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === 'skill-desktop' ? 'rotate-180' : ''}`} />
                             </button>
-                            <div className="absolute left-0 top-full mt-2 w-[750px] bg-white/95 dark:bg-[#0a192f]/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <div className={`absolute left-0 top-full mt-2 w-[750px] bg-white/95 dark:bg-[#0a192f]/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl transition-all duration-200 z-50 ${openDropdown === 'skill-desktop' ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'}`}>
                                 <div className="grid grid-cols-3 gap-6 p-6">
                                     {/* INDUSTRIAL AUTOMATION Column */}
                                     <div>
@@ -276,11 +297,14 @@ const Header: React.FC = () => {
 
                         {/* Career Abroad Mega Menu */}
                         <div className="relative group">
-                            <button className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-3 py-2 flex items-center gap-1">
+                            <button
+                                onClick={() => toggleDropdown('career-desktop')}
+                                className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-3 py-2 flex items-center gap-1"
+                            >
                                 Career Abroad
-                                <ChevronDown className="w-4 h-4" />
+                                <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === 'career-desktop' ? 'rotate-180' : ''}`} />
                             </button>
-                            <div className="absolute left-0 top-full mt-2 w-[650px] bg-white/95 dark:bg-[#0a192f]/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <div className={`absolute left-0 top-full mt-2 w-[650px] bg-white/95 dark:bg-[#0a192f]/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl transition-all duration-200 z-50 ${openDropdown === 'career-desktop' ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'}`}>
                                 <div className="grid grid-cols-3 gap-6 p-6">
                                     {/* DESTINATIONS Column */}
                                     <div>
