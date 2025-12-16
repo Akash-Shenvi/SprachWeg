@@ -1,535 +1,480 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
-    Users, Calendar, CheckSquare, DollarSign,
-    MoreHorizontal, Search, X, Filter,
-    Video, Edit3, FileText, Send, Clock
+    BookOpen,
+    Users,
+    Video,
+    Upload,
+    FileText,
+    TrendingUp,
+    DollarSign,
+    Bell,
+    Calendar,
+    CheckSquare,
+    Clock,
+    Play,
+    StopCircle,
+    Download,
+    Edit,
+    MessageSquare,
+    BarChart
 } from 'lucide-react';
+import Header from '../components/layout/Header';
+import Footer from '../components/layout/Footer';
 
-import { Header } from '../components/layout';
-import { dashboardAPI, enrollmentAPI } from '../lib/api';
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
 
-// --- Types ---
-
-interface Student {
+interface TrainerCourse {
     id: string;
     name: string;
-    email: string;
-    attendance: number;
-    lastActive: string;
-    status: 'active' | 'at-risk' | 'inactive';
+    students: number;
+    batches: number;
+    nextSession: string;
+    status: 'active' | 'paused';
 }
 
-interface PendingEnrollment {
-    _id: string;
-    studentId: { _id: string; name: string; email: string };
-    courseId: { _id: string; title: string };
-    createdAt: string;
+interface LiveSession {
+    id: string;
+    courseName: string;
+    batch: string;
+    scheduledTime: string;
+    isLive: boolean;
+    studentCount?: number;
 }
 
-interface Batch {
+interface StudentPerformance {
     id: string;
     name: string;
     course: string;
-    students: number;
     attendance: number;
-    nextClass: string;
+    lastGrade: string;
 }
 
-interface ClassSession {
+interface PendingGrading {
     id: string;
-    title: string;
-    time: string;
-    batch: string;
-    attendees: number;
-    status: 'upcoming' | 'live' | 'completed';
+    studentName: string;
+    assignment: string;
+    course: string;
+    submittedDate: string;
 }
 
-interface TrainerDashboardData {
-    stats: {
-        totalStudents: number;
-        avgAttendance: number;
-        earnings: number;
-    };
-    batches: Batch[];
-    upcomingClasses: ClassSession[];
-    students: Student[];
-}
+// ============================================================================
+// MOCK DATA
+// ============================================================================
 
-// --- Framer Motion Variants ---
-
-const variants = {
-    pageEntry: {
-        initial: { opacity: 0, y: 12 },
-        enter: { opacity: 1, y: 0, transition: { duration: 0.32, ease: [0.2, 0.8, 0.2, 1] as const } },
+const mockCourses: TrainerCourse[] = [
+    {
+        id: 'course-1',
+        name: 'German A2 - Batch 5',
+        students: 24,
+        batches: 3,
+        nextSession: '2025-12-17 10:00 AM',
+        status: 'active'
     },
-    tableRowHover: {
-        rest: { scale: 1, y: 0, zIndex: 1, boxShadow: "0 0 0 rgba(0,0,0,0)" },
-        hover: { scale: 1.01, y: -2, zIndex: 10, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)", transition: { duration: 0.2 } }
-    },
-    drawerOpen: {
-        closed: { x: "100%", opacity: 0, transition: { duration: 0.2 } },
-        open: { x: 0, opacity: 1, transition: { duration: 0.32, ease: [0.2, 0.8, 0.2, 1] as const } }
+    {
+        id: 'course-2',
+        name: 'German B1 - Batch 3',
+        students: 18,
+        batches: 2,
+        nextSession: '2025-12-18 2:00 PM',
+        status: 'active'
     }
+];
+
+const mockLiveSession: LiveSession = {
+    id: 'session-1',
+    courseName: 'German A2',
+    batch: 'Batch 5',
+    scheduledTime: '10:00 AM',
+    isLive: false
 };
 
-// --- Components ---
+const mockStudents: StudentPerformance[] = [
+    { id: '1', name: 'John Doe', course: 'German A2', attendance: 95, lastGrade: 'A' },
+    { id: '2', name: 'Jane Smith', course: 'German A2', attendance: 88, lastGrade: 'B+' },
+    { id: '3', name: 'Mike Johnson', course: 'German B1', attendance: 92, lastGrade: 'A-' }
+];
 
-const StatCard: React.FC<{ title: string; value: string; subtext: string; icon: any; color: string }> = ({ title, value, subtext, icon: Icon, color }) => (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-        <div className="flex items-start justify-between mb-4">
-            <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{value}</h3>
-            </div>
-            <div className={`p-3 rounded-xl ${color} bg-opacity-10 text-opacity-100`}>
-                <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />
-            </div>
-        </div>
-        <div className="flex items-center text-sm text-green-600 font-medium">
-            <span className="bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full text-xs mr-2">
-                +12%
-            </span>
-            {subtext}
-        </div>
-    </div>
-);
-
-const BatchCard: React.FC<{ batch: Batch }> = ({ batch }) => (
-    <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
-        <div className="flex justify-between items-start mb-4">
-            <div>
-                <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-1 rounded-md inline-block mb-2">
-                    {batch.course}
-                </div>
-                <h3 className="font-bold text-gray-900 dark:text-white text-lg">{batch.name}</h3>
-            </div>
-            <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                <MoreHorizontal className="w-5 h-5" />
-            </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Students</div>
-                <div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Users className="w-4 h-4 text-gray-400" />
-                    {batch.students}
-                </div>
-            </div>
-            <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Attendance</div>
-                <div className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <CheckSquare className="w-4 h-4 text-green-500" />
-                    {batch.attendance}%
-                </div>
-            </div>
-        </div>
-
-        <div className="flex items-center justify-between text-sm border-t border-gray-100 dark:border-gray-700 pt-4">
-            <span className="text-gray-500 flex items-center gap-2">
-                <Calendar className="w-4 h-4" /> {batch.nextClass}
-            </span>
-            <button className="text-indigo-600 font-semibold hover:underline">Manage</button>
-        </div>
-    </div>
-);
-
-const GradingDrawer: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => (
-    <AnimatePresence>
-        {isOpen && (
-            <>
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.5 }}
-                    exit={{ opacity: 0 }}
-                    onClick={onClose}
-                    className="fixed inset-0 bg-black z-40"
-                />
-                <motion.div
-                    variants={variants.drawerOpen}
-                    initial="closed"
-                    animate="open"
-                    exit="closed"
-                    className="fixed top-0 right-0 h-full w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl z-50 overflow-y-auto"
-                >
-                    <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm z-10">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Grading Assignment</h2>
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-                            <X className="w-6 h-6 text-gray-500" />
-                        </button>
-                    </div>
-
-                    <div className="p-6 space-y-8">
-                        {/* Student Info */}
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold">RV</div>
-                            <div>
-                                <h3 className="font-bold text-gray-900 dark:text-white">Rahul Verma</h3>
-                                <p className="text-sm text-gray-500">Submitted 2h ago • 3 Attachments</p>
-                            </div>
-                        </div>
-
-                        {/* Submission Viewing */}
-                        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border-2 border-dashed border-gray-200 dark:border-gray-700 min-h-[300px] flex items-center justify-center flex-col text-gray-400">
-                            <FileText className="w-12 h-12 mb-2 opacity-50" />
-                            <p>PDF Preview Component Placeholder</p>
-                            <button className="mt-4 px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg shadow-sm text-sm font-medium">Download Submission</button>
-                        </div>
-
-                        {/* Grading Tools */}
-                        <div className="space-y-4">
-                            <h4 className="font-bold text-gray-900 dark:text-white">Feedback & Score</h4>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Private Note</label>
-                                <textarea
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow"
-                                    rows={4}
-                                    placeholder="Write constructive feedback here..."
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Score (out of 100)</label>
-                                <div className="flex items-center gap-4">
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-                                    />
-                                    <input
-                                        type="number"
-                                        className="w-20 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-center font-bold"
-                                        placeholder="0"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="p-6 border-t border-gray-200 dark:border-gray-800 sticky bottom-0 bg-white dark:bg-gray-900">
-                        <div className="flex gap-4">
-                            <button className="flex-1 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors">
-                                Publish Grade
-                            </button>
-                            <button onClick={onClose} className="px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                                Save Draft
-                            </button>
-                        </div>
-                    </div>
-                </motion.div>
-            </>
-        )}
-    </AnimatePresence>
-);
-
-// --- Main Trainer Dashboard Component ---
-
-const TrainerDashboard: React.FC = () => {
-    const [isGradingOpen, setIsGradingOpen] = useState(false);
-    const [data, setData] = useState<TrainerDashboardData | null>(null);
-    const [pendingEnrollments, setPendingEnrollments] = useState<PendingEnrollment[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    const fetchDashboard = async () => {
-        try {
-            const result = await dashboardAPI.getTrainerData();
-            setData(result);
-            const pending = await enrollmentAPI.getPending();
-            setPendingEnrollments(pending);
-        } catch (error) {
-            console.error("Failed to fetch trainer dashboard", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchDashboard();
-    }, []);
-
-    const handleAcceptEnrollment = async (enrollmentId: string) => {
-        try {
-            await enrollmentAPI.accept(enrollmentId);
-            // Refresh data
-            fetchDashboard();
-            alert('Student enrolled successfully!');
-        } catch (error) {
-            console.error("Failed to accept enrollment", error);
-            alert('Failed to accept enrollment');
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-                <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-        );
+const mockPendingGrading: PendingGrading[] = [
+    {
+        id: 'grade-1',
+        studentName: 'John Doe',
+        assignment: 'Essay on German Culture',
+        course: 'German A2',
+        submittedDate: '2025-12-15'
+    },
+    {
+        id: 'grade-2',
+        studentName: 'Jane Smith',
+        assignment: 'Grammar Exercise Set 3',
+        course: 'German A2',
+        submittedDate: '2025-12-14'
     }
+];
 
+// ============================================================================
+// COMPONENTS
+// ============================================================================
+
+const StatCard: React.FC<{
+    icon: React.ReactNode;
+    label: string;
+    value: string | number;
+    trend?: string;
+}> = ({ icon, label, value, trend }) => {
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans">
-            <Header />
-
-            <motion.div
-                variants={variants.pageEntry}
-                initial="initial"
-                animate="enter"
-                className="max-w-[1600px] mx-auto pt-24 pb-12 px-4 sm:px-6 lg:px-8"
-            >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Trainer Dashboard</h1>
-                        <p className="text-gray-500 dark:text-gray-400">Manage your batches, classes, and student performance.</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <button className="px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
-                            <Calendar className="w-4 h-4" /> Schedule
-                        </button>
-                        <button className="px-5 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl shadow-md hover:bg-indigo-700 transition-colors flex items-center gap-2">
-                            <Video className="w-4 h-4" /> Start Live Class
-                        </button>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-12 gap-8">
-
-                    {/* LEFT CONTENT (Main Stats & Tables) */}
-                    <div className="col-span-12 lg:col-span-9 space-y-8">
-
-                        {/* Stats Row */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <StatCard
-                                title="Total Students"
-                                value={data?.stats.totalStudents.toString() || "0"}
-                                subtext="vs last month"
-                                icon={Users}
-                                color="bg-blue-500"
-                            />
-                            <StatCard
-                                title="Avg. Attendance"
-                                value={`${data?.stats.avgAttendance || 0}%`}
-                                subtext="vs last month"
-                                icon={CheckSquare}
-                                color="bg-green-500"
-                            />
-                            <StatCard
-                                title="Est. Earnings"
-                                value={`€ ${data?.stats.earnings || 0}`}
-                                subtext="this month"
-                                icon={DollarSign}
-                                color="bg-purple-500"
-                            />
-                        </div>
-
-                        {/* Pending Enrollments Section */}
-                        {pendingEnrollments.length > 0 && (
-                            <section className="bg-yellow-50 dark:bg-yellow-900/10 rounded-2xl border border-yellow-100 dark:border-yellow-900/30 p-6">
-                                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Pending Enrollment Requests</h2>
-                                <div className="space-y-3">
-                                    {pendingEnrollments.map(req => (
-                                        <div key={req._id} className="bg-white dark:bg-gray-800 p-4 rounded-xl flex items-center justify-between shadow-sm">
-                                            <div>
-                                                <h4 className="font-bold text-gray-900 dark:text-white">{req.studentId.name}</h4>
-                                                <p className="text-xs text-gray-500">Requesting: {req.courseId.title}</p>
-                                                <p className="text-xs text-gray-400">{req.studentId.email}</p>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => handleAcceptEnrollment(req._id)}
-                                                    className="px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700"
-                                                >
-                                                    Accept
-                                                </button>
-                                                <button className="px-4 py-2 bg-red-100 text-red-600 text-xs font-bold rounded-lg hover:bg-red-200">
-                                                    Reject
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-                        )}
-
-
-                        {/* Active Batches */}
-                        <section>
-                            <h2 className="text-xl font-bold mb-4 flex items-center justify-between">
-                                Active Batches
-                                <button className="text-sm text-indigo-600 font-semibold hover:underline">View All</button>
-                            </h2>
-                            <div className="grid md:grid-cols-2 gap-6">
-                                {data?.batches.map(batch => (
-                                    <BatchCard key={batch.id} batch={batch} />
-                                ))}
-                                {(!data?.batches || data.batches.length === 0) && (
-                                    <div className="col-span-2 text-center text-gray-500 py-8 bg-white dark:bg-gray-800 rounded-xl">
-                                        No active batches found.
-                                    </div>
-                                )}
-                            </div>
-                        </section>
-
-                        {/* Student Performance Table */}
-                        <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm">
-                            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <h2 className="text-lg font-bold">Student Performance</h2>
-                                <div className="flex items-center gap-3">
-                                    <div className="relative">
-                                        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                                        <input
-                                            type="text"
-                                            placeholder="Search student..."
-                                            className="pl-9 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-64"
-                                        />
-                                    </div>
-                                    <button className="p-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
-                                        <Filter className="w-4 h-4 text-gray-500" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                    <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 text-xs uppercase text-gray-500 font-semibold">
-                                        <tr>
-                                            <th className="px-6 py-4">Student Name</th>
-                                            <th className="px-6 py-4">Status</th>
-                                            <th className="px-6 py-4">Attendance</th>
-                                            <th className="px-6 py-4">Last Active</th>
-                                            <th className="px-6 py-4 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                                        {data?.students.map(student => (
-                                            <motion.tr
-                                                key={student.id}
-                                                variants={variants.tableRowHover}
-                                                initial="rest"
-                                                whileHover="hover"
-                                                className="bg-white dark:bg-gray-800"
-                                            >
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-700">
-                                                            {student.name.charAt(0)}
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-semibold text-gray-900 dark:text-gray-100">{student.name}</div>
-                                                            <div className="text-xs text-gray-500">{student.email}</div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${student.status === 'active' ? 'bg-green-100 text-green-700' :
-                                                        student.status === 'at-risk' ? 'bg-orange-100 text-orange-700' :
-                                                            'bg-gray-100 text-gray-600'
-                                                        }`}>
-                                                        {student.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                                                            <div
-                                                                className={`h-1.5 rounded-full ${student.attendance > 90 ? 'bg-green-500' : student.attendance > 75 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                                                                style={{ width: `${student.attendance}%` }}
-                                                            />
-                                                        </div>
-                                                        <span className="text-sm font-medium">{student.attendance}%</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-gray-500">
-                                                    {student.lastActive}
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <button
-                                                        onClick={() => setIsGradingOpen(true)}
-                                                        className="text-indigo-600 hover:text-indigo-800 font-medium text-sm mr-4"
-                                                    >
-                                                        Details
-                                                    </button>
-                                                </td>
-                                            </motion.tr>
-                                        ))}
-                                        {(!data?.students || data.students.length === 0) && (
-                                            <tr>
-                                                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                                                    No students found in active batches.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex justify-center">
-                                <button className="text-sm text-gray-500 font-medium hover:text-gray-700">View All Students</button>
-                            </div>
-                        </section>
-                    </div>
-
-                    {/* RIGHT SIDEBAR (Quick Ops) */}
-                    <div className="col-span-12 lg:col-span-3 space-y-6">
-
-                        {/* Upcoming Classes */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
-                            <h3 className="font-bold text-gray-900 dark:text-white mb-4">Upcoming Classes</h3>
-                            <div className="space-y-4">
-                                {data?.upcomingClasses.map(cls => (
-                                    <div key={cls.id} className="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700/50">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded uppercase">
-                                                {cls.batch}
-                                            </span>
-                                            <button className="text-gray-400 hover:text-gray-600">
-                                                <MoreHorizontal className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1">{cls.title}</h4>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1">
-                                            <Clock className="w-3 h-3" /> {new Date(cls.time).toLocaleString()}
-                                        </p>
-                                        <button className="w-full py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors">
-                                            Start Class
-                                        </button>
-                                    </div>
-                                ))}
-                                {(!data?.upcomingClasses || data.upcomingClasses.length === 0) && (
-                                    <div className="text-center text-gray-500 text-sm">
-                                        No upcoming classes.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Quick Notes */}
-                        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 rounded-2xl p-6 border border-yellow-100 dark:border-yellow-900/30">
-                            <h3 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                <Edit3 className="w-4 h-4 text-orange-500" /> Quick Note
-                            </h3>
-                            <textarea
-                                className="w-full p-3 rounded-xl bg-white dark:bg-gray-800 border-none shadow-sm text-sm mb-3 focus:ring-2 focus:ring-orange-200 outline-none"
-                                rows={3}
-                                placeholder="Jot down a reminder or announcement..."
-                            />
-                            <div className="flex justify-end">
-                                <button className="p-2 bg-orange-500 text-white rounded-lg shadow-sm hover:bg-orange-600 transition-colors">
-                                    <Send className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </motion.div>
-
-            {/* Drawers & Modals */}
-            <GradingDrawer isOpen={isGradingOpen} onClose={() => setIsGradingOpen(false)} />
-
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+            <div className="mb-2 flex items-center justify-between">
+                <div className="rounded-lg bg-[#d6b161]/10 p-2 text-[#d6b161]">{icon}</div>
+                {trend && <span className="text-xs font-semibold text-green-500">{trend}</span>}
+            </div>
+            <p className="mb-1 text-3xl font-bold text-[#0a192f] dark:text-white">{value}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{label}</p>
         </div>
     );
 };
+
+const CourseManagementCard: React.FC<{ course: TrainerCourse }> = ({ course }) => {
+    const shouldReduceMotion = useReducedMotion();
+
+    return (
+        <motion.div
+            whileHover={shouldReduceMotion ? {} : { y: -4 }}
+            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-lg dark:border-gray-700 dark:bg-gray-800"
+        >
+            <div className="mb-4 flex items-start justify-between">
+                <div>
+                    <h3 className="mb-1 text-xl font-bold text-[#0a192f] dark:text-white">{course.name}</h3>
+                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                        <span className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            {course.students} students
+                        </span>
+                        <span className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {course.batches} batches
+                        </span>
+                    </div>
+                </div>
+                <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${course.status === 'active'
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400'
+                        }`}
+                >
+                    {course.status}
+                </span>
+            </div>
+
+            <div className="mb-4 rounded-lg bg-gray-50 p-3 dark:bg-gray-700/50">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <Clock className="mr-1 inline h-4 w-4 text-[#d6b161]" />
+                    Next session: {course.nextSession}
+                </p>
+            </div>
+
+            <div className="flex gap-2">
+                <button className="flex-1 rounded-lg bg-[#d6b161] px-4 py-2 text-sm font-semibold text-[#0a192f] transition-colors hover:bg-[#c4a055]">
+                    Manage Batch
+                </button>
+                <button className="flex-1 rounded-lg border-2 border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-[#d6b161] hover:text-[#d6b161] dark:border-gray-600 dark:text-gray-300">
+                    <Edit className="mr-1 inline h-4 w-4" />
+                    Edit Course
+                </button>
+            </div>
+        </motion.div>
+    );
+};
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+const TrainerDashboard: React.FC = () => {
+    const [courses] = useState<TrainerCourse[]>(mockCourses);
+    const [liveSession, setLiveSession] = useState<LiveSession>(mockLiveSession);
+    const [students] = useState<StudentPerformance[]>(mockStudents);
+    const [pendingGrading] = useState<PendingGrading[]>(mockPendingGrading);
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+    const shouldReduceMotion = useReducedMotion();
+
+    const handleStartLiveClass = () => {
+        // TODO: Integrate with backend
+        if (typeof (window as any).api?.startLiveClass === 'function') {
+            (window as any).api.startLiveClass(liveSession.id);
+        } else {
+            setLiveSession({ ...liveSession, isLive: true, studentCount: 0 });
+            window.open(`/live-class/host/${liveSession.id}`, '_blank');
+        }
+    };
+
+    const handleStopLiveClass = () => {
+        if (typeof (window as any).api?.stopLiveClass === 'function') {
+            (window as any).api.stopLiveClass(liveSession.id);
+        } else {
+            setLiveSession({ ...liveSession, isLive: false });
+        }
+    };
+
+    const handleUploadMaterial = () => {
+        // TODO: Integrate with backend
+        setShowUploadModal(true);
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            <Header />
+
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-[#0a192f] focus:px-4 focus:py-2 focus:text-white focus:outline-none focus:ring-2 focus:ring-[#d6b161]"
+            >
+                Skip to content
+            </a>
+
+            <main id="main-content" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                {/* Hero Section */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-8 rounded-2xl bg-gradient-to-br from-[#0a192f] to-[#112240] p-8 text-white"
+                >
+                    <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h1 className="mb-2 text-3xl font-bold">Trainer Dashboard</h1>
+                            <p className="text-gray-300">Manage your courses and students</p>
+                        </div>
+
+                        {/* Quick Stats */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="text-center">
+                                <p className="text-3xl font-bold">42</p>
+                                <p className="text-sm text-gray-300">Active Students</p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-3xl font-bold">5</p>
+                                <p className="text-sm text-gray-300">Live Batches</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Live Class Control */}
+                    <div className="mt-6">
+                        {!liveSession.isLive ? (
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={handleStartLiveClass}
+                                className="flex w-full items-center justify-center gap-3 rounded-xl border-2 border-[#d6b161] bg-[#d6b161]/10 p-4 font-semibold transition-colors hover:bg-[#d6b161]/20"
+                            >
+                                <Play className="h-6 w-6 text-[#d6b161]" />
+                                <span>Start Live Class: {liveSession.courseName} ({liveSession.batch})</span>
+                                <span className="text-sm text-gray-300">{liveSession.scheduledTime}</span>
+                            </motion.button>
+                        ) : (
+                            <div className="flex items-center justify-between rounded-xl border-2 border-red-500 bg-red-500/10 p-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500">
+                                        <Video className="h-5 w-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold">Live Now: {liveSession.courseName}</p>
+                                        <p className="text-sm text-gray-300">{liveSession.studentCount || 0} students joined</p>
+                                    </div>
+                                </div>
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={handleStopLiveClass}
+                                    className="flex items-center gap-2 rounded-lg bg-red-500 px-6 py-3 font-bold text-white transition-colors hover:bg-red-600"
+                                >
+                                    <StopCircle className="h-5 w-5" />
+                                    End Session
+                                </motion.button>
+                            </div>
+                        )}
+                    </div>
+                </motion.div>
+
+                {/* Stats Cards */}
+                <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    <StatCard icon={<BookOpen className="h-6 w-6" />} label="Active Courses" value={courses.length} />
+                    <StatCard icon={<Users className="h-6 w-6" />} label="Total Students" value={42} />
+                    <StatCard
+                        icon={<FileText className="h-6 w-6" />}
+                        label="Pending Grading"
+                        value={pendingGrading.length}
+                    />
+                    <StatCard icon={<DollarSign className="h-6 w-6" />} label="This Month" value="₹45,000" trend="+12%" />
+                </div>
+
+                <div className="grid gap-6 lg:grid-cols-3">
+                    {/* Main Content */}
+                    <div className="space-y-6 lg:col-span-2">
+                        {/* Course Management */}
+                        <section>
+                            <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[#0a192f] dark:text-white">
+                                <BookOpen className="h-6 w-6 text-[#d6b161]" />
+                                My Courses
+                            </h2>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {courses.map((course) => (
+                                    <CourseManagementCard key={course.id} course={course} />
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* Upload Materials */}
+                        <section className="rounded-2xl border-2 border-dashed border-gray-300 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-800">
+                            <Upload className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+                            <h3 className="mb-2 text-lg font-bold text-[#0a192f] dark:text-white">Upload Materials</h3>
+                            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                                Upload recordings, assignments, or study materials
+                            </p>
+                            <button
+                                onClick={handleUploadMaterial}
+                                className="rounded-lg bg-[#d6b161] px-6 py-3 font-semibold text-[#0a192f] transition-colors hover:bg-[#c4a055]"
+                            >
+                                Select Files
+                            </button>
+                        </section>
+
+                        {/* Student Performance */}
+                        <section>
+                            <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[#0a192f] dark:text-white">
+                                <BarChart className="h-6 w-6 text-[#d6b161]" />
+                                Student Performance
+                            </h2>
+                            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+                                <table className="w-full">
+                                    <thead className="bg-gray-50 dark:bg-gray-700">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                Student
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                Course
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                Attendance
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                                Grade
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                        {students.map((student) => (
+                                            <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                                <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
+                                                    {student.name}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{student.course}</td>
+                                                <td className="px-6 py-4 text-sm">
+                                                    <span
+                                                        className={`rounded-full px-3 py-1 text-xs font-semibold ${student.attendance >= 90
+                                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                                            }`}
+                                                    >
+                                                        {student.attendance}%
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">
+                                                    {student.lastGrade}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+
+                    {/* Sidebar */}
+                    <div className="space-y-6">
+                        {/* Pending Grading */}
+                        <section>
+                            <h3 className="mb-3 flex items-center gap-2 text-lg font-bold text-[#0a192f] dark:text-white">
+                                <CheckSquare className="h-5 w-5 text-[#d6b161]" />
+                                Pending Grading
+                                <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs text-white">
+                                    {pendingGrading.length}
+                                </span>
+                            </h3>
+                            <div className="space-y-3">
+                                {pendingGrading.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
+                                    >
+                                        <p className="mb-1 font-semibold text-gray-900 dark:text-white">{item.studentName}</p>
+                                        <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">{item.assignment}</p>
+                                        <div className="flex items-center justify-between text-xs text-gray-500">
+                                            <span>{item.course}</span>
+                                            <span>{item.submittedDate}</span>
+                                        </div>
+                                        <button className="mt-3 w-full rounded-lg bg-[#d6b161] px-4 py-2 text-sm font-semibold text-[#0a192f] hover:bg-[#c4a055]">
+                                            Grade Now
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* Quick Actions */}
+                        <section className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+                            <h3 className="mb-4 text-lg font-bold text-[#0a192f] dark:text-white">Quick Actions</h3>
+                            <div className="space-y-2">
+                                <button
+                                    onClick={() => setShowAnnouncementModal(true)}
+                                    className="flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700"
+                                >
+                                    <Bell className="h-5 w-5 text-[#d6b161]" />
+                                    <span className="text-sm font-medium">Send Announcement</span>
+                                </button>
+                                <button className="flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <Calendar className="h-5 w-5 text-[#d6b161]" />
+                                    <span className="text-sm font-medium">Schedule Session</span>
+                                </button>
+                                <button className="flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <Download className="h-5 w-5 text-[#d6b161]" />
+                                    <span className="text-sm font-medium">Export Attendance</span>
+                                </button>
+                                <button className="flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <MessageSquare className="h-5 w-5 text-[#d6b161]" />
+                                    <span className="text-sm font-medium">Message Students</span>
+                                </button>
+                            </div>
+                        </section>
+
+                        {/* Earnings Summary */}
+                        <section className="rounded-2xl border border-gray-200 bg-gradient-to-br from-[#d6b161]/10 to-transparent p-6 dark:border-gray-700">
+                            <h3 className="mb-4 text-lg font-bold text-[#0a192f] dark:text-white">Earnings</h3>
+                            <div className="mb-4 space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600 dark:text-gray-400">This Month</span>
+                                    <span className="font-bold text-[#0a192f] dark:text-white">₹45,000</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600 dark:text-gray-400">Pending Payout</span>
+                                    <span className="font-bold text-[#0a192f] dark:text-white">₹12,000</span>
+                                </div>
+                            </div>
+                            <button className="w-full rounded-lg bg-[#d6b161] px-4 py-3 font-semibold text-[#0a192f] hover:bg-[#c4a055]">
+                                Request Payout
+                            </button>
+                        </section>
+                    </div>
+                </div>
+            </main>
+
+            <Footer />
+        </div>
+    );
+};
+
 export default TrainerDashboard;

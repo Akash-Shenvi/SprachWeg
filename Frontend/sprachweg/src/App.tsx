@@ -8,7 +8,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
+import StudentDashboard from './pages/StudentDashboard';
 import TrainerDashboard from './pages/TrainerDashboard';
 import SkillDashboard from './pages/Admin/SkillDashboard';
 import LanguageTraining from './pages/LanguageTraining';
@@ -94,10 +94,10 @@ const App = () => {
 
               {/* Protected Routes */}
               <Route
-                path="/dashboard"
+                path="/student-dashboard"
                 element={
                   <ProtectedRoute>
-                    <DashboardPage />
+                    <StudentDashboard />
                   </ProtectedRoute>
                 }
               />
