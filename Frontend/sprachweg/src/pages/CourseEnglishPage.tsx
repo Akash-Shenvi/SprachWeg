@@ -1,18 +1,238 @@
 import React, { useEffect, useState } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform, AnimatePresence, useMotionValue, useAnimationFrame, useInView } from 'framer-motion';
-import { Star, Check, Users, Award, TrendingUp, Clock, Calendar, Download, Share2, Bookmark, ChevronRight } from 'lucide-react';
+import { Star, Check, Users, Award, TrendingUp, Clock, Calendar, ChevronRight, ArrowRight, BookOpen, Target, Zap, Shield } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { englishCourseData } from '../lib/courseData';
-import type { Batch, CurriculumModule, FAQItem, PricingPlan, Review, Trainer, CurriculumItemType, CurriculumItem } from '../lib/courseData';
+import type { Batch, CurriculumModule, FAQItem, PricingPlan, Review, Trainer, CurriculumItemType } from '../lib/courseData';
 
 
-// --- COMPONENTS ---
+// --- LOCAL DATA EXTENSIONS (INLINE ONLY) ---
 
-// Enterprise Components (New)
+interface RelatedCourse {
+  title: string;
+  level: string;
+  description: string;
+  slug: string;
+}
 
-// Course Stats Component - Shows key metrics with animated counters
+interface ExtendedCourseData {
+  contextualFit: {
+    targetAudience: string;
+    typicalNextSteps: string;
+    careerRoles: string;
+  };
+  relatedCourses: RelatedCourse[];
+  certification: {
+    title: string;
+    outcomes: string[];
+  };
+  skillsTools: string[];
+  timeCommitment: {
+    hoursPerWeek: string;
+    duration: string;
+    intensity: string;
+  };
+}
+
+const englishExtendedData: ExtendedCourseData = {
+  contextualFit: {
+    targetAudience: 'Professionals, Students, and ESL Learners aspiring for global careers.',
+    typicalNextSteps: 'Advanced Business English, IELTS/TOEFL Preparation, Leadership Communication.',
+    careerRoles: 'International Sales Manager, Customer Success Lead, Global Project Coordinator.',
+  },
+  relatedCourses: [
+    { title: 'IELTS Mastery', level: 'Intermediate', description: 'Band 8.0+ focus strategy', slug: '/courses/ielts' },
+    { title: 'Corporate Communication', level: 'Advanced', description: 'Email & Meeting excellence', slug: '/courses/corporate-comm' },
+    { title: 'Public Speaking', level: 'All Levels', description: 'Overcome stage fear', slug: '/courses/public-speaking' },
+    { title: 'German for Beginners', level: 'A1', description: 'Start your EU journey', slug: '/courses/german' },
+  ],
+  certification: {
+    title: 'Advanced Business English Certificate',
+    outcomes: [
+      'Validated by SoVir Akademie',
+      'Accepted by top multinational partners',
+      'Shareable on LinkedIn & Resumes',
+    ],
+  },
+  skillsTools: ['Email Etiquette', 'Presentation Skills', 'Cross-Cultural Comm', 'Vocabulary Building', 'Grammar Correction', 'Zoom/Teams Fluency', 'Report Writing'],
+  timeCommitment: {
+    hoursPerWeek: '4-6 hours',
+    duration: '12 Weeks',
+    intensity: 'Moderate',
+  },
+};
+
+
+// --- INLINE COMPONENTS ---
+
+// 0. Loading & Error States
+const LoadingState = () => (
+  <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+    <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-[#d6b161]"></div>
+    <p className="text-sm font-medium text-gray-500 animate-pulse">Loading course details...</p>
+  </div>
+);
+
+const ErrorState = ({ onRetry }: { onRetry: () => void }) => (
+  <div className="min-h-[60vh] flex flex-col items-center justify-center p-4 text-center">
+    <div className="mb-4 rounded-full bg-red-100 p-4 text-red-500 dark:bg-red-900/20">
+      <Zap className="h-8 w-8" />
+    </div>
+    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Unable to load course</h3>
+    <p className="mt-2 max-w-sm text-sm text-gray-600 dark:text-gray-400">
+      We encountered an issue while fetching the course data. Please try again.
+    </p>
+    <button
+      onClick={onRetry}
+      className="mt-6 rounded-lg bg-[#0a192f] px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#112240] focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 dark:bg-gray-700 dark:hover:bg-gray-600"
+    >
+      Retry Connection
+    </button>
+  </div>
+);
+
+// 1. Contextual Fit (New)
+const ContextualFit: React.FC<{ data: ExtendedCourseData['contextualFit'] }> = ({ data }) => {
+  if (!data) return null;
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-[#0a192f] dark:text-gray-100">
+        <Target className="h-4 w-4 text-[#d6b161]" />
+        Where this fits
+      </h3>
+      <ul className="space-y-4">
+        <li>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Ideally For</p>
+          <p className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-200">{data.targetAudience}</p>
+        </li>
+        <li>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Next Steps</p>
+          <p className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-200">{data.typicalNextSteps}</p>
+        </li>
+        <li>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Potential Roles</p>
+          <p className="mt-1 text-sm font-medium text-gray-900 dark:text-gray-200">{data.careerRoles}</p>
+        </li>
+      </ul>
+    </div>
+  );
+};
+
+// 2. Related Courses (New)
+const RelatedCourses: React.FC<{ courses: RelatedCourse[] }> = ({ courses }) => {
+  if (!courses || courses.length === 0) return null;
+  return (
+    <section className="mt-12 border-t border-gray-100 py-10 dark:border-gray-800">
+      <div className="mb-6 flex items-center justify-between px-1">
+        <h3 className="text-lg font-bold text-[#0a192f] dark:text-gray-50">Related Courses</h3>
+        <Link to="/language-training" className="group flex items-center gap-1 text-xs font-semibold text-[#d6b161] hover:text-[#b5934b]">
+          View all
+          <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
+        </Link>
+      </div>
+      <div
+        className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-6 pt-2 sm:mx-0 sm:px-0 sm:pb-2"
+        style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {courses.map((course, idx) => (
+          <div
+            key={idx}
+            className="flex min-w-[260px] flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+          >
+            <div className="mb-3 flex items-start justify-between">
+              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                {course.level}
+              </span>
+              <BookOpen className="h-4 w-4 text-gray-400" />
+            </div>
+            <h4 className="mb-1 text-base font-bold text-[#0a192f] dark:text-gray-100 line-clamp-1">{course.title}</h4>
+            <p className="mb-4 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{course.description}</p>
+            <Link
+              to={course.slug}
+              className="mt-auto flex w-full items-center justify-center rounded-lg border border-gray-200 py-2 text-xs font-semibold text-gray-700 transition-colors hover:border-[#d6b161] hover:text-[#d6b161] dark:border-gray-600 dark:text-gray-300 dark:hover:border-[#d6b161] dark:hover:text-[#d6b161]"
+            >
+              View Details
+            </Link>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+// 3. Certification (New)
+const CertificationSection: React.FC<{ data: ExtendedCourseData['certification'] }> = ({ data }) => {
+  if (!data) return null;
+  return (
+    <div className="rounded-2xl bg-gradient-to-br from-[#0a192f] to-[#112240] p-6 text-white shadow-lg overflow-hidden relative">
+      <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-[#d6b161]/10 blur-2xl"></div>
+      <div className="relative z-10">
+        <div className="mb-4 inline-flex items-center justify-center rounded-lg bg-white/10 p-2 backdrop-blur-md">
+          <Award className="h-6 w-6 text-[#d6b161]" />
+        </div>
+        <h3 className="mb-1 text-lg font-bold">{data.title}</h3>
+        <p className="mb-4 text-xs text-gray-300">Official recognition of your achievement</p>
+        <ul className="space-y-2">
+          {data.outcomes.map((item, idx) => (
+            <li key={idx} className="flex items-start gap-2 text-xs text-gray-300">
+              <Check className="mt-0.5 h-3 w-3 text-emerald-400 shrink-0" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+// 4. Skills & Tools (New)
+const SkillChips: React.FC<{ skills: string[] }> = ({ skills }) => {
+  if (!skills || skills.length === 0) return null;
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-[#0a192f] dark:text-gray-100">
+        <Zap className="h-4 w-4 text-[#d6b161]" />
+        Skills & Tools
+      </h3>
+      <div className="flex flex-wrap gap-2">
+        {skills.map((skill, idx) => (
+          <span
+            key={idx}
+            className="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700/50 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
+            {skill}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// 5. Time Commitment (New)
+const TimeCommitment: React.FC<{ data: ExtendedCourseData['timeCommitment'] }> = ({ data }) => {
+  if (!data) return null;
+  return (
+    <div className="flex items-center justify-between rounded-xl bg-gray-50 p-4 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm dark:bg-gray-700">
+          <Clock className="h-5 w-5 text-[#d6b161]" />
+        </div>
+        <div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Pace</p>
+          <p className="text-sm font-bold text-[#0a192f] dark:text-gray-100">{data.hoursPerWeek}</p>
+        </div>
+      </div>
+      <div className="text-right">
+        <p className="text-xs text-gray-500 dark:text-gray-400">Duration</p>
+        <p className="text-sm font-bold text-[#0a192f] dark:text-gray-100">{data.duration}</p>
+      </div>
+    </div>
+  );
+};
+
+// Course Stats Component (Restored)
 const CourseStats: React.FC<{ activeTrack: 'LIVE' | 'RECORDED' }> = ({ activeTrack }) => {
   const ref = React.useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
@@ -51,7 +271,7 @@ const CourseStats: React.FC<{ activeTrack: 'LIVE' | 'RECORDED' }> = ({ activeTra
   );
 };
 
-// Trust Badges Component - Shows guarantees and benefits
+// Trust Badges (Restored)
 const TrustBadges: React.FC = () => {
   return (
     <motion.div
@@ -65,11 +285,15 @@ const TrustBadges: React.FC = () => {
         <span>Money-back guarantee</span>
       </div>
       <div className="flex items-center gap-2">
+        <Shield className="h-4 w-4 text-emerald-400" />
+        <span>Secure Payments</span>
+      </div>
+      <div className="flex items-center gap-2">
         <Check className="h-4 w-4 text-emerald-400" />
         <span>Lifetime access</span>
       </div>
       <div className="flex items-center gap-2">
-        <Check className="h-4 w-4 text-emerald-400" />
+        <Award className="h-4 w-4 text-emerald-400" />
         <span>Certificate included</span>
       </div>
     </motion.div>
@@ -77,7 +301,7 @@ const TrustBadges: React.FC = () => {
 };
 
 
-// 1. LiveRecordedToggle (Enhanced)
+// 1. LiveRecordedToggle (Restored & Enhanced)
 interface LiveRecordedToggleProps {
   isLiveActive: boolean;
   onLiveClick: () => void;
@@ -136,7 +360,7 @@ const LiveRecordedToggle: React.FC<LiveRecordedToggleProps> = ({
 };
 
 
-// 2. CourseHero (Enhanced)
+// 2. CourseHero (Restored)
 interface CourseHeroProps {
   title: string;
   subtitle: string;
@@ -168,7 +392,7 @@ const CourseHero: React.FC<CourseHeroProps> = ({
       />
       <div aria-hidden="true" className="pointer-events-none absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
 
-      <div className="relative mx-auto flex max-w-6xl flex-col items-center px-4 pt-40 pb-24 text-center sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex max-w-7xl flex-col items-center px-4 pt-40 pb-24 text-center sm:px-6 lg:px-8">
         {/* Level Badge */}
         {levelBadge && (
           <motion.span
@@ -245,7 +469,7 @@ const CourseHero: React.FC<CourseHeroProps> = ({
   );
 };
 
-// 3. BatchCard (Enhanced)
+// 3. BatchCard (Restored)
 interface BatchCardProps {
   batch: Batch;
 }
@@ -323,7 +547,7 @@ const BatchCard: React.FC<BatchCardProps> = ({ batch }) => {
   );
 };
 
-// 4. PricingCard (Enhanced)
+// 4. PricingCard (Restored)
 interface PricingCardProps {
   plan: PricingPlan;
 }
@@ -332,9 +556,9 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan }) => {
   return (
     <motion.div
       whileHover={{ y: -6, scale: 1.02 }}
-      className={`relative flex flex-col rounded-xl border bg-white p-8 shadow-md hover:shadow-xl transition-all duration-300 dark:bg-gray-800 ${plan.isBestValue
-          ? 'border-[#d6b161] ring-2 ring-[#d6b161]/30 shadow-lg'
-          : 'border-gray-200 dark:border-gray-700'
+      className={`relative flex flex-col rounded-xl border bg-white p-8 shadow-sm hover:shadow-xl transition-all duration-300 dark:bg-gray-800 ${plan.isBestValue
+        ? 'border-[#d6b161] ring-2 ring-[#d6b161]/30 shadow-lg'
+        : 'border-gray-200 dark:border-gray-700'
         }`}
     >
       {plan.isBestValue && (
@@ -380,8 +604,8 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan }) => {
         whileHover={{ scale: 1.03 }}
         whileTap={{ scale: 0.98 }}
         className={`mt-auto inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-lg px-6 py-4 text-sm font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${plan.isBestValue
-            ? 'bg-gradient-to-r from-[#d6b161] to-[#c4a055] text-[#0a192f] shadow-lg hover:shadow-xl focus-visible:ring-[#d6b161]'
-            : 'bg-[#0a192f] text-white shadow-md hover:bg-[#112240] dark:bg-gray-700 dark:hover:bg-gray-600 focus-visible:ring-[#d6b161]'
+          ? 'bg-gradient-to-r from-[#d6b161] to-[#c4a055] text-[#0a192f] shadow-lg hover:shadow-xl focus-visible:ring-[#d6b161]'
+          : 'bg-[#0a192f] text-white shadow-md hover:bg-[#112240] dark:bg-gray-700 dark:hover:bg-gray-600 focus-visible:ring-[#d6b161]'
           }`}
       >
         Secure Payment
@@ -397,7 +621,7 @@ const PricingCard: React.FC<PricingCardProps> = ({ plan }) => {
   );
 };
 
-// 5. CurriculumAccordion
+// 5. CurriculumAccordion (Restored)
 interface CurriculumAccordionProps {
   modules: CurriculumModule[];
 }
@@ -488,7 +712,7 @@ const CurriculumAccordion: React.FC<CurriculumAccordionProps> = ({ modules }) =>
   );
 };
 
-// 6. TrainerCard
+// 6. TrainerCard (Restored)
 interface TrainerCardProps {
   trainer: Trainer;
 }
@@ -532,7 +756,7 @@ const TrainerCard: React.FC<TrainerCardProps> = ({ trainer }) => {
   );
 };
 
-// 7. ReviewsList
+// 7. ReviewsList (Restored)
 interface ReviewsListProps {
   rating: number;
   totalReviews: number;
@@ -617,7 +841,7 @@ const ReviewsList: React.FC<ReviewsListProps> = ({
   );
 };
 
-// 8. FAQAccordion
+// 8. FAQAccordion (Restored)
 interface FAQAccordionProps {
   items: FAQItem[];
 }
@@ -676,13 +900,27 @@ const FAQAccordion: React.FC<FAQAccordionProps> = ({ items }) => {
   );
 };
 
+
 // --- MAIN PAGE COMPONENT ---
 
 const CourseEnglishPage: React.FC = () => {
   const navigate = useNavigate();
-  // Using English Data directly
-  const course = englishCourseData;
+
+  // MERGE DATA: Combine original + extended data (mocked)
+  const course = { ...englishCourseData, ...englishExtendedData };
+
   const [activeTrack, setActiveTrack] = React.useState<'LIVE' | 'RECORDED'>('LIVE');
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(false);
+
+  // Simulate loading effect
+  useEffect(() => {
+    let mounted = true;
+    const timer = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 600); // Small 600ms artificial delay for UX smoothness
+    return () => { mounted = false; clearTimeout(timer); };
+  }, []);
 
   useEffect(() => {
     document.title = course.metaTitle;
@@ -694,6 +932,23 @@ const CourseEnglishPage: React.FC = () => {
 
   const activePricing = activeTrack === 'LIVE' ? course.pricingLive : course.pricingRecorded;
 
+  // Render Logic
+  if (loading) return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <Header />
+      <LoadingState />
+      <Footer />
+    </div>
+  );
+
+  if (error || !course) return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <Header />
+      <ErrorState onRetry={() => window.location.reload()} />
+      <Footer />
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-50">
       <Header />
@@ -703,7 +958,7 @@ const CourseEnglishPage: React.FC = () => {
         aria-label="Breadcrumb"
         className="border-b border-gray-100 bg-white/80 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/80"
       >
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 text-xs sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 text-xs sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
             <button
               type="button"
@@ -745,195 +1000,175 @@ const CourseEnglishPage: React.FC = () => {
         onTrackChange={setActiveTrack}
       />
 
-      <main className="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:px-6 lg:px-8">
-        {/* Overview */}
-        <section className="grid gap-8 rounded-3xl bg-white/80 p-5 shadow-sm backdrop-blur-sm dark:bg-gray-900/80 md:grid-cols-[3fr,2fr]">
-          <div>
-            <h2 className="text-base font-semibold text-[#0a192f] dark:text-gray-50">
-              Course overview
-            </h2>
-            <p className="mt-2 text-sm text-gray-700 dark:text-gray-200">
-              {course.overview.summary}
-            </p>
-            <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-[#d6b161]">
-              What you will learn
-            </h3>
-            <ul className="mt-2 space-y-1.5 text-xs text-gray-700 dark:text-gray-200">
-              {course.overview.outcomes.map((outcome) => (
-                <li key={outcome} className="flex items-start gap-1.5">
-                  <span
-                    className="mt-[3px] h-1.5 w-1.5 rounded-full bg-[#d6b161]"
-                    aria-hidden="true"
-                  />
-                  <span>{outcome}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-[#d6b161]">
-              Who is this for
-            </h3>
-            <ul className="mt-2 space-y-1.5 text-xs text-gray-700 dark:text-gray-200">
-              {course.overview.whoIsFor.map((item) => (
-                <li key={item} className="flex items-start gap-1.5">
-                  <span
-                    className="mt-[3px] h-1.5 w-1.5 rounded-full bg-[#0a192f]"
-                    aria-hidden="true"
-                  />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
+      <main className="mx-auto max-w-7xl space-y-10 px-4 py-10 sm:px-6 lg:px-8">
 
-        {/* Curriculum & Batches */}
-        <section className="grid gap-8 md:grid-cols-[3fr,2fr]">
-          <div id="curriculum">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[#0a192f] dark:text-gray-50">
-                Curriculum ({activeTrack === 'LIVE' ? 'Live + Recorded' : 'Self-Paced'})
+        {/* Core Layout Grid */}
+        <div className="grid gap-8 lg:grid-cols-3">
+
+          {/* Main Content Column */}
+          <div className="lg:col-span-2 space-y-8">
+
+            {/* Overview & Context */}
+            <section className="rounded-3xl bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:bg-gray-900/80">
+              <h2 className="text-lg font-bold text-[#0a192f] dark:text-gray-50 mb-4">
+                Course Overview
               </h2>
-              <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                {activeTrack === 'LIVE' ? 'Interactive Modules' : 'Video Library Access'}
-              </span>
-            </div>
-            <CurriculumAccordion modules={course.curriculum} />
-          </div>
+              <p className="mb-6 text-sm leading-relaxed text-gray-700 dark:text-gray-200">
+                {course.overview.summary}
+              </p>
 
-          <div>
-            <motion.div
-              initial={false}
-              animate={{ opacity: 1 }}
-              key={activeTrack}
-              transition={{ duration: 0.3 }}
-            >
-              {activeTrack === 'LIVE' ? (
-                <>
-                  <h2 className="mb-3 text-base font-semibold text-[#0a192f] dark:text-gray-50">
-                    Upcoming live batches
-                  </h2>
-                  <div className="grid gap-3">
-                    {course.batchesLive.map((batch) => (
-                      <BatchCard key={batch.id} batch={batch} />
+              <div className="grid gap-6 sm:grid-cols-2">
+                <div>
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-[#d6b161]">
+                    What you will learn
+                  </h3>
+                  <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-200">
+                    {course.overview.outcomes.map((outcome) => (
+                      <li key={outcome} className="flex items-start gap-2">
+                        <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#d6b161] shrink-0" aria-hidden="true" />
+                        <span>{outcome}</span>
+                      </li>
                     ))}
-                  </div>
-                </>
-              ) : (
-                <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
-                  <h3 className="font-semibold text-[#0a192f] dark:text-white mb-2">Self-Paced Learning</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    Start learning immediately with our comprehensive video library. No waiting for batches!
-                  </p>
-                  <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                      Instant Access
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                      Lifetime Validity
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                      Learn at your pace
-                    </li>
                   </ul>
                 </div>
-              )}
-            </motion.div>
-          </div>
-        </section>
 
-        {/* Trainers & Pricing */}
-        <section className="grid gap-8 md:grid-cols-[3fr,2fr]">
-          <div>
-            <h2 className="mb-3 text-base font-semibold text-[#0a192f] dark:text-gray-50">
-              Meet your trainers
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {course.trainers.map((trainer) => (
-                <TrainerCard key={trainer.id} trainer={trainer} />
-              ))}
+                {/* Sidebar Content moved inline for mobile/tablet flow or grid consistency */}
+                <div>
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-[#d6b161]">
+                    Who is this for
+                  </h3>
+                  <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-200">
+                    {course.overview.whoIsFor.map((item) => (
+                      <li key={item} className="flex items-start gap-2">
+                        <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#0a192f] dark:bg-gray-400 shrink-0" aria-hidden="true" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            {/* Curriculum */}
+            <section id="curriculum">
+              <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-bold text-[#0a192f] dark:text-gray-50">
+                    Curriculum
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    {activeTrack === 'LIVE' ? 'Interactive Modules + Live Sessions' : 'Self-Paced Video Library'}
+                  </p>
+                </div>
+                {/* Time Commitment Snapshot Inline */}
+                {course.timeCommitment && (
+                  <div className="hidden sm:block">
+                    <TimeCommitment data={course.timeCommitment} />
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Time Commitment */}
+              {course.timeCommitment && (
+                <div className="mb-4 sm:hidden">
+                  <TimeCommitment data={course.timeCommitment} />
+                </div>
+              )}
+
+              <CurriculumAccordion modules={course.curriculum} />
+            </section>
+
+            {/* Batches (If Live) */}
+            {activeTrack === 'LIVE' && (
+              <section id="batches">
+                <h2 className="mb-4 text-lg font-bold text-[#0a192f] dark:text-gray-50">
+                  Upcoming Batches
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {course.batchesLive.map((batch) => (
+                    <BatchCard key={batch.id} batch={batch} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Reviews */}
+            <section id="reviews">
+              <h2 className="mb-4 text-lg font-bold text-[#0a192f] dark:text-gray-50">
+                Student Reviews
+              </h2>
+              <ReviewsList
+                rating={course.reviewsSummary.rating}
+                totalReviews={course.reviewsSummary.totalReviews}
+                students={course.reviewsSummary.students}
+                reviews={course.reviews}
+              />
+            </section>
+
+            {/* FAQ */}
+            <section id="faq">
+              <h2 className="mb-4 text-lg font-bold text-[#0a192f] dark:text-gray-50">
+                Frequently Asked Questions
+              </h2>
+              <FAQAccordion items={course.faq} />
+            </section>
+
+          </div>
+
+          {/* Sidebar Column (Sticky on Desktop) */}
+          <div className="space-y-6 lg:col-span-1">
+            <div className="sticky top-24 space-y-6">
+
+              {/* Where This Fits (New) */}
+              {course.contextualFit && (
+                <ContextualFit data={course.contextualFit} />
+              )}
+
+              {/* Certifications (New) */}
+              {course.certification && (
+                <CertificationSection data={course.certification} />
+              )}
+
+              {/* Skills (New) */}
+              {course.skillsTools && (
+                <SkillChips skills={course.skillsTools} />
+              )}
+
+              {/* Pricing */}
+              <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <h3 className="mb-4 text-sm font-bold uppercase tracking-wide text-[#0a192f] dark:text-gray-100">
+                  Pricing Options
+                </h3>
+                <div className="space-y-4">
+                  {activePricing.map((plan) => (
+                    <PricingCard key={plan.id} plan={plan} />
+                  ))}
+                </div>
+              </section>
+
+              {/* Trainers */}
+              <section>
+                <h3 className="mb-4 text-sm font-bold uppercase tracking-wide text-[#0a192f] dark:text-gray-100">
+                  Your Trainers
+                </h3>
+                <div className="space-y-4">
+                  {course.trainers.map(trainer => (
+                    <TrainerCard key={trainer.id} trainer={trainer} />
+                  ))}
+                </div>
+              </section>
+
             </div>
           </div>
 
-          <div id="pricing">
-            <h2 className="mb-3 text-base font-semibold text-[#0a192f] dark:text-gray-50">
-              Pricing & plans ({activeTrack === 'LIVE' ? 'Live' : 'Recorded'})
-            </h2>
-            <motion.div
-              className="grid gap-3"
-              layout
-            >
-              {activePricing.map((plan) => (
-                <PricingCard key={plan.id} plan={plan} />
-              ))}
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Reviews */}
-        <section>
-          <h2 className="mb-3 text-base font-semibold text-[#0a192f] dark:text-gray-50">
-            Reviews & outcomes
-          </h2>
-          <ReviewsList
-            rating={course.reviewsSummary.rating}
-            totalReviews={course.reviewsSummary.totalReviews}
-            students={course.reviewsSummary.students}
-            reviews={course.reviews}
-          />
-        </section>
-
-        {/* FAQ */}
-        <section>
-          <h2 className="mb-3 text-base font-semibold text-[#0a192f] dark:text-gray-50">
-            Frequently asked questions
-          </h2>
-          <FAQAccordion items={course.faq} />
-        </section>
-      </main>
-
-      {/* Sticky enroll bar */}
-      <motion.div
-        initial={{ y: 80, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className="sticky bottom-0 z-30 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-[0_-4px_20px_rgba(15,23,42,0.25)] backdrop-blur-sm dark:border-gray-800 dark:bg-gray-900/95"
-      >
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 sm:flex-row sm:justify-between">
-          <div className="text-center sm:text-left">
-            <p className="text-xs font-semibold text-[#0a192f] dark:text-gray-50">
-              Ready to start?
-            </p>
-            <p className="text-[11px] text-gray-600 dark:text-gray-400">
-              {activeTrack === 'LIVE'
-                ? 'Secure your seat in the next live cohort.'
-                : 'Get instant access to all recorded lessons.'}
-            </p>
-          </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <button
-              type="button"
-              className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-[#d6b161] px-4 py-2 text-xs font-semibold text-[#0a192f] shadow-md hover:bg-[#c4a055] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b161]"
-              onClick={() => {
-                const pricingSection = document.getElementById('pricing');
-                pricingSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-            >
-              {activeTrack === 'LIVE' ? 'Enroll in Live Batch' : 'Buy Recorded Course'}
-            </button>
-            <button
-              type="button"
-              className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border border-[#0a192f]/20 px-4 py-2 text-xs font-semibold text-[#0a192f] hover:bg-[#0a192f]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b161] dark:border-gray-600 dark:text-gray-50 dark:hover:bg-gray-800"
-            >
-              Talk to academic advisor
-            </button>
-          </div>
         </div>
-      </motion.div>
+
+        {/* Related Courses (Full Width) */}
+        {course.relatedCourses && (
+          <RelatedCourses courses={course.relatedCourses} />
+        )}
+
+      </main>
 
       <Footer />
     </div>
