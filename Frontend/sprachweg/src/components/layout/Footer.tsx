@@ -26,9 +26,9 @@ const Footer: React.FC = () => {
                             Your gateway to language mastery and international career opportunities. Join thousands of successful learners worldwide.
                         </p>
                         <div className="space-y-3 pt-2">
-                            <a href="mailto:info@sovir.com" className="flex items-center gap-3 text-gray-400 hover:text-[#d6b161] transition-colors">
+                            <a href="mailto:training@sovirtechnologies.in " className="flex items-center gap-3 text-gray-400 hover:text-[#d6b161] transition-colors">
                                 <Mail className="w-4 h-4 flex-shrink-0" />
-                                <span className="text-sm">info@sovir.com</span>
+                                <span className="text-sm">training@sovirtechnologies.in</span>
                             </a>
                             <a href="tel:+4930123456789" className="flex items-center gap-3 text-gray-400 hover:text-[#d6b161] transition-colors">
                                 <Phone className="w-4 h-4 flex-shrink-0" />
@@ -49,8 +49,6 @@ const Footer: React.FC = () => {
                         <h3 className="font-bold text-white mb-6 text-base">Language Training</h3>
                         <ul className="space-y-3 text-sm text-gray-400">
                             <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">English Training</Link></li>
-                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Spanish Classes</Link></li>
-                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">French Courses</Link></li>
                             <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">German A1-B2</Link></li>
                             <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Japanese & Chinese</Link></li>
                         </ul>

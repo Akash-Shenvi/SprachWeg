@@ -66,9 +66,9 @@ const LoginPage: React.FC = () => {
                     <div className="relative z-10">
                         <div className="flex items-center gap-3 mb-12">
                             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
-                                <span className="text-[#0a192f] font-serif font-bold text-xl">S</span>
+                                <span className="text-[#0a192f] font-sans font-bold text-xl">S</span>
                             </div>
-                            <span className="font-serif font-bold text-xl tracking-wide">SOVIR Akademie</span>
+                            <span className="font-sans font-bold text-xl tracking-wide">SOVIR Akademie</span>
                         </div>
 
                         <motion.div
@@ -76,7 +76,7 @@ const LoginPage: React.FC = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6 }}
                         >
-                            <h1 className="font-serif text-5xl font-medium leading-tight mb-6">
+                            <h1 className="font-sans text-5xl font-medium leading-tight mb-6">
                                 Welcome Back to<br />
                                 Your<br />
                                 Learning Journey
@@ -120,9 +120,9 @@ const LoginPage: React.FC = () => {
                     {/* Mobile Header (Visible only on small screens) */}
                     <div className="lg:hidden absolute top-4 left-8 flex items-center gap-2">
                         <div className="w-8 h-8 bg-[#0a192f] rounded-lg flex items-center justify-center text-white">
-                            <span className="font-serif font-bold">S</span>
+                            <span className="font-sans font-bold">S</span>
                         </div>
-                        <span className="font-serif font-bold text-[#0a192f] dark:text-white">SOVIR</span>
+                        <span className="font-sans font-bold text-[#0a192f] dark:text-white">SOVIR</span>
                     </div>
 
                     <div className="w-full max-w-md">
@@ -151,7 +151,7 @@ const LoginPage: React.FC = () => {
                             className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 border border-gray-100 dark:border-gray-700"
                         >
                             <div className="mb-8">
-                                <h2 className="font-serif text-3xl font-bold text-[#0a192f] dark:text-white mb-2">Sign In</h2>
+                                <h2 className="font-sans text-3xl font-bold text-[#0a192f] dark:text-white mb-2">Sign In</h2>
                                 <p className="text-gray-500 dark:text-gray-400">Enter your credentials to access your account</p>
                             </div>
 

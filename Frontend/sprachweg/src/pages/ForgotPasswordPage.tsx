@@ -38,9 +38,9 @@ const ForgotPasswordPage: React.FC = () => {
                     <div className="relative z-10">
                         <div className="flex items-center gap-3 mb-12">
                             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg">
-                                <span className="text-[#0a192f] font-serif font-bold text-xl">S</span>
+                                <span className="text-[#0a192f] font-sans font-bold text-xl">S</span>
                             </div>
-                            <span className="font-serif font-bold text-xl tracking-wide">SOVIR Akademie</span>
+                            <span className="font-sans font-bold text-xl tracking-wide">SOVIR Akademie</span>
                         </div>
 
                         <motion.div
@@ -53,7 +53,7 @@ const ForgotPasswordPage: React.FC = () => {
                                 Secure Account Recovery
                             </div>
 
-                            <h1 className="font-serif text-5xl font-medium leading-tight mb-6">
+                            <h1 className="font-sans text-5xl font-medium leading-tight mb-6">
                                 Password<br />
                                 Recovery
                             </h1>
@@ -96,9 +96,9 @@ const ForgotPasswordPage: React.FC = () => {
                     {/* Mobile Header (Visible only on small screens) */}
                     <div className="lg:hidden absolute top-4 left-8 flex items-center gap-2">
                         <div className="w-8 h-8 bg-[#0a192f] rounded-lg flex items-center justify-center text-white">
-                            <span className="font-serif font-bold">S</span>
+                            <span className="font-sans font-bold">S</span>
                         </div>
-                        <span className="font-serif font-bold text-[#0a192f] dark:text-white">SOVIR</span>
+                        <span className="font-sans font-bold text-[#0a192f] dark:text-white">SOVIR</span>
                     </div>
 
                     <div className="w-full max-w-md">
@@ -114,7 +114,7 @@ const ForgotPasswordPage: React.FC = () => {
                                         <div className="w-16 h-16 bg-[#d6b161]/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-[#d6b161]">
                                             <Mail className="w-8 h-8" />
                                         </div>
-                                        <h2 className="font-serif text-3xl font-bold text-[#0a192f] dark:text-white mb-3">Forgot Password?</h2>
+                                        <h2 className="font-sans text-3xl font-bold text-[#0a192f] dark:text-white mb-3">Forgot Password?</h2>
                                         <p className="text-gray-500 dark:text-gray-400">
                                             Enter your email address and we'll send you a link to reset your password.
                                         </p>
@@ -176,7 +176,7 @@ const ForgotPasswordPage: React.FC = () => {
                                     <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600 animate-bounce">
                                         <CheckCircle className="w-10 h-10" />
                                     </div>
-                                    <h2 className="font-serif text-2xl font-bold text-gray-900 dark:text-white mb-4">Check your email</h2>
+                                    <h2 className="font-sans text-2xl font-bold text-gray-900 dark:text-white mb-4">Check your email</h2>
                                     <p className="text-gray-600 dark:text-gray-400 mb-8">
                                         We have sent a password reset link to <br />
                                         <strong className="text-gray-900 dark:text-white">{email}</strong>

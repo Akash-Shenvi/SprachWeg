@@ -71,7 +71,7 @@ const ResetPasswordPage: React.FC = () => {
                         )}
 
                         <div className="mb-6">
-                            <h2 className="font-serif text-3xl font-bold text-[#0e5cad] dark:text-white mb-2">
+                            <h2 className="font-sans text-3xl font-bold text-[#0e5cad] dark:text-white mb-2">
                                 {submitted ? 'Password Reset!' : 'Reset Password'}
                             </h2>
                             {!submitted && (
