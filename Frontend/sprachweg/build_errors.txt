@@ -1,0 +1,83 @@
+﻿src/components/admin/ImageUpload.tsx(2,30): error TS6133: 'ImageIcon' is declared but its value is never read.
+src/components/ui/Input.tsx(1,17): error TS1484: 'InputHTMLAttributes' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
+src/pages/CourseEnglishPage.tsx(914,17): error TS6133: 'setError' is declared but its value is never read.
+src/pages/CourseGermanPage.tsx(3,123): error TS6133: 'Globe' is declared but its value is never read.
+src/pages/CourseGermanPage.tsx(914,17): error TS6133: 'setError' is declared but its value is never read.
+src/pages/CourseJapanesePage.tsx(3,123): error TS6133: 'Globe' is declared but its value is never read.
+src/pages/CourseJapanesePage.tsx(914,17): error TS6133: 'setError' is declared but its value is never read.
+src/pages/DashboardPage.tsx(1,17): error TS6133: 'useState' is declared but its value is never read.
+src/pages/DashboardPage.tsx(1,27): error TS6133: 'useEffect' is declared but its value is never read.
+src/pages/DashboardPage.tsx(2,18): error TS6133: 'AnimatePresence' is declared but its value is never read.
+src/pages/DashboardPage.tsx(4,41): error TS6133: 'Bell' is declared but its value is never read.
+src/pages/DashboardPage.tsx(6,5): error TS6133: 'MoreHorizontal' is declared but its value is never read.
+src/pages/DashboardPage.tsx(6,21): error TS6133: 'Search' is declared but its value is never read.
+src/pages/DashboardPage.tsx(6,29): error TS6133: 'Menu' is declared but its value is never read.
+src/pages/DashboardPage.tsx(6,35): error TS6133: 'X' is declared but its value is never read.
+src/pages/DashboardPage.tsx(6,38): error TS6133: 'Mic' is declared but its value is never read.
+src/pages/DashboardPage.tsx(6,43): error TS6133: 'Camera' is declared but its value is never read.
+src/pages/DashboardPage.tsx(6,51): error TS6133: 'Wifi' is declared but its value is never read.
+src/pages/DashboardPage.tsx(8,1): error TS6133: 'useNavigate' is declared but its value is never read.
+src/pages/DashboardPage.tsx(130,9): error TS2322: Type '{ initial: { opacity: number; y: number; }; enter: { opacity: number; y: number; transition: { duration: number; ease: number[]; }; }; exit: { opacity: number; y: number; transition: { duration: number; }; }; }' is not assignable to type 'Variants'.
+  Property 'enter' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues | undefined; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ duration: number; ease: number[]; }' is not assignable to type 'Transition<any> | undefined'.
+              Type '{ duration: number; ease: number[]; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ duration: number; ease: number[]; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'ease' are incompatible.
+                    Type 'number[]' is not assignable to type 'Easing | Easing[] | undefined'.
+                      Type 'number[]' is not assignable to type 'EasingFunction | Easing[]'.
+                        Type 'number[]' is not assignable to type 'Easing[]'.
+                          Type 'number' is not assignable to type 'Easing'.
+src/pages/DashboardPage.tsx(185,9): error TS2322: Type '{ rest: { scale: number; y: number; }; hover: { scale: number; y: number; transition: { duration: number; ease: number[]; }; }; tap: { scale: number; transition: { duration: number; }; }; }' is not assignable to type 'Variants'.
+  Property 'hover' is incompatible with index signature.
+    Type '{ scale: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'Variant'.
+      Type '{ scale: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ scale: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues | undefined; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ duration: number; ease: number[]; }' is not assignable to type 'Transition<any> | undefined'.
+              Type '{ duration: number; ease: number[]; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ duration: number; ease: number[]; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'ease' are incompatible.
+                    Type 'number[]' is not assignable to type 'Easing | Easing[] | undefined'.
+                      Type 'number[]' is not assignable to type 'EasingFunction | Easing[]'.
+                        Type 'number[]' is not assignable to type 'Easing[]'.
+                          Type 'number' is not assignable to type 'Easing'.
+src/pages/TrainerDashboard.tsx(4,35): error TS6133: 'BarChart2' is declared but its value is never read.
+src/pages/TrainerDashboard.tsx(4,58): error TS6133: 'MessageSquare' is declared but its value is never read.
+src/pages/TrainerDashboard.tsx(5,32): error TS6133: 'Check' is declared but its value is never read.
+src/pages/TrainerDashboard.tsx(5,47): error TS6133: 'ChevronDown' is declared but its value is never read.
+src/pages/TrainerDashboard.tsx(5,60): error TS6133: 'Download' is declared but its value is never read.
+src/pages/TrainerDashboard.tsx(6,19): error TS6133: 'Eye' is declared but its value is never read.
+src/pages/TrainerDashboard.tsx(6,40): error TS6133: 'Mic' is declared but its value is never read.
+src/pages/TrainerDashboard.tsx(150,21): error TS2322: Type '{ closed: { x: string; opacity: number; transition: { duration: number; }; }; open: { x: number; opacity: number; transition: { duration: number; ease: number[]; }; }; }' is not assignable to type 'Variants'.
+  Property 'open' is incompatible with index signature.
+    Type '{ x: number; opacity: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'Variant'.
+      Type '{ x: number; opacity: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ x: number; opacity: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues | undefined; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ duration: number; ease: number[]; }' is not assignable to type 'Transition<any> | undefined'.
+              Type '{ duration: number; ease: number[]; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ duration: number; ease: number[]; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'ease' are incompatible.
+                    Type 'number[]' is not assignable to type 'Easing | Easing[] | undefined'.
+                      Type 'number[]' is not assignable to type 'EasingFunction | Easing[]'.
+                        Type 'number[]' is not assignable to type 'Easing[]'.
+                          Type 'number' is not assignable to type 'Easing'.
+src/pages/TrainerDashboard.tsx(231,11): error TS6133: 'user' is declared but its value is never read.
+src/pages/TrainerDashboard.tsx(239,17): error TS2322: Type '{ initial: { opacity: number; y: number; }; enter: { opacity: number; y: number; transition: { duration: number; ease: number[]; }; }; }' is not assignable to type 'Variants'.
+  Property 'enter' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { duration: number; ease: number[]; }; }' is not assignable to type '{ transition?: Transition<any> | undefined; transitionEnd?: ResolvedValues | undefined; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ duration: number; ease: number[]; }' is not assignable to type 'Transition<any> | undefined'.
+              Type '{ duration: number; ease: number[]; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ duration: number; ease: number[]; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'ease' are incompatible.
+                    Type 'number[]' is not assignable to type 'Easing | Easing[] | undefined'.
+                      Type 'number[]' is not assignable to type 'EasingFunction | Easing[]'.
+                        Type 'number[]' is not assignable to type 'Easing[]'.
+                          Type 'number' is not assignable to type 'Easing'.

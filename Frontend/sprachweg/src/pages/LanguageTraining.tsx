@@ -89,7 +89,7 @@ const languageCards = [
         price: '₹12,999',
         bgColor: 'bg-blue-50 dark:bg-blue-950/30',
         borderColor: 'border-blue-200 dark:border-blue-800',
-        route: '/language-details/english'
+        route: '/training/english'
     },
     {
         code: 'DE',
@@ -103,7 +103,7 @@ const languageCards = [
         price: '₹15,999',
         bgColor: 'bg-pink-50 dark:bg-pink-950/30',
         borderColor: 'border-pink-200 dark:border-pink-800',
-        route: '/language-details/german'
+        route: '/training/german'
     },
     {
         code: 'JP',
@@ -117,7 +117,7 @@ const languageCards = [
         price: '₹16,999',
         bgColor: 'bg-pink-50 dark:bg-pink-950/30',
         borderColor: 'border-pink-200 dark:border-pink-800',
-        route: '/language-details/japanese'
+        route: '/training/japanese'
     }
 ];
 
@@ -329,7 +329,7 @@ const LanguageTraining: React.FC = () => {
                 </div>
 
                 <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
-                    <AnimatedSection className="text-center">
+                    <AnimatedSection className="flex flex-col items-center text-center">
                         {/* Main Heading */}
                         <motion.h1
                             variants={fadeInUp}
@@ -423,7 +423,7 @@ const LanguageTraining: React.FC = () => {
             {/* Language Cards Section */}
             <section className="py-20 bg-gray-50 dark:bg-gray-900">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <AnimatedSection className="text-center mb-16">
+                    <AnimatedSection className="flex flex-col items-center text-center mb-16">
                         <motion.span
                             variants={fadeInUp}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-[#d6b161]/10 text-[#d6b161] rounded-full text-sm font-medium mb-4"
@@ -456,7 +456,7 @@ const LanguageTraining: React.FC = () => {
             {/* Benefits Section */}
             <section className="py-20 bg-white dark:bg-gray-800">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <AnimatedSection className="text-center mb-16">
+                    <AnimatedSection className="flex flex-col items-center text-center mb-16">
                         <motion.h2
                             variants={fadeInUp}
                             className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold text-[#0a192f] dark:text-white mb-4 text-center mx-auto"

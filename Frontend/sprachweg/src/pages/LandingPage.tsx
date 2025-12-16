@@ -619,15 +619,15 @@ const LandingPage: React.FC = () => {
                         </div>
 
                         <div className="grid md:grid-cols-3 gap-6 mb-6">
-                            <div className="bg-gray-50 dark:bg-[#0a192f] p-4 rounded-xl">
+                            <div className="bg-gray-50 dark:bg-[#0a192f] p-4 rounded-xl text-center">
                                 <div className="text-[#d6b161] font-semibold mb-2">Levels Offered</div>
                                 <div className="text-gray-900 dark:text-white font-medium">A1, A2, B1, B2</div>
                             </div>
-                            <div className="bg-gray-50 dark:bg-[#0a192f] p-4 rounded-xl">
+                            <div className="bg-gray-50 dark:bg-[#0a192f] p-4 rounded-xl text-center">
                                 <div className="text-[#d6b161] font-semibold mb-2">Class Formats</div>
                                 <div className="text-gray-900 dark:text-white font-medium">Individual & Group</div>
                             </div>
-                            <div className="bg-gray-50 dark:bg-[#0a192f] p-4 rounded-xl">
+                            <div className="bg-gray-50 dark:bg-[#0a192f] p-4 rounded-xl text-center">
                                 <div className="text-[#d6b161] font-semibold mb-2">Learning Mode</div>
                                 <div className="text-gray-900 dark:text-white font-medium">Online & Offline</div>
                             </div>
@@ -635,21 +635,21 @@ const LandingPage: React.FC = () => {
 
                         <div className="grid md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 justify-center">
                                     <CheckCircle className="w-4 h-4 text-[#d6b161]" />
                                     <span>Intensive speaking sessions</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 justify-center">
                                     <CheckCircle className="w-4 h-4 text-[#d6b161]" />
                                     <span>Grammar & vocabulary focus</span>
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 justify-center">
                                     <CheckCircle className="w-4 h-4 text-[#d6b161]" />
                                     <span>Exam-oriented preparation</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 justify-center">
                                     <CheckCircle className="w-4 h-4 text-[#d6b161]" />
                                     <span>Regular assessments & feedback</span>
                                 </div>
@@ -716,7 +716,7 @@ const LandingPage: React.FC = () => {
                     <div className="bg-gray-50 dark:bg-[#112240] rounded-[2rem] p-10 border border-gray-100 dark:border-white/5">
                         <div className="grid md:grid-cols-2 gap-8 mb-8">
                             <div>
-                                <h3 className="font-serif text-2xl font-semibold text-gray-900 dark:text-white mb-6">Exams Covered</h3>
+                                <h3 className="font-serif text-2xl font-semibold text-gray-900 dark:text-white mb-6 text-center">Exams Covered</h3>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="bg-white dark:bg-[#0a192f] p-4 rounded-xl text-center">
                                         <div className="text-[#d6b161] font-semibold">TELC</div>
@@ -837,20 +837,17 @@ const LandingPage: React.FC = () => {
             {/* Featured Courses */}
             <section className="py-24 bg-white dark:bg-[#0a192f]">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="mb-16">
+                    <div className="text-center mb-16">
                         <span className="text-[#d6b161] font-medium mb-2 block">Our Programs</span>
-                        <div className="flex flex-col lg:flex-row justify-between items-end gap-6">
-                            <div>
-                                <h2 className="font-serif text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mb-4">Featured Courses</h2>
-                                <p className="text-gray-600 dark:text-gray-400 max-w-xl">
-                                    Choose from our expertly designed German language courses, from beginner A1 to advanced B2 levels.
-                                </p>
-                            </div>
-                            <div className="flex gap-2 bg-gray-100 dark:bg-white/5 p-1 rounded-full">
-                                <button className="px-6 py-2 bg-[#d6b161] text-[#0a192f] rounded-full text-sm font-semibold shadow-lg">All Courses</button>
-                                <button className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-white transition-colors text-sm font-medium">Live Classes</button>
-                                <button className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-white transition-colors text-sm font-medium">Hybrid</button>
-                            </div>
+                        <h2 className="font-serif text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mb-4">Featured Courses</h2>
+                        <p className="text-gray-600 dark:text-gray-400 max-w-xl mx-auto mb-8">
+                            Choose from our expertly designed German language courses, from beginner A1 to advanced B2 levels.
+                        </p>
+
+                        <div className="inline-flex gap-2 bg-gray-100 dark:bg-white/5 p-1 rounded-full">
+                            <button className="px-6 py-2 bg-[#d6b161] text-[#0a192f] rounded-full text-sm font-semibold shadow-lg">All Courses</button>
+                            <button className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-white transition-colors text-sm font-medium">Live Classes</button>
+                            <button className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-white transition-colors text-sm font-medium">Hybrid</button>
                         </div>
                     </div>
 

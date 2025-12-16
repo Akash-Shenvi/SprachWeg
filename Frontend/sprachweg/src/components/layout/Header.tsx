@@ -36,7 +36,7 @@ const Header: React.FC = () => {
                             Home
                         </Link>
 
-                        {/* Language Training Dropdown */}
+                        {/* Language Training Mega Menu */}
                         <div className="relative group">
                             <Link
                                 to="/language-training"
@@ -45,40 +45,345 @@ const Header: React.FC = () => {
                                 Language Training
                                 <ChevronDown className="w-4 h-4" />
                             </Link>
-                            <div className="absolute left-0 mt-0 w-48 bg-white dark:bg-[#0a192f] border border-gray-100 dark:border-gray-800 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                                <Link to="/language-details/english" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">English Training</Link>
-                                <Link to="/language-details/german" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">German Training</Link>
-                                <Link to="/language-details/japanese" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Japanese Training</Link>
-                                <Link to="/language-training" className="block px-4 py-2 text-[#d6b161] font-medium text-sm border-t border-gray-100 dark:border-gray-800">View All Languages →</Link>
+                            <div className="absolute left-0 top-full mt-2 w-[650px] bg-white/95 dark:bg-[#0a192f]/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                <div className="grid grid-cols-3 gap-6 p-6">
+                                    {/* LANGUAGES Column */}
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Languages</h3>
+                                        <div className="space-y-3">
+                                            <Link to="/language-training" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🌍</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">All Languages</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">View all language courses</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="/training/english" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🇬🇧</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">English</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Business & Academic English</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="/training/german" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🇩🇪</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">German</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">German A1-B2 Complete</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="/training/japanese" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🇯🇵</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Japanese</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">JLPT preparation</p>
+                                                </div>
+                                            </Link>
+                                        </div>
+                                    </div>
+
+                                    {/* LEARNING MODES Column */}
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Learning Modes</h3>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">▶️</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Live Classes</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Interactive sessions</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">📚</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Self-Paced</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Learn at your pace</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">📅</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Hybrid</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Best of both worlds</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* CERTIFICATIONS Column */}
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Certifications</h3>
+                                        <div className="space-y-3">
+                                            <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🏆</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Exam Preparation</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">International certifications</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">💼</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Business Language</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Professional communication</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Skill Training Dropdown */}
+                        {/* Skill Training Mega Menu */}
                         <div className="relative group">
                             <button className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-3 py-2 flex items-center gap-1">
                                 Skill Training
                                 <ChevronDown className="w-4 h-4" />
                             </button>
-                            <div className="absolute left-0 mt-0 w-48 bg-white dark:bg-[#0a192f] border border-gray-100 dark:border-gray-800 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                                <Link to="#" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Web Development</Link>
-                                <Link to="#" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Mobile Development</Link>
-                                <Link to="#" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Data Science</Link>
-                                <Link to="#" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Cloud Computing</Link>
+                            <div className="absolute left-0 top-full mt-2 w-[750px] bg-white/95 dark:bg-[#0a192f]/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                <div className="grid grid-cols-3 gap-6 p-6">
+                                    {/* INDUSTRIAL AUTOMATION Column */}
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Industrial Automation</h3>
+                                        <div className="space-y-3">
+                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">⚙️</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Overview</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">All automation courses</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🔧</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">PLC Programming</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Ladder logic & PLC systems</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🖥️</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">HMI & SCADA</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Interface design & control</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🤖</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Robotics</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Industrial robotics</p>
+                                                </div>
+                                            </Link>
+                                        </div>
+                                    </div>
+
+                                    {/* TECHNOLOGY TRAINING Column */}
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Technology Training</h3>
+                                        <div className="space-y-3">
+                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">📊</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Overview</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">All technology courses</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">📡</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Industrial IoT</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Connected factory solutions</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">📈</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Data Analytics</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Industrial data insights</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">☁️</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Cloud Computing</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Cloud automation</p>
+                                                </div>
+                                            </Link>
+                                        </div>
+                                    </div>
+
+                                    {/* CORPORATE TRAINING Column */}
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Corporate Training</h3>
+                                        <div className="space-y-3">
+                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">👥</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Team Upskilling</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Bulk training programs</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🎯</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Custom Programs</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Tailored solutions</p>
+                                                </div>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Career Abroad Dropdown */}
+                        {/* Career Abroad Mega Menu */}
                         <div className="relative group">
                             <button className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-3 py-2 flex items-center gap-1">
                                 Career Abroad
                                 <ChevronDown className="w-4 h-4" />
                             </button>
-                            <div className="absolute left-0 mt-0 w-48 bg-white dark:bg-[#0a192f] border border-gray-100 dark:border-gray-800 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                                <Link to="#" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Work in Canada</Link>
-                                <Link to="#" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Career in Germany</Link>
-                                <Link to="#" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Jobs in Australia</Link>
-                                <Link to="#" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Visa Assistance</Link>
-                                <Link to="#" className="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-[#d6b161] text-sm">Job Placement</Link>
+                            <div className="absolute left-0 top-full mt-2 w-[650px] bg-white/95 dark:bg-[#0a192f]/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                <div className="grid grid-cols-3 gap-6 p-6">
+                                    {/* DESTINATIONS Column */}
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Destinations</h3>
+                                        <div className="space-y-3">
+                                            <Link to="/404" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🇨🇦</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Work in Canada</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Job opportunities in Canada</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🇩🇪</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Career in Germany</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">German work programs</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="/404" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🇦🇺</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Jobs in Australia</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Australian job placement</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="/404" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🇬🇧</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">UK Employment</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Work permits & jobs in UK</p>
+                                                </div>
+                                            </Link>
+                                        </div>
+                                    </div>
+
+                                    {/* SERVICES Column */}
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Services</h3>
+                                        <div className="space-y-3">
+                                            <Link to="/404" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">📄</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Visa Assistance</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Complete visa support</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="/404" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">💼</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Job Placement</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Direct employment</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="/404" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🎤</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Interview Prep</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Career preparation</p>
+                                                </div>
+                                            </Link>
+                                        </div>
+                                    </div>
+
+                                    {/* RESOURCES Column */}
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Resources</h3>
+                                        <div className="space-y-3">
+                                            <Link to="/404" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">📋</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Document Checklist</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Required paperwork</p>
+                                                </div>
+                                            </Link>
+                                            <Link to="/404" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
+                                                    <span className="text-lg">🤝</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Employer Partners</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Our network</p>
+                                                </div>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
