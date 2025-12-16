@@ -193,7 +193,7 @@ const LanguageCard: React.FC<{
                 </div>
 
                 {/* Title */}
-                <h3 className="text-xl font-serif font-bold text-center text-[#0a192f] dark:text-white mb-5">
+                <h3 className="text-xl font-sans font-bold text-center text-[#0a192f] dark:text-white mb-5">
                     {card.title}
                 </h3>
 
@@ -333,7 +333,7 @@ const LanguageTraining: React.FC = () => {
                         {/* Main Heading */}
                         <motion.h1
                             variants={fadeInUp}
-                            className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-white mb-6 leading-tight text-center mx-auto"
+                            className="text-4xl md:text-5xl lg:text-6xl font-sans font-bold text-white mb-6 leading-tight text-center mx-auto"
                         >
                             Master Global Languages with{' '}
                             <span className="text-[#d6b161] relative">
@@ -433,7 +433,7 @@ const LanguageTraining: React.FC = () => {
                         </motion.span>
                         <motion.h2
                             variants={fadeInUp}
-                            className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold text-[#0a192f] dark:text-white mb-4 text-center mx-auto"
+                            className="text-3xl md:text-4xl lg:text-5xl font-sans font-bold text-[#0a192f] dark:text-white mb-4 text-center mx-auto"
                         >
                             Choose Your Language Path
                         </motion.h2>
@@ -459,7 +459,7 @@ const LanguageTraining: React.FC = () => {
                     <AnimatedSection className="flex flex-col items-center text-center mb-16">
                         <motion.h2
                             variants={fadeInUp}
-                            className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold text-[#0a192f] dark:text-white mb-4 text-center mx-auto"
+                            className="text-3xl md:text-4xl lg:text-5xl font-sans font-bold text-[#0a192f] dark:text-white mb-4 text-center mx-auto"
                         >
                             Why Choose SoVir Akademie?
                         </motion.h2>
@@ -494,7 +494,7 @@ const LanguageTraining: React.FC = () => {
                     <AnimatedSection>
                         <motion.h2
                             variants={fadeInUp}
-                            className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold text-white mb-6"
+                            className="text-3xl md:text-4xl lg:text-5xl font-sans font-bold text-white mb-6"
                         >
                             Start Your Language Journey Today
                         </motion.h2>

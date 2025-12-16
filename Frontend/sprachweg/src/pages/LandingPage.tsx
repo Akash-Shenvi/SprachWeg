@@ -97,7 +97,7 @@ const LandingPage: React.FC = () => {
                                 </span>
                             </div>
 
-                            <h1 className="font-serif text-5xl lg:text-7xl font-medium text-gray-900 dark:text-white leading-tight mb-6">
+                            <h1 className="font-sans text-5xl lg:text-7xl font-medium text-gray-900 dark:text-white leading-tight mb-6">
                                 SoVir Akademie <br />
                                 <span className="text-[#d6b161]">Skills, Languages</span> <br />
                                 & Global Careers
@@ -201,7 +201,7 @@ const LandingPage: React.FC = () => {
                     <p className="text-sm tracking-widest text-gray-500 dark:text-gray-400 uppercase mb-8">Recognized & Partnered With</p>
                     <div className="flex flex-wrap justify-center items-center gap-8 lg:gap-16">
                         {partners.map((partner, i) => (
-                            <span key={i} className="text-xl lg:text-2xl font-serif font-bold text-gray-400 dark:text-gray-500 hover:text-[#d6b161] transition-colors cursor-default">
+                            <span key={i} className="text-xl lg:text-2xl font-sans font-bold text-gray-400 dark:text-gray-500 hover:text-[#d6b161] transition-colors cursor-default">
                                 {partner}
                             </span>
                         ))}
@@ -215,7 +215,7 @@ const LandingPage: React.FC = () => {
                     {/* Section Header */}
                     <div className="text-center mb-16">
                         <span className="text-[#d6b161] font-semibold text-sm tracking-widest uppercase">About Us</span>
-                        <h2 className="font-serif text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mt-4 mb-6">
+                        <h2 className="font-sans text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mt-4 mb-6">
                             Empowering Careers Through Excellence
                         </h2>
                         <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
@@ -229,7 +229,7 @@ const LandingPage: React.FC = () => {
                             <div className="w-14 h-14 rounded-xl bg-[#d6b161]/10 flex items-center justify-center mb-6">
                                 <Globe className="w-7 h-7 text-[#d6b161]" />
                             </div>
-                            <h3 className="font-serif text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+                            <h3 className="font-sans text-2xl font-semibold text-gray-900 dark:text-white mb-4">
                                 About SoVir Technologies LLP
                             </h3>
                             <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-6">
@@ -246,7 +246,7 @@ const LandingPage: React.FC = () => {
                             <div className="w-14 h-14 rounded-xl bg-[#d6b161]/10 flex items-center justify-center mb-6">
                                 <GraduationCap className="w-7 h-7 text-[#d6b161]" />
                             </div>
-                            <h3 className="font-serif text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+                            <h3 className="font-sans text-2xl font-semibold text-gray-900 dark:text-white mb-4">
                                 About SoVir Akademie
                             </h3>
                             <p className="text-gray-600 dark:text-gray-400 leading-relaxed mb-6">
@@ -266,7 +266,7 @@ const LandingPage: React.FC = () => {
                                 <div className="w-10 h-10 rounded-lg bg-[#d6b161] flex items-center justify-center">
                                     <Star className="w-5 h-5 text-[#0a192f]" />
                                 </div>
-                                <h4 className="font-serif text-xl font-semibold text-gray-900 dark:text-white">Our Mission</h4>
+                                <h4 className="font-sans text-xl font-semibold text-gray-900 dark:text-white">Our Mission</h4>
                             </div>
                             <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                                 To provide high-quality training programs that enhance technical competence, language proficiency, and global employability.
@@ -278,7 +278,7 @@ const LandingPage: React.FC = () => {
                                 <div className="w-10 h-10 rounded-lg bg-[#d6b161] flex items-center justify-center">
                                     <Globe className="w-5 h-5 text-[#0a192f]" />
                                 </div>
-                                <h4 className="font-serif text-xl font-semibold text-gray-900 dark:text-white">Our Vision</h4>
+                                <h4 className="font-sans text-xl font-semibold text-gray-900 dark:text-white">Our Vision</h4>
                             </div>
                             <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                                 To become a trusted academy for technology training, language education, and international career pathways.
@@ -294,7 +294,7 @@ const LandingPage: React.FC = () => {
                     {/* Section Header */}
                     <div className="text-center mb-16">
                         <span className="text-[#d6b161] font-semibold text-sm tracking-widest uppercase">Careers Abroad</span>
-                        <h2 className="font-serif text-4xl lg:text-5xl font-medium text-white mt-4 mb-6">
+                        <h2 className="font-sans text-4xl lg:text-5xl font-medium text-white mt-4 mb-6">
                             Build Your Career in Germany
                         </h2>
                         <p className="text-lg text-gray-400 max-w-3xl mx-auto">
@@ -311,7 +311,7 @@ const LandingPage: React.FC = () => {
                                 <div className="absolute top-6 left-6 w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10">
                                     <GraduationCap className="w-6 h-6 text-white" />
                                 </div>
-                                <h3 className="absolute bottom-6 left-6 font-serif text-2xl text-white">Ausbildung Programs</h3>
+                                <h3 className="absolute bottom-6 left-6 font-sans text-2xl text-white">Ausbildung Programs</h3>
                             </div>
                             <div className="p-8">
                                 <p className="text-gray-400 text-sm mb-8 leading-relaxed">
@@ -360,7 +360,7 @@ const LandingPage: React.FC = () => {
                                 <div className="absolute top-6 left-6 w-12 h-12 rounded-xl bg-[#ff7e5f]/20 backdrop-blur-md flex items-center justify-center border border-[#ff7e5f]/20">
                                     <svg className="w-6 h-6 text-[#ff7e5f]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
                                 </div>
-                                <h3 className="absolute bottom-6 left-6 font-serif text-2xl text-white">Nursing Pathway</h3>
+                                <h3 className="absolute bottom-6 left-6 font-sans text-2xl text-white">Nursing Pathway</h3>
                             </div>
                             <div className="p-8">
                                 <p className="text-gray-400 text-sm mb-8 leading-relaxed">
@@ -409,7 +409,7 @@ const LandingPage: React.FC = () => {
                                 <div className="absolute top-6 left-6 w-12 h-12 rounded-xl bg-[#d6b161]/20 backdrop-blur-md flex items-center justify-center border border-[#d6b161]/20">
                                     <svg className="w-6 h-6 text-[#d6b161]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                                 </div>
-                                <h3 className="absolute bottom-6 left-6 font-serif text-2xl text-white">Direct Job Placement</h3>
+                                <h3 className="absolute bottom-6 left-6 font-sans text-2xl text-white">Direct Job Placement</h3>
                             </div>
                             <div className="p-8">
                                 <p className="text-gray-400 text-sm mb-8 leading-relaxed">
@@ -459,7 +459,7 @@ const LandingPage: React.FC = () => {
                     {/* Section Header */}
                     <div className="text-center mb-16">
                         <span className="text-[#d6b161] font-semibold text-sm tracking-widest uppercase">Skill Training</span>
-                        <h2 className="font-serif text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mt-4 mb-6">
+                        <h2 className="font-sans text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mt-4 mb-6">
                             Industry-Ready Technical Training
                         </h2>
                         <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
@@ -527,7 +527,7 @@ const LandingPage: React.FC = () => {
                                         </div>
 
                                         {/* Title & Subtitle */}
-                                        <h3 className="font-serif text-2xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-1 group-hover:text-[#d6b161] transition-colors">
+                                        <h3 className="font-sans text-2xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-1 group-hover:text-[#d6b161] transition-colors">
                                             {course.title}
                                         </h3>
                                         <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-5 block">
@@ -595,7 +595,7 @@ const LandingPage: React.FC = () => {
                     {/* Section Header */}
                     <div className="text-center mb-16">
                         <span className="text-[#d6b161] font-semibold text-sm tracking-widest uppercase">Language Training</span>
-                        <h2 className="font-serif text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mt-4 mb-6">
+                        <h2 className="font-sans text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mt-4 mb-6">
                             Master Global Languages
                         </h2>
                         <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
@@ -613,7 +613,7 @@ const LandingPage: React.FC = () => {
                                 <Globe className="w-8 h-8 text-[#d6b161]" />
                             </div>
                             <div>
-                                <h3 className="font-serif text-3xl font-semibold text-gray-900 dark:text-white mb-2">German Language Training</h3>
+                                <h3 className="font-sans text-3xl font-semibold text-gray-900 dark:text-white mb-2">German Language Training</h3>
                                 <p className="text-gray-600 dark:text-gray-400">Complete A1 to B2 certification program with exam preparation</p>
                             </div>
                         </div>
@@ -663,7 +663,7 @@ const LandingPage: React.FC = () => {
                             <div className="w-12 h-12 rounded-xl bg-[#d6b161]/10 flex items-center justify-center mb-4">
                                 <Globe className="w-6 h-6 text-[#d6b161]" />
                             </div>
-                            <h3 className="font-serif text-xl font-semibold text-gray-900 dark:text-white mb-3">English Language</h3>
+                            <h3 className="font-sans text-xl font-semibold text-gray-900 dark:text-white mb-3">English Language</h3>
                             <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                                 <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#d6b161] mt-0.5" /> Spoken English</li>
                                 <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#d6b161] mt-0.5" /> Business English</li>
@@ -675,7 +675,7 @@ const LandingPage: React.FC = () => {
                             <div className="w-12 h-12 rounded-xl bg-[#d6b161]/10 flex items-center justify-center mb-4">
                                 <Globe className="w-6 h-6 text-[#d6b161]" />
                             </div>
-                            <h3 className="font-serif text-xl font-semibold text-gray-900 dark:text-white mb-3">French Language</h3>
+                            <h3 className="font-sans text-xl font-semibold text-gray-900 dark:text-white mb-3">French Language</h3>
                             <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                                 <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#d6b161] mt-0.5" /> Beginner to Advanced</li>
                                 <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#d6b161] mt-0.5" /> Conversational French</li>
@@ -687,7 +687,7 @@ const LandingPage: React.FC = () => {
                             <div className="w-12 h-12 rounded-xl bg-[#d6b161]/10 flex items-center justify-center mb-4">
                                 <Globe className="w-6 h-6 text-[#d6b161]" />
                             </div>
-                            <h3 className="font-serif text-xl font-semibold text-gray-900 dark:text-white mb-3">Japanese Language</h3>
+                            <h3 className="font-sans text-xl font-semibold text-gray-900 dark:text-white mb-3">Japanese Language</h3>
                             <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                                 <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#d6b161] mt-0.5" /> Basic to Intermediate</li>
                                 <li className="flex items-start gap-2"><CheckCircle className="w-4 h-4 text-[#d6b161] mt-0.5" /> Career-focused Training</li>
@@ -705,7 +705,7 @@ const LandingPage: React.FC = () => {
                         <span className="text-[#d6b161] font-semibold text-sm tracking-widest uppercase">Exam Prepar
 
                             ation</span>
-                        <h2 className="font-serif text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mt-4 mb-6">
+                        <h2 className="font-sans text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mt-4 mb-6">
                             International Exam Coaching
                         </h2>
                         <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
@@ -716,7 +716,7 @@ const LandingPage: React.FC = () => {
                     <div className="bg-gray-50 dark:bg-[#112240] rounded-[2rem] p-10 border border-gray-100 dark:border-white/5">
                         <div className="grid md:grid-cols-2 gap-8 mb-8">
                             <div>
-                                <h3 className="font-serif text-2xl font-semibold text-gray-900 dark:text-white mb-6 text-center">Exams Covered</h3>
+                                <h3 className="font-sans text-2xl font-semibold text-gray-900 dark:text-white mb-6 text-center">Exams Covered</h3>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="bg-white dark:bg-[#0a192f] p-4 rounded-xl text-center">
                                         <div className="text-[#d6b161] font-semibold">TELC</div>
@@ -746,7 +746,7 @@ const LandingPage: React.FC = () => {
                             </div>
 
                             <div>
-                                <h3 className="font-serif text-2xl font-semibold text-gray-900 dark:text-white mb-6">Preparation Includes</h3>
+                                <h3 className="font-sans text-2xl font-semibold text-gray-900 dark:text-white mb-6">Preparation Includes</h3>
                                 <div className="space-y-3">
                                     <div className="flex items-start gap-3">
                                         <CheckCircle className="w-5 h-5 text-[#d6b161] mt-0.5 flex-shrink-0" />
@@ -788,7 +788,7 @@ const LandingPage: React.FC = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-16">
                         <span className="text-[#d6b161] font-medium mb-2 block">Success Stories</span>
-                        <h2 className="font-serif text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mb-6">Hear From Our Students</h2>
+                        <h2 className="font-sans text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mb-6">Hear From Our Students</h2>
                         <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                             Join thousands of successful learners who have transformed their careers through our German language and career programs.
                         </p>
@@ -800,7 +800,7 @@ const LandingPage: React.FC = () => {
                                 <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21L14.017 18C14.017 16.05 17.07 15 17.07 13.01C17.07 10 16.53 10 16 10C13.55 10 12.002 12.19 12.002 14L12.002 2H10.003L10.003 14C10.003 20 16.037 21 16.037 21H14.017ZM8.01 21L8.01 18C8.01 16.05 11.07 15 11.07 13.01C11.07 10 10.53 10 10.002 10C7.552 10 6.004 12.19 6.004 14L6.004 2H4.004L4.004 14C4.004 20 10.038 21 10.038 21H8.01Z"></path></svg>
                             </div>
                             <div className="relative z-10">
-                                <p className="font-serif text-xl lg:text-2xl text-gray-800 dark:text-gray-200 leading-relaxed mb-8">
+                                <p className="font-sans text-xl lg:text-2xl text-gray-800 dark:text-gray-200 leading-relaxed mb-8">
                                     "SoVir Akademie transformed my career. From zero German to B2 in 10 months, and now I'm working as a nurse in Berlin. The live classes were engaging, and the career support was exceptional."
                                 </p>
                                 <div className="flex items-center gap-4">
@@ -818,7 +818,7 @@ const LandingPage: React.FC = () => {
                         <div className="relative">
                             <div className="bg-white dark:bg-[#112240] p-8 rounded-3xl shadow-xl border border-gray-100 dark:border-white/5 mb-8 transform -rotate-2">
                                 <div className="text-[#d6b161] text-sm font-bold tracking-widest uppercase mb-2">Program Completed</div>
-                                <h3 className="font-serif text-2xl text-gray-900 dark:text-white">German B2 + Nursing Pathway</h3>
+                                <h3 className="font-sans text-2xl text-gray-900 dark:text-white">German B2 + Nursing Pathway</h3>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -839,7 +839,7 @@ const LandingPage: React.FC = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-16">
                         <span className="text-[#d6b161] font-medium mb-2 block">Our Programs</span>
-                        <h2 className="font-serif text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mb-4">Featured Courses</h2>
+                        <h2 className="font-sans text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mb-4">Featured Courses</h2>
                         <p className="text-gray-600 dark:text-gray-400 max-w-xl mx-auto mb-8">
                             Choose from our expertly designed German language courses, from beginner A1 to advanced B2 levels.
                         </p>
@@ -894,7 +894,7 @@ const LandingPage: React.FC = () => {
                                         <span className="font-bold text-gray-900 dark:text-white">{course.rating}</span>
                                         <span className="text-gray-500 dark:text-gray-400">({course.students} students)</span>
                                     </div>
-                                    <h3 className="font-serif text-2xl font-medium text-gray-900 dark:text-white mb-1 group-hover:text-[#d6b161] transition-colors">{course.title}</h3>
+                                    <h3 className="font-sans text-2xl font-medium text-gray-900 dark:text-white mb-1 group-hover:text-[#d6b161] transition-colors">{course.title}</h3>
                                     <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">{course.subtitle}</p>
 
                                     <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400 mb-6">

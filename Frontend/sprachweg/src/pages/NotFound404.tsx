@@ -287,7 +287,7 @@ const NotFound404: React.FC = () => {
                         <div className="absolute bottom-2 left-0 right-0 h-px bg-gray-200 dark:bg-gray-700 w-full max-w-4xl mx-auto rounded-full" />
 
                         <div className="flex flex-col items-center relative z-10">
-                            <h2 className="text-2xl sm:text-3xl font-serif font-medium text-gray-800 dark:text-gray-200 mb-2">
+                            <h2 className="text-2xl sm:text-3xl font-sans font-medium text-gray-800 dark:text-gray-200 mb-2">
                                 Oops... Page Not Found
                             </h2>
                             <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto text-sm sm:text-base leading-relaxed mb-10">

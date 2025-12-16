@@ -16,6 +16,9 @@ import CourseEnglishPage from './pages/CourseEnglishPage';
 import CourseGermanPage from './pages/CourseGermanPage';
 import CourseJapanesePage from './pages/CourseJapanesePage';
 import NotFound404 from './pages/NotFound404';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -84,10 +87,34 @@ const App = () => {
                 }
               />
               <Route
+                path="/trainer-dashboard"
+                element={
+                  <PublicRoute>
+                    <TrainerDashboard />
+                  </PublicRoute>
+                }
+              />
+              <Route
                 path="/register"
                 element={
                   <PublicRoute>
                     <RegisterPage />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/forgot-password"
+                element={
+                  <PublicRoute>
+                    <ForgotPasswordPage />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/reset-password"
+                element={
+                  <PublicRoute>
+                    <ResetPasswordPage />
                   </PublicRoute>
                 }
               />

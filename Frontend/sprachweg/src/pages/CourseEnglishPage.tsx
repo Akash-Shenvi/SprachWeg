@@ -411,7 +411,7 @@ const CourseHero: React.FC<CourseHeroProps> = ({
           initial={{ opacity: 0, y: 30, scale: shouldReduceMotion ? 1 : 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="mx-auto mb-6 max-w-4xl font-serif text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl"
+          className="mx-auto mb-6 max-w-4xl font-sans text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl"
         >
           {title}
         </motion.h1>
