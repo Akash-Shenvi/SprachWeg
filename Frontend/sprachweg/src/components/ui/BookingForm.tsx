@@ -62,6 +62,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, originPath, 
     const modalRef = useRef<HTMLDivElement>(null);
 
     // State
+    const [step, setStep] = useState(1);
     const [formData, setFormData] = useState<FormData>(initialFormData);
     const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,7 +84,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, originPath, 
                 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
             );
             const firstElement = focusableElements?.[0] as HTMLElement;
-            const lastElement = focusableElements?.[focusableElements.length - 1] as HTMLElement;
+            const lastElement = focusableElements?.[focusableElements?.length - 1] as HTMLElement;
 
             const handleTab = (e: KeyboardEvent) => {
                 if (e.key === 'Tab') {
@@ -117,7 +118,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, originPath, 
         }
     }, [isOpen]);
 
-    const validate = (): boolean => {
+    const validateStep1 = (): boolean => {
         const newErrors: Partial<Record<keyof FormData, string>> = {};
         let isValid = true;
 
@@ -130,6 +131,14 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, originPath, 
             if (!formData.guardianPhone.trim()) { newErrors.guardianPhone = 'Guardian phone is required'; isValid = false; }
         }
 
+        setErrors(prev => ({ ...prev, ...newErrors }));
+        return isValid;
+    };
+
+    const validateStep2 = (): boolean => {
+        const newErrors: Partial<Record<keyof FormData, string>> = {};
+        let isValid = true;
+
         if (!formData.language) { newErrors.language = 'Please select a language'; isValid = false; }
         if (!formData.course) { newErrors.course = 'Please select a course'; isValid = false; }
 
@@ -138,13 +147,20 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, originPath, 
             if (!formData.prepLevel) { newErrors.prepLevel = 'Select a level (B1 or B2)'; isValid = false; }
         }
 
-        setErrors(newErrors);
+        setErrors(prev => ({ ...prev, ...newErrors }));
         return isValid;
+    };
+
+    const handleNext = () => {
+        if (validateStep1()) {
+            setStep(2);
+            window.scrollTo(0, 0);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!validate()) return;
+        if (!validateStep2()) return;
 
         setIsSubmitting(true);
         // Simulate API call
@@ -163,15 +179,19 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, originPath, 
 
     const handleClose = (success = false) => {
         if (success && originPath?.includes('?redirect=confirm')) {
-            navigate('/booking-confirmation'); // Hypothetical route
+            navigate('/booking-confirmation');
         } else {
-            if (!success && window.history.length > 1 && !originPath) {
-                window.history.back();
-            } else {
-                if (originPath) navigate(originPath);
-                onClose();
-            }
+            // Simply close the modal without browser navigation
+            if (originPath) navigate(originPath);
+            onClose();
         }
+        // Reset state on close
+        setTimeout(() => {
+            setStep(1);
+            setFormData(initialFormData);
+            setErrors({});
+            setShowSuccess(false);
+        }, 300);
     };
 
     const handleInputChange = (field: keyof FormData, value: any) => {
@@ -222,13 +242,25 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, originPath, 
                             className="group flex items-center gap-1 text-sm font-medium text-gray-500 transition-colors hover:text-[#0a192f] dark:text-gray-400 dark:hover:text-white"
                             aria-label="Close"
                         >
-                            <ChevronLeft className="h-5 w-5" />
+                            <ChevronLeft className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
                             Back
                         </button>
                         <h2 id="booking-title" className="text-lg font-bold text-[#0a192f] dark:text-white">
                             Book Free Trial
                         </h2>
-                        <div className="w-12" />
+                        <div className="flex items-center gap-1 text-xs font-medium text-gray-400">
+                            Step <span className="text-[#d6b161]">{step}</span>/2
+                        </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="h-1 w-full bg-gray-100 dark:bg-gray-800">
+                        <motion.div
+                            className="h-full bg-[#d6b161]"
+                            initial={{ width: '0%' }}
+                            animate={{ width: step === 1 ? '50%' : '100%' }}
+                            transition={{ duration: 0.3 }}
+                        />
                     </div>
 
                     {/* Content */}
@@ -239,188 +271,236 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, originPath, 
                             <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-6">
                                 {/* Error Summary */}
                                 {Object.keys(errors).length > 0 && (
-                                    <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400 flex gap-2">
+                                    <div className="rounded-lg bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400 flex gap-2 animate-pulse">
                                         <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                                        <span>Please correct the errors below to proceed.</span>
+                                        <span>Please correct the errors below.</span>
                                     </div>
                                 )}
 
-                                {/* Personal Info */}
-                                <div className="grid gap-6 md:grid-cols-2">
-                                    <InputField
-                                        label="Full Name"
-                                        required
-                                        icon={<User className="h-4 w-4" />}
-                                        value={formData.fullName}
-                                        onChange={v => handleInputChange('fullName', v)}
-                                        error={errors.fullName}
-                                    />
-
-                                    {/* Phone */}
-                                    <div>
-                                        <label className="mb-1.5 block text-sm font-semibold text-[#0a192f] dark:text-gray-200">
-                                            Phone <span className="text-red-500">*</span>
-                                        </label>
-                                        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus-within:ring-2 focus-within:ring-[#d6b161]">
-                                            <select
-                                                className="rounded-l-lg bg-gray-50 px-2 text-sm text-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:outline-none"
-                                                value={formData.countryCode}
-                                                onChange={e => handleInputChange('countryCode', e.target.value)}
-                                            >
-                                                <option value="+91">+91</option>
-                                                <option value="+1">+1</option>
-                                                <option value="+44">+44</option>
-                                                <option value="+49">+49</option>
-                                                <option value="+81">+81</option>
-                                            </select>
-                                            <input
-                                                type="tel"
-                                                className="w-full flex-1 rounded-r-lg bg-transparent px-3 py-2.5 text-gray-900 placeholder:text-gray-400 focus:outline-none dark:text-white"
-                                                placeholder="9876543210"
-                                                value={formData.phone}
-                                                onChange={e => handleInputChange('phone', e.target.value)}
-                                            />
-                                        </div>
-                                        {errors.phone && <span className="mt-1 text-xs text-red-500">{errors.phone}</span>}
-                                    </div>
-
-                                    <InputField
-                                        label="Email Address"
-                                        required
-                                        type="email"
-                                        icon={<Mail className="h-4 w-4" />}
-                                        value={formData.email}
-                                        onChange={v => handleInputChange('email', v)}
-                                        error={errors.email}
-                                        className="md:col-span-2"
-                                    />
-                                </div>
-
-                                {/* Under 18 Check */}
-                                <div className="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
-                                    <input
-                                        type="checkbox"
-                                        id="under18"
-                                        checked={formData.isUnder18}
-                                        onChange={e => handleInputChange('isUnder18', e.target.checked)}
-                                        className="h-5 w-5 rounded border-gray-300 text-[#d6b161] focus:ring-[#d6b161]"
-                                    />
-                                    <label htmlFor="under18" className="select-none text-sm font-medium text-gray-700 dark:text-gray-200">
-                                        I am under 18 years old
-                                    </label>
-                                </div>
-
-                                {/* Guardian Fields */}
-                                <AnimatePresence>
-                                    {formData.isUnder18 && (
+                                <AnimatePresence mode="wait">
+                                    {step === 1 && (
                                         <motion.div
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            className="grid gap-6 overflow-hidden md:grid-cols-2"
+                                            key="step1"
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -20 }}
+                                            className="space-y-6"
                                         >
-                                            <InputField
-                                                label="Guardian Name"
-                                                required
-                                                value={formData.guardianName}
-                                                onChange={v => handleInputChange('guardianName', v)}
-                                                error={errors.guardianName}
-                                            />
-                                            <InputField
-                                                label="Guardian Phone"
-                                                required
-                                                type="tel"
-                                                value={formData.guardianPhone}
-                                                onChange={v => handleInputChange('guardianPhone', v)}
-                                                error={errors.guardianPhone}
-                                            />
+                                            <div className="mb-4">
+                                                <h3 className="text-xl font-bold text-[#0a192f] dark:text-white mb-1">Personal Details</h3>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">Tell us a bit about yourself</p>
+                                            </div>
+
+                                            <div className="grid gap-6 md:grid-cols-2">
+                                                <InputField
+                                                    label="Full Name"
+                                                    required
+                                                    icon={<User className="h-4 w-4" />}
+                                                    value={formData.fullName}
+                                                    onChange={v => handleInputChange('fullName', v)}
+                                                    error={errors.fullName}
+                                                    placeholder="John Doe"
+                                                />
+
+                                                {/* Phone */}
+                                                <div>
+                                                    <label className="mb-1.5 block text-sm font-semibold text-[#0a192f] dark:text-gray-200">
+                                                        Phone <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus-within:ring-2 focus-within:ring-[#d6b161]">
+                                                        <select
+                                                            className="rounded-l-lg bg-gray-50 px-2 text-sm text-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:outline-none border-r border-gray-200 dark:border-gray-600"
+                                                            value={formData.countryCode}
+                                                            onChange={e => handleInputChange('countryCode', e.target.value)}
+                                                        >
+                                                            <option value="+91">+91</option>
+                                                            <option value="+1">+1</option>
+                                                            <option value="+44">+44</option>
+                                                            <option value="+49">+49</option>
+                                                            <option value="+81">+81</option>
+                                                        </select>
+                                                        <input
+                                                            type="tel"
+                                                            className="w-full flex-1 rounded-r-lg bg-transparent px-3 py-2.5 text-gray-900 placeholder:text-gray-400 focus:outline-none dark:text-white"
+                                                            placeholder="9876543210"
+                                                            value={formData.phone}
+                                                            onChange={e => handleInputChange('phone', e.target.value)}
+                                                        />
+                                                    </div>
+                                                    {errors.phone && <span className="mt-1 text-xs text-red-500">{errors.phone}</span>}
+                                                </div>
+
+                                                <InputField
+                                                    label="Email Address"
+                                                    required
+                                                    type="email"
+                                                    icon={<Mail className="h-4 w-4" />}
+                                                    value={formData.email}
+                                                    onChange={v => handleInputChange('email', v)}
+                                                    error={errors.email}
+                                                    className="md:col-span-2"
+                                                    placeholder="john@example.com"
+                                                />
+                                            </div>
+
+                                            {/* Under 18 Check */}
+                                            <div className="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                                                <input
+                                                    type="checkbox"
+                                                    id="under18"
+                                                    checked={formData.isUnder18}
+                                                    onChange={e => handleInputChange('isUnder18', e.target.checked)}
+                                                    className="h-5 w-5 rounded border-gray-300 text-[#d6b161] focus:ring-[#d6b161]"
+                                                />
+                                                <label htmlFor="under18" className="select-none text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer">
+                                                    I am under 18 years old
+                                                </label>
+                                            </div>
+
+                                            {/* Guardian Fields */}
+                                            <AnimatePresence>
+                                                {formData.isUnder18 && (
+                                                    <motion.div
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: 'auto', opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        className="grid gap-6 overflow-hidden md:grid-cols-2"
+                                                    >
+                                                        <InputField
+                                                            label="Guardian Name"
+                                                            required
+                                                            value={formData.guardianName}
+                                                            onChange={v => handleInputChange('guardianName', v)}
+                                                            error={errors.guardianName}
+                                                        />
+                                                        <InputField
+                                                            label="Guardian Phone"
+                                                            required
+                                                            type="tel"
+                                                            value={formData.guardianPhone}
+                                                            onChange={v => handleInputChange('guardianPhone', v)}
+                                                            error={errors.guardianPhone}
+                                                        />
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+
+                                            <div className="pt-4">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleNext}
+                                                    className="w-full rounded-lg bg-[#0a192f] py-4 text-base font-bold text-white shadow-lg transition-all hover:bg-[#112240] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 dark:bg-[#d6b161] dark:text-[#0a192f] dark:hover:bg-[#c4a055]"
+                                                >
+                                                    Continue
+                                                </button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+
+                                    {step === 2 && (
+                                        <motion.div
+                                            key="step2"
+                                            initial={{ opacity: 0, x: 20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: 20 }}
+                                            className="space-y-6"
+                                        >
+                                            <div className="mb-4">
+                                                <h3 className="text-xl font-bold text-[#0a192f] dark:text-white mb-1">Course Preferences</h3>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400">Select your learning path</p>
+                                            </div>
+
+                                            <div className="grid gap-6 md:grid-cols-2">
+                                                <SelectField
+                                                    label="Language"
+                                                    required
+                                                    value={formData.language}
+                                                    onChange={v => handleInputChange('language', v)}
+                                                    error={errors.language}
+                                                    options={[
+                                                        { label: 'Select Language', value: '' },
+                                                        { label: 'German', value: 'german' },
+                                                        { label: 'English', value: 'english' },
+                                                        { label: 'Japanese', value: 'japanese' },
+                                                    ]}
+                                                    icon={<Globe className="h-4 w-4" />}
+                                                />
+
+                                                <SelectField
+                                                    label="Course"
+                                                    required
+                                                    value={formData.course}
+                                                    onChange={v => handleInputChange('course', v)}
+                                                    error={errors.course}
+                                                    disabled={!formData.language}
+                                                    options={[
+                                                        { label: 'Select Course', value: '' },
+                                                        ...(COURSES_BY_LANGUAGE[formData.language] || []).map(c => ({ label: c, value: c }))
+                                                    ]}
+                                                    icon={<BookOpen className="h-4 w-4" />}
+                                                />
+
+                                                {/* Prep Level Conditional */}
+                                                <AnimatePresence>
+                                                    {formData.language === 'german' && PREP_COURSES.includes(formData.course) && (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, height: 0 }}
+                                                            animate={{ opacity: 1, height: 'auto' }}
+                                                            exit={{ opacity: 0, height: 0 }}
+                                                            className="md:col-span-2"
+                                                        >
+                                                            <SelectField
+                                                                label="Target Level"
+                                                                required
+                                                                value={formData.prepLevel}
+                                                                onChange={v => handleInputChange('prepLevel', v)}
+                                                                error={errors.prepLevel}
+                                                                options={[
+                                                                    { label: 'Select Level', value: '' },
+                                                                    { label: 'B1', value: 'B1' },
+                                                                    { label: 'B2', value: 'B2' },
+                                                                ]}
+                                                            />
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
+
+                                            {/* Comments */}
+                                            <div>
+                                                <label className="mb-1.5 block text-sm font-semibold text-[#0a192f] dark:text-gray-200">
+                                                    Optional Comments
+                                                </label>
+                                                <textarea
+                                                    rows={3}
+                                                    className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#d6b161] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                                                    placeholder="Any specific goals or questions?"
+                                                    value={formData.comments}
+                                                    onChange={e => handleInputChange('comments', e.target.value)}
+                                                />
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className="pt-4 flex flex-col gap-3">
+                                                <button
+                                                    type="submit"
+                                                    disabled={isSubmitting}
+                                                    className="w-full rounded-lg bg-[#d6b161] py-4 text-base font-bold text-[#0a192f] shadow-lg transition-all hover:bg-[#c4a055] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 disabled:opacity-70 dark:focus:ring-offset-[#0a192f]"
+                                                >
+                                                    {isSubmitting ? 'Processing...' : 'Book Free Trial'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setStep(1)}
+                                                    className="w-full text-sm font-semibold text-gray-500 hover:text-[#0a192f] dark:text-gray-400 dark:hover:text-white py-2"
+                                                >
+                                                    Back to Details
+                                                </button>
+                                            </div>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
 
-                                <hr className="border-gray-100 dark:border-gray-800" />
-
-                                {/* Course Selection */}
-                                <div className="grid gap-6 md:grid-cols-2">
-                                    <SelectField
-                                        label="Language"
-                                        required
-                                        value={formData.language}
-                                        onChange={v => handleInputChange('language', v)}
-                                        error={errors.language}
-                                        options={[
-                                            { label: 'Select Language', value: '' },
-                                            { label: 'German', value: 'german' },
-                                            { label: 'English', value: 'english' },
-                                            { label: 'Japanese', value: 'japanese' },
-                                        ]}
-                                        icon={<Globe className="h-4 w-4" />}
-                                    />
-
-                                    <SelectField
-                                        label="Course"
-                                        required
-                                        value={formData.course}
-                                        onChange={v => handleInputChange('course', v)}
-                                        error={errors.course}
-                                        disabled={!formData.language}
-                                        options={[
-                                            { label: 'Select Course', value: '' },
-                                            ...(COURSES_BY_LANGUAGE[formData.language] || []).map(c => ({ label: c, value: c }))
-                                        ]}
-                                        icon={<BookOpen className="h-4 w-4" />}
-                                    />
-
-                                    {/* Prep Level Conditional */}
-                                    {formData.language === 'german' && PREP_COURSES.includes(formData.course) && (
-                                        <div className="md:col-span-2">
-                                            <SelectField
-                                                label="Target Level"
-                                                required
-                                                value={formData.prepLevel}
-                                                onChange={v => handleInputChange('prepLevel', v)}
-                                                error={errors.prepLevel}
-                                                options={[
-                                                    { label: 'Select Level', value: '' },
-                                                    { label: 'B1', value: 'B1' },
-                                                    { label: 'B2', value: 'B2' },
-                                                ]}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Comments */}
-                                <div>
-                                    <label className="mb-1.5 block text-sm font-semibold text-[#0a192f] dark:text-gray-200">
-                                        Optional Comments
-                                    </label>
-                                    <textarea
-                                        rows={3}
-                                        className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#d6b161] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                                        placeholder="Any specific goals or questions?"
-                                        value={formData.comments}
-                                        onChange={e => handleInputChange('comments', e.target.value)}
-                                    />
-                                </div>
-
-                                {/* Actions */}
-                                <div className="pt-4">
-                                    <button
-                                        type="submit"
-                                        disabled={isSubmitting}
-                                        className="w-full rounded-lg bg-[#d6b161] py-4 text-base font-bold text-[#0a192f] shadow-lg transition-all hover:bg-[#c4a055] hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 disabled:opacity-70 dark:focus:ring-offset-[#0a192f]"
-                                    >
-                                        {isSubmitting ? 'Processing...' : 'Book Free Trial'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleClose()}
-                                        className="mt-4 w-full text-sm font-semibold text-gray-500 hover:text-[#0a192f] dark:text-gray-400 dark:hover:text-white"
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
                             </form>
                         )}
                     </div>
