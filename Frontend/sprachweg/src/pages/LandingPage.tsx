@@ -13,10 +13,14 @@ import Button from '../components/ui/Button';
 import { Header, Footer } from '../components/layout';
 import { skillAPI } from '../lib/api';
 import type { SkillCourse } from '../types/skill';
+import BookingForm from '../components/ui/BookingForm';
+import EnrollmentModal from '../components/ui/EnrollmentModal';
 
 const LandingPage: React.FC = () => {
     const [skillCourses, setSkillCourses] = useState<SkillCourse[]>([]);
     const [loadingSkills, setLoadingSkills] = useState(true);
+    const [isBookingFormOpen, setIsBookingFormOpen] = useState(false);
+    const [isEnrollmentModalOpen, setIsEnrollmentModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchSkillCourses = async () => {
@@ -112,18 +116,21 @@ const LandingPage: React.FC = () => {
                             </p>
 
                             <div className="flex flex-col sm:flex-row gap-4">
-                                <Link to="/register">
-                                    <Button className="bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] font-semibold px-8 py-6 text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2">
-                                        Start Learning
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
-                                    </Button>
-                                </Link>
-                                <Link to="/consult">
-                                    <Button variant="outline" className="border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 px-8 py-6 text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2">
-                                        <Play className="w-5 h-5" />
-                                        Book Free Consultation
-                                    </Button>
-                                </Link>
+                                <Button
+                                    onClick={() => setIsEnrollmentModalOpen(true)}
+                                    className="bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] font-semibold px-8 py-6 text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2"
+                                >
+                                    Start Learning
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                                </Button>
+                                <Button
+                                    onClick={() => setIsBookingFormOpen(true)}
+                                    variant="outline"
+                                    className="border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 px-8 py-6 text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2"
+                                >
+                                    <Play className="w-5 h-5" />
+                                    Book Free Consultation
+                                </Button>
                             </div>
                         </motion.div>
 
@@ -931,6 +938,17 @@ const LandingPage: React.FC = () => {
                     </div>
                 </div>
             </section>
+
+            {/* Modals */}
+            <BookingForm
+                isOpen={isBookingFormOpen}
+                onClose={() => setIsBookingFormOpen(false)}
+            />
+            <EnrollmentModal
+                isOpen={isEnrollmentModalOpen}
+                onClose={() => setIsEnrollmentModalOpen(false)}
+                origin="german"
+            />
 
             {/* Footer */}
             <Footer />
