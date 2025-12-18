@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../lib/api";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { Users, ChevronDown, ChevronUp, Mail, BookOpen, GraduationCap, Search, Filter, Trash2, AlertCircle } from "lucide-react";
+import { Users, ChevronDown, ChevronUp, Mail, BookOpen, Search, Filter, Trash2, AlertCircle } from "lucide-react";
 
 interface Student {
     _id: string;
@@ -26,15 +26,7 @@ const LanguageBatches: React.FC = () => {
 
     const fetchBatches = async () => {
         try {
-            const token = localStorage.getItem("token");
-            const config = {
-                headers: { Authorization: `Bearer ${token}` },
-            };
-
-            const { data } = await axios.get(
-                "http://localhost:5000/api/language-training/admin/batches",
-                config
-            );
+            const { data } = await api.get("/language-training/admin/batches");
             setBatches(data);
             setLoading(false);
         } catch (err) {
@@ -47,15 +39,7 @@ const LanguageBatches: React.FC = () => {
         if (!confirm("Are you sure you want to remove this student from the active class? This will cancel their enrollment.")) return;
 
         try {
-            const token = localStorage.getItem("token");
-            const config = {
-                headers: { Authorization: `Bearer ${token}` },
-            };
-
-            await axios.delete(
-                `http://localhost:5000/api/language-training/admin/batches/${batchId}/students/${studentId}`,
-                config
-            );
+            await api.delete(`/language-training/admin/batches/${batchId}/students/${studentId}`);
 
             // Update local state by removing student
             setBatches(prev => prev.map(batch => {
@@ -77,15 +61,7 @@ const LanguageBatches: React.FC = () => {
         if (!confirm("WARNING: Are you sure you want to delete this ENTIRE BATCH? All students will be removed from the class (status set to Rejected). This cannot be undone.")) return;
 
         try {
-            const token = localStorage.getItem("token");
-            const config = {
-                headers: { Authorization: `Bearer ${token}` },
-            };
-
-            await axios.delete(
-                `http://localhost:5000/api/language-training/admin/batches/${batchId}`,
-                config
-            );
+            await api.delete(`/language-training/admin/batches/${batchId}`);
 
             // Remove batch from state
             setBatches(prev => prev.filter(b => b._id !== batchId));
