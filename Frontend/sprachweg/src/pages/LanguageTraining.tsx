@@ -88,10 +88,11 @@ const languageCards = [
         reviews: '2.4k',
         levels: ['Beginner', 'Intermediate', 'Advanced'],
         categories: ['Business', 'Academic'],
-        price: '₹12,999',
+        price: '₹9,999',
         bgColor: 'bg-blue-50 dark:bg-blue-950/30',
         borderColor: 'border-blue-200 dark:border-blue-800',
-        route: '/training/english'
+        route: '/training/english',
+        image: "https://images.unsplash.com/photo-1543269865-cbf427effbad?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
     },
     {
         code: 'DE',
@@ -100,12 +101,13 @@ const languageCards = [
         courses: 38,
         rating: 4.8,
         reviews: '2.4k',
-        levels: ['A1', 'A2', 'B1', 'B2', 'TestDaF'],
+        levels: ['A1', 'A2', 'B1', 'B2', 'TELC / Goethe'],
         categories: [],
         price: '₹15,999',
         bgColor: 'bg-pink-50 dark:bg-pink-950/30',
         borderColor: 'border-pink-200 dark:border-pink-800',
-        route: '/training/german'
+        route: '/training/german',
+        image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
     },
     {
         code: 'JP',
@@ -116,10 +118,11 @@ const languageCards = [
         reviews: '2.4k',
         levels: ['N5', 'N4', 'N3', 'N2', 'N1'],
         categories: [],
-        price: '₹16,999',
+        price: '₹17,999',
         bgColor: 'bg-pink-50 dark:bg-pink-950/30',
         borderColor: 'border-pink-200 dark:border-pink-800',
-        route: '/training/japanese'
+        route: '/training/japanese',
+        image: "https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
     }
 ];
 
@@ -170,30 +173,27 @@ const StarRating: React.FC<{ rating: number }> = ({ rating }) => {
 const LanguageCard: React.FC<{
     card: typeof languageCards[0];
     index: number;
-}> = ({ card, index }) => {
+}> = ({ card, index: _index }) => {
     return (
         <motion.div
             variants={fadeInUp}
             whileHover={{ y: -8, transition: { duration: 0.3 } }}
-            className={`relative rounded-2xl border-2 ${card.borderColor} ${card.bgColor} p-6 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group`}
+            className={`relative rounded-2xl border-2 ${card.borderColor} ${card.bgColor} shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group`}
         >
+            {/* Image Area */}
+            <div className="h-48 relative overflow-hidden bg-gray-200 dark:bg-gray-800 z-20">
+                <img
+                    src={card.image}
+                    alt={card.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+            </div>
+
             {/* Decorative gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent dark:from-white/5 pointer-events-none" />
 
             {/* Content wrapper with z-index */}
-            <div className="relative z-10">
-                {/* Country Code */}
-                <div className="text-center mb-4">
-                    <motion.span
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: index * 0.1, duration: 0.4 }}
-                        className="text-4xl font-bold text-[#0a192f] dark:text-white tracking-wider"
-                    >
-                        {card.code}
-                    </motion.span>
-                </div>
-
+            <div className="relative z-10 p-6">
                 {/* Title */}
                 <h3 className="text-xl font-sans font-bold text-center text-[#0a192f] dark:text-white mb-5">
                     {card.title}

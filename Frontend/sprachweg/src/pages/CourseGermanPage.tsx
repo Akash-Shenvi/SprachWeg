@@ -300,7 +300,7 @@ const CourseGermanPage: React.FC = () => {
             <motion.div variants={fadeInUp} className="flex flex-wrap justify-center gap-4 text-sm font-medium text-gray-500 dark:text-gray-400">
               <div className="flex items-center gap-2 rounded-lg bg-white/50 px-4 py-2 dark:bg-white/5">
                 <Shield className="h-5 w-5 text-emerald-500" />
-                <span>Goethe/TestDaF Prep</span>
+                <span>TELC / Goethe Prep</span>
               </div>
               <div className="flex items-center gap-2 rounded-lg bg-white/50 px-4 py-2 dark:bg-white/5">
                 <Globe className="h-5 w-5 text-[#d6b161]" />

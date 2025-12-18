@@ -7,7 +7,10 @@ import {
     Globe,
     Play,
     GraduationCap,
-    Zap
+    Zap,
+    Users,
+    BookOpen,
+    ArrowRight
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { Header, Footer } from '../components/layout';
@@ -37,49 +40,72 @@ const LandingPage: React.FC = () => {
         fetchSkillCourses();
     }, []);
 
-    const courses = [
+    // Language cards data from LanguageTraining
+    const featuredCourses = [
         {
-            level: 'A1',
-            title: 'German A1 Complete',
-            subtitle: "Beginner's Journey",
-            price: '€299',
-            originalPrice: '€399',
-            rating: '4.9',
-            students: '1,250',
-            duration: '8 weeks',
-            startDate: 'Jan 15, 2024',
-            mode: 'Live',
-            popular: true
+            code: 'GB',
+            title: 'English Training',
+            students: '8,500+',
+            courses: 45,
+            rating: 4.9,
+            reviews: '2.4k',
+            levels: ['Beginner', 'Intermediate', 'Advanced'],
+            categories: ['Business', 'Academic'],
+            price: '₹9,999',
+            bgColor: 'bg-blue-50 dark:bg-blue-950/30',
+            borderColor: 'border-blue-200 dark:border-blue-800',
+            route: '/training/english'
         },
         {
-            level: 'A2',
-            title: 'German A2 Intensive',
-            subtitle: "Build Fluency",
-            price: '€349',
-            originalPrice: '€449',
-            rating: '4.8',
-            students: '890',
-            duration: '10 weeks',
-            startDate: 'Jan 20, 2024',
-            mode: 'Hybrid',
-            popular: false
+            code: 'DE',
+            title: 'German Training',
+            students: '6,200+',
+            courses: 38,
+            rating: 4.8,
+            reviews: '2.4k',
+            levels: ['A1', 'A2', 'B1', 'B2', 'TELC / Goethe'],
+            categories: [],
+            price: '₹15,999',
+            bgColor: 'bg-pink-50 dark:bg-pink-950/30',
+            borderColor: 'border-pink-200 dark:border-pink-800',
+            route: '/training/german'
         },
         {
-            level: 'B1',
-            title: 'German B1 Professional',
-            subtitle: "Workplace Ready",
-            price: '€449',
-            originalPrice: '€549',
-            rating: '4.9',
-            students: '670',
-            duration: '12 weeks',
-            startDate: 'Feb 1, 2024',
-            mode: 'Live',
-            popular: true
+            code: 'JP',
+            title: 'Japanese Training',
+            students: '4,800+',
+            courses: 32,
+            rating: 4.9,
+            reviews: '2.4k',
+            levels: ['N5', 'N4', 'N3', 'N2', 'N1'],
+            categories: [],
+            price: '₹17,999',
+            bgColor: 'bg-pink-50 dark:bg-pink-950/30',
+            borderColor: 'border-pink-200 dark:border-pink-800',
+            route: '/training/japanese'
         }
     ];
 
-    const partners = ['Goethe', 'TELC', 'TestDaF', 'ÖSD', 'ILETS'];
+    // Star Rating Component (inline for LandingPage)
+    const StarRating: React.FC<{ rating: number }> = ({ rating }) => {
+        return (
+            <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                        key={star}
+                        className={`w-3.5 h-3.5 ${star <= Math.floor(rating)
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : star <= rating
+                                ? 'fill-yellow-400/50 text-yellow-400'
+                                : 'fill-gray-200 text-gray-200 dark:fill-gray-600 dark:text-gray-600'
+                            }`}
+                    />
+                ))}
+            </div>
+        );
+    };
+
+    const partners = ['TELC / Goethe', 'ÖSD', 'IELTS'];
 
     // Helper for formatting price
     const formatPrice = (val: string | number) => {
@@ -704,17 +730,10 @@ const LandingPage: React.FC = () => {
                                 <h3 className="font-sans text-2xl font-semibold text-gray-900 dark:text-white mb-6 text-center">Exams Covered</h3>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="bg-white dark:bg-[#0a192f] p-4 rounded-xl text-center">
-                                        <div className="text-[#d6b161] font-semibold">TELC</div>
-                                        <div className="text-xs text-gray-500">A1 to B2</div>
-                                    </div>
-                                    <div className="bg-white dark:bg-[#0a192f] p-4 rounded-xl text-center">
-                                        <div className="text-[#d6b161] font-semibold">Goethe</div>
+                                        <div className="text-[#d6b161] font-semibold">TELC / Goethe</div>
                                         <div className="text-xs text-gray-500">Institut Exams</div>
                                     </div>
-                                    <div className="bg-white dark:bg-[#0a192f] p-4 rounded-xl text-center">
-                                        <div className="text-[#d6b161] font-semibold">TestDaF</div>
-                                        <div className="text-xs text-gray-500">University Entry</div>
-                                    </div>
+
                                     <div className="bg-white dark:bg-[#0a192f] p-4 rounded-xl text-center">
                                         <div className="text-[#d6b161] font-semibold">ÖSD</div>
                                         <div className="text-xs text-gray-500">Austrian Exam</div>
@@ -768,56 +787,7 @@ const LandingPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* Testimonials Section */}
-            <section className="py-24 bg-white dark:bg-[#0a192f] overflow-hidden">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-16">
-                        <span className="text-[#d6b161] font-medium mb-2 block">Success Stories</span>
-                        <h2 className="font-sans text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mb-6">Hear From Our Students</h2>
-                        <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                            Join thousands of successful learners who have transformed their careers through our German language and career programs.
-                        </p>
-                    </div>
 
-                    <div className="grid lg:grid-cols-2 gap-16 items-center">
-                        <div className="bg-[#fcf8f1] dark:bg-[#112240] p-12 rounded-[2rem] border border-[#d6b161]/20 relative">
-                            <div className="text-[#d6b161]/20 absolute top-8 left-8">
-                                <svg className="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21L14.017 18C14.017 16.05 17.07 15 17.07 13.01C17.07 10 16.53 10 16 10C13.55 10 12.002 12.19 12.002 14L12.002 2H10.003L10.003 14C10.003 20 16.037 21 16.037 21H14.017ZM8.01 21L8.01 18C8.01 16.05 11.07 15 11.07 13.01C11.07 10 10.53 10 10.002 10C7.552 10 6.004 12.19 6.004 14L6.004 2H4.004L4.004 14C4.004 20 10.038 21 10.038 21H8.01Z"></path></svg>
-                            </div>
-                            <div className="relative z-10">
-                                <p className="font-sans text-xl lg:text-2xl text-gray-800 dark:text-gray-200 leading-relaxed mb-8">
-                                    "SoVir Academy transformed my career. From zero German to B2 in 10 months, and now I'm working as a nurse in Berlin. The live classes were engaging, and the career support was exceptional."
-                                </p>
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-full overflow-hidden">
-                                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" alt="Student" className="w-full h-full object-cover" />
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-gray-900 dark:text-white">Priya Sharma</div>
-                                        <div className="text-sm text-gray-500">Registered Nurse, Berlin</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="relative">
-                            <div className="bg-white dark:bg-[#112240] p-8 rounded-3xl shadow-xl border border-gray-100 dark:border-white/5 mb-8 transform -rotate-2">
-                                <div className="text-[#d6b161] text-sm font-bold tracking-widest uppercase mb-2">Program Completed</div>
-                                <h3 className="font-sans text-2xl text-gray-900 dark:text-white">German B2 + Nursing Pathway</h3>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" alt="Student 1" className="w-full h-40 object-cover rounded-2xl border-4 border-white dark:border-[#112240] shadow-lg transform translate-y-4" />
-                                <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" alt="Student 2" className="w-full h-40 object-cover rounded-2xl border-4 border-white dark:border-[#112240] shadow-lg" />
-                                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80" alt="Student 3" className="w-full h-40 object-cover rounded-2xl border-4 border-white dark:border-[#112240] shadow-lg transform -translate-y-4" />
-                                <div className="w-full h-40 bg-gray-100 dark:bg-[#112240] rounded-2xl border-4 border-white dark:border-[#112240] shadow-lg flex items-center justify-center">
-                                    <span className="text-[#d6b161] font-bold text-xl">+1500</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
             {/* Featured Courses */}
             <section className="py-24 bg-white dark:bg-[#0a192f]">
@@ -826,18 +796,14 @@ const LandingPage: React.FC = () => {
                         <span className="text-[#d6b161] font-medium mb-2 block">Our Programs</span>
                         <h2 className="font-sans text-4xl lg:text-5xl font-medium text-gray-900 dark:text-white mb-4">Featured Courses</h2>
                         <p className="text-gray-600 dark:text-gray-400 max-w-xl mx-auto mb-8">
-                            Choose from our expertly designed German language courses, from beginner A1 to advanced B2 levels.
+                            Start your journey with our expert-led language training programs.
                         </p>
 
-                        <div className="inline-flex gap-2 bg-gray-100 dark:bg-white/5 p-1 rounded-full">
-                            <button className="px-6 py-2 bg-[#d6b161] text-[#0a192f] rounded-full text-sm font-semibold shadow-lg">All Courses</button>
-                            <button className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-white transition-colors text-sm font-medium">Live Classes</button>
-                            <button className="px-6 py-2 text-gray-600 dark:text-gray-400 hover:text-white transition-colors text-sm font-medium">Hybrid</button>
-                        </div>
+
                     </div>
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {courses.map((course, index) => (
+                        {featuredCourses.map((course, index) => (
                             <motion.div
                                 key={index}
                                 initial={{ opacity: 0, y: 20 }}
@@ -855,63 +821,52 @@ const LandingPage: React.FC = () => {
                                         alt={course.title}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                     />
-                                    <div className="absolute top-4 left-4 flex gap-2">
-                                        <span className="bg-[#d6b161] text-[#0a192f] text-xs font-bold px-3 py-1 rounded-full">
-                                            {course.level}
-                                        </span>
-                                        {course.popular && (
-                                            <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" /></svg>
-                                                Popular
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="absolute bottom-4 left-4">
-                                        <span className="bg-[#0a192f]/80 backdrop-blur-sm text-white text-xs font-medium px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
-                                            <Play className="w-3 h-3 fill-current" />
-                                            {course.mode}
-                                        </span>
-                                    </div>
+                                    {/* Country Code Overlay */}
+
                                 </div>
                                 <div className="p-8">
-                                    <div className="flex items-center gap-2 mb-2 text-sm text-yellow-400">
-                                        <Star className="w-4 h-4 fill-current" />
-                                        <span className="font-bold text-gray-900 dark:text-white">{course.rating}</span>
-                                        <span className="text-gray-500 dark:text-gray-400">({course.students} students)</span>
-                                    </div>
-                                    <h3 className="font-sans text-2xl font-medium text-gray-900 dark:text-white mb-1 group-hover:text-[#d6b161] transition-colors">{course.title}</h3>
-                                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">{course.subtitle}</p>
+                                    <h3 className="font-sans text-2xl font-bold text-center text-gray-900 dark:text-white mb-6 group-hover:text-[#d6b161] transition-colors">{course.title}</h3>
 
-                                    <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400 mb-6">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-[#d6b161]"></div>
-                                            {course.duration}
+                                    {/* Stats Row */}
+                                    <div className="flex items-center justify-center gap-6 text-sm text-gray-700 dark:text-gray-300 mb-6">
+                                        <div className="flex items-center gap-1.5">
+                                            <Users className="w-4 h-4 text-[#d6b161]" />
+                                            <span className="font-medium">{course.students} students</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-[#d6b161]"></div>
-                                            {course.startDate}
+                                        <div className="flex items-center gap-1.5">
+                                            <BookOpen className="w-4 h-4 text-[#d6b161]" />
+                                            <span className="font-medium">{course.courses} courses</span>
                                         </div>
                                     </div>
 
-                                    <ul className="space-y-2 mb-8">
-                                        <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                            <CheckCircle className="w-4 h-4 text-[#d6b161]" />
-                                            Live interactive sessions
-                                        </li>
-                                        <li className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                            <CheckCircle className="w-4 h-4 text-[#d6b161]" />
-                                            1-on-1 speaking practice
-                                        </li>
-                                    </ul>
+                                    {/* Rating */}
+                                    <div className="flex items-center justify-center gap-2 mb-6">
+                                        <StarRating rating={course.rating} />
+                                        <span className="text-sm font-semibold text-[#0a192f] dark:text-white">{course.rating}</span>
+                                        <span className="text-sm text-gray-600 dark:text-gray-400">({course.reviews} reviews)</span>
+                                    </div>
+
+                                    {/* Levels */}
+                                    <div className="flex flex-wrap justify-center gap-2 mb-8">
+                                        {course.levels.map((level) => (
+                                            <span
+                                                key={level}
+                                                className="px-3 py-1.5 text-xs font-semibold rounded-full bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-white/5"
+                                            >
+                                                {level}
+                                            </span>
+                                        ))}
+                                    </div>
 
                                     <div className="flex items-center justify-between mt-auto pt-6 border-t border-gray-100 dark:border-white/5">
                                         <div>
+                                            <span className="text-xs font-medium text-gray-500 block mb-1">Starting at</span>
                                             <span className="text-2xl font-bold text-gray-900 dark:text-white block">{course.price}</span>
-                                            <span className="text-sm text-gray-400 line-through">{course.originalPrice}</span>
                                         </div>
-                                        <Link to="/register">
-                                            <Button className="bg-[#1a2b4b] dark:bg-[#d6b161] text-white dark:text-[#0a192f] hover:bg-[#2a3b5b] dark:hover:bg-[#c4a055] rounded-full px-6 py-2 text-sm font-semibold">
-                                                Enroll
+                                        <Link to={course.route}>
+                                            <Button className="bg-[#1a2b4b] dark:bg-[#d6b161] text-white dark:text-[#0a192f] hover:bg-[#2a3b5b] dark:hover:bg-[#c4a055] rounded-lg px-6 py-2.5 text-sm font-bold flex items-center gap-2">
+                                                Explore
+                                                <ArrowRight className="w-4 h-4" />
                                             </Button>
                                         </Link>
                                     </div>

@@ -251,7 +251,7 @@ export const germanCourseData: CourseData = {
   slug: 'german',
   metaTitle: 'German for Study & Work in Germany | SoVir Academy',
   metaDescription:
-    'Prepare for life, study, and work in Germany with structured A1–B2 German courses and TestDaF support.',
+    'Prepare for life, study, and work in Germany with structured A1–B2 German courses and TELC / Goethe support.',
   hero: {
     title: 'German for Study & Work in Germany',
     subtitle:
@@ -265,7 +265,7 @@ export const germanCourseData: CourseData = {
     outcomes: [
       'Build strong foundations in grammar and everyday vocabulary',
       'Confidently handle relocation and visa-related conversations',
-      'Prepare for TestDaF and university admission requirements',
+      'Prepare for TELC / Goethe and university admission requirements',
     ],
     whoIsFor: [
       'Students planning to study in Germany',
@@ -311,7 +311,7 @@ export const germanCourseData: CourseData = {
       name: 'Intensive Live Track',
       price: '₹15,999',
       description: 'Fast-track your German learning.',
-      features: ['Live daily classes', 'Goethe-Institut Exam Prep', 'Ticket to Berlin (Virtual Tour)', 'Visa Guidance Session'],
+      features: ['Live daily classes', 'TELC / Goethe Exam Prep', 'Ticket to Berlin (Virtual Tour)', 'Visa Guidance Session'],
       isBestValue: true,
     },
   ],
@@ -344,7 +344,7 @@ export const germanCourseData: CourseData = {
       id: 'de-faq-1',
       question: 'Is this course aligned with CEFR levels?',
       answer:
-        'Yes. Our curriculum is aligned with CEFR from A1 to B2 and prepares you for TestDaF.',
+        'Yes. Our curriculum is aligned with CEFR from A1 to B2 and prepares you for TELC / Goethe.',
     },
   ],
 };
