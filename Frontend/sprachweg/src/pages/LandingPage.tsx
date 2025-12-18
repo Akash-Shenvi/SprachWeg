@@ -29,9 +29,16 @@ const LandingPage: React.FC = () => {
         const fetchSkillCourses = async () => {
             try {
                 const data = await skillAPI.getAll();
-                setSkillCourses(data);
+                // Ensure data is an array before setting state
+                if (Array.isArray(data)) {
+                    setSkillCourses(data);
+                } else {
+                    console.error('Expected array from skillAPI but got:', data);
+                    setSkillCourses([]);
+                }
             } catch (error) {
                 console.error('Failed to fetch skill courses:', error);
+                setSkillCourses([]);
             } finally {
                 setLoadingSkills(false);
             }
