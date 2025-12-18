@@ -6,8 +6,7 @@ import {
     Star,
     Globe,
     Play,
-    GraduationCap,
-    Zap
+    GraduationCap
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { Header, Footer } from '../components/layout';
