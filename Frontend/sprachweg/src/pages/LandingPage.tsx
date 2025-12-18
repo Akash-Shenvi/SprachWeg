@@ -7,7 +7,7 @@ import {
     Globe,
     Play,
     GraduationCap,
-    Zap,
+
     Users,
     BookOpen,
     ArrowRight
