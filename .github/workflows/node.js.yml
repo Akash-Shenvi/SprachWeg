@@ -6,7 +6,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: self-hosted   # GCP runner (Node + PM2 + Nginx installed)
+    runs-on: self-hosted
 
     steps:
       # ---------------- Common ----------------
@@ -18,11 +18,15 @@ jobs:
         working-directory: ./Backend
         run: npm install
 
+      - name: Build backend
+        working-directory: ./Backend
+        run: npm run build
+
       - name: Restart backend with PM2
         working-directory: ./Backend
         run: |
           pm2 delete backend-server-training || true
-          pm2 start server.ts --name backend-server-training
+          pm2 start dist/server.js --name backend-server-training
           pm2 save
 
       # ---------------- Frontend Build ----------------
