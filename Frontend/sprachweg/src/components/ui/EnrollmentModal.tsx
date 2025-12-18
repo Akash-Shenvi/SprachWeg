@@ -49,7 +49,7 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
     const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
-    const [isUnder18, setIsUnder18] = useState(false);
+
 
     // Autofill from User Context
     useEffect(() => {
@@ -124,18 +124,7 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
 
     // Age validation removed/simplified as per request (Guardian info mandatory for all)
     // We still track it if we need it for other logic, but validation won't depend on it for hiding fields.
-    useEffect(() => {
-        if (formData.dob) {
-            const birthDate = new Date(formData.dob);
-            const today = new Date();
-            let age = today.getFullYear() - birthDate.getFullYear();
-            const m = today.getMonth() - birthDate.getMonth();
-            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-                age--;
-            }
-            setIsUnder18(age < 18);
-        }
-    }, [formData.dob]);
+
 
     const validate = (): boolean => {
         const newErrors: Partial<Record<keyof FormData, string>> = {};

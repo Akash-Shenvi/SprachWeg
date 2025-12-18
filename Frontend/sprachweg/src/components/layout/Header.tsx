@@ -46,7 +46,7 @@ const Header: React.FC = () => {
                             alt="SoVir Logo"
                             className="h-17 w-auto object-contain"
                         />
-                        <span className="font-serif font-bold text-base lg:text-lg text-gray-900 dark:text-white">SoVir Academy</span>
+                        {/* <span className="font-serif font-bold text-base lg:text-lg text-gray-900 dark:text-white">SoVir Academy</span> */}
                     </Link>
 
                     {/* Desktop Navigation */}

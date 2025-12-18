@@ -13,7 +13,7 @@ const fadeInUp = {
   visible: (custom: number = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, delay: custom * 0.1, ease: [0.22, 1, 0.36, 1] }
+    transition: { duration: 0.6, delay: custom * 0.1, ease: [0.22, 1, 0.36, 1] as const }
   })
 };
 
@@ -216,7 +216,7 @@ const CourseGermanPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [openFAQ, setOpenFAQ] = useState<string | null>(null);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
-  const shouldReduceMotion = useReducedMotion();
+
 
   useEffect(() => {
     const fetchCourse = async () => {
