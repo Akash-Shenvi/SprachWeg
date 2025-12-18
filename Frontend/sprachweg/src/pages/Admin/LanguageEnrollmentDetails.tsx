@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { Check, X, Filter, Search, User, Mail, BookOpen } from "lucide-react";
+import { Check, X, Filter, Search, Mail, BookOpen } from "lucide-react";
 
 interface Enrollment {
     _id: string;
