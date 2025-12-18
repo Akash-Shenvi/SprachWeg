@@ -1,0 +1,45 @@
+name: MERN Full Stack CI/CD
+
+on:
+  push:
+    branches: [ "production" ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      # ---------------- Common ----------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ---------------- Backend Setup ----------------
+      - name: Install backend dependencies
+        working-directory: ./Backend
+        run: npm install
+
+      - name: Build backend
+        working-directory: ./Backend
+        run: npm run build
+
+      - name: Restart backend with PM2
+        working-directory: ./Backend
+        run: |
+          pm2 delete backend-server-training || true
+          pm2 start dist/server.js --name backend-server-training
+          pm2 save
+
+      # ---------------- Frontend Build ----------------
+      - name: Install frontend dependencies
+        working-directory: ./Frontend/sprachweg
+        run: npm install
+
+      - name: Build frontend
+        working-directory: ./Frontend/sprachweg
+        run: npm run build
+
+      # ---------------- Nginx Reload ----------------
+      - name: Reload Nginx to serve new build
+        run: |
+          sudo nginx -t
+          sudo systemctl reload nginx
