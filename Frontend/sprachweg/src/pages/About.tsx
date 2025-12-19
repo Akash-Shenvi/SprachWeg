@@ -139,19 +139,7 @@ const AboutPage: React.FC = () => {
                             Empowering Global Careers Through Language, Skills & Automation
                         </motion.p>
 
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.6 }}
-                            className="flex flex-col sm:flex-row gap-4 justify-center"
-                        >
-                            <a
-                                href="#start"
-                                className="px-8 py-3 bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] font-bold rounded-full transition-all hover:shadow-lg hover:scale-105 active:scale-95 text-center"
-                            >
-                                Get Started
-                            </a>
-                        </motion.div>
+
                     </motion.div>
                 </div>
             </section>
@@ -167,9 +155,9 @@ const AboutPage: React.FC = () => {
                 <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div>
                         <span className="text-[#d6b161] font-bold tracking-wide uppercase text-sm">Who We Are</span>
-                        <SectionHeading>SoVir Training Akademie</SectionHeading>
+                        <SectionHeading>SoVir Training Academy</SectionHeading>
                         <div className="space-y-4 text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
-                            <p>SoVir Training Akademie, a professional training division of SoVir Technologies LLP, is committed to developing industry-ready professionals through foreign language training, automation technologies, and career-focused skill development.</p>
+                            <p>SoVir Training Academy, a professional training division of SoVir Technologies LLP, is committed to developing industry-ready professionals through foreign language training, automation technologies, and career-focused skill development.</p>
                             <p>We combine education, technology, and real-world industry practices to prepare learners for global employment, industrial roles, and future-ready careers.</p>
                         </div>
 
@@ -440,7 +428,7 @@ const AboutPage: React.FC = () => {
 
                         {/* Placement */}
                         <ContentCard title="Placement & Career Support" className="border-t-4 border-[#0a192f]" icon={<Icons.Users />}>
-                            <p className="mb-4">At SoVir Training Akademie, training is career-oriented, not just academic.</p>
+                            <p className="mb-4">At SoVir Training Academy, training is career-oriented, not just academic.</p>
                             <h4 className="font-semibold text-[#0a192f] dark:text-white mb-3">Our support includes:</h4>
                             <ListWithIcon items={[
                                 'Career counseling & roadmap planning',
@@ -457,7 +445,7 @@ const AboutPage: React.FC = () => {
             {/* --- WHY CHOOSE US --- */}
             <section className="py-20 container mx-auto px-4 max-w-5xl">
                 <div className="text-center mb-10">
-                    <SectionHeading align='center'>Why Choose SoVir Training Akademie?</SectionHeading>
+                    <SectionHeading align='center'>Why Choose SoVir Training Academy?</SectionHeading>
                 </div>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[
@@ -515,7 +503,7 @@ const AboutPage: React.FC = () => {
                     <div className="mt-16 pt-8 border-t border-white/10 text-center">
                         <p className="text-sm font-semibold tracking-wide text-[#d6b161] uppercase mb-2">Powered by SoVir Technologies LLP</p>
                         <p className="text-gray-400 max-w-3xl mx-auto">
-                            SoVir Training Akademie operates under SoVir Technologies LLP, a service-based company delivering technology solutions, automation services, digital platforms, and professional training. This strong industry foundation ensures our training remains relevant, credible, and future-ready.
+                            SoVir Training Academy operates under SoVir Technologies LLP, a service-based company delivering technology solutions, automation services, digital platforms, and professional training. This strong industry foundation ensures our training remains relevant, credible, and future-ready.
                         </p>
                     </div>
                 </div>
@@ -530,14 +518,10 @@ const AboutPage: React.FC = () => {
                     className="max-w-3xl mx-auto"
                 >
                     <h2 className="text-4xl font-bold text-[#0a192f] dark:text-white mb-6">Start Your Skill Journey With Us</h2>
-                    <p className="text-xl text-gray-600 dark:text-gray-400 mb-10">Whether your goal is international language certification, industrial automation expertise, or career advancement, SoVir Training Akademie is your trusted partner for growth and success.</p>
+                    <p className="text-xl text-gray-600 dark:text-gray-400 mb-10">Whether your goal is international language certification, industrial automation expertise, or career advancement, SoVir Training Academy is your trusted partner for growth and success.</p>
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                        <a href="/contact" className="px-10 py-4 bg-[#0a192f] text-white font-bold rounded-full shadow-lg hover:shadow-2xl hover:bg-[#152a4d] transition-all transform hover:-translate-y-1">
-                            Contact Us Today
-                        </a>
-                        <span className="text-[#d6b161] font-bold tracking-widest uppercase text-sm mt-4 sm:mt-0">📍 Learn. Automate. Communicate. Succeed.</span>
-
+                        <span className="text-[#d6b161] font-bold tracking-widest uppercase text-sm">📍 Learn. Automate. Communicate. Succeed.</span>
                     </div>
                 </motion.div>
             </section>
