@@ -1,24 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
     BookOpen,
-    Clock,
-    Video,
-    FileText,
-    Award,
     Calendar,
-    TrendingUp,
-    Download,
-    Play,
-    CheckCircle,
-    Bell,
-    CreditCard,
+    Clock,
     User,
-    ChevronRight,
-    Upload
+    Edit,
+    Mail,
+    Phone,
+    GraduationCap,
+    CalendarDays
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
+import { useAuth } from '../context/AuthContext';
+import Button from '../components/ui/Button';
+import ProfileCompletionModal from '../components/auth/ProfileCompletionModal';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -32,40 +29,6 @@ interface Course {
     nextClass: string;
     batchSchedule: string;
     status: 'active' | 'completed' | 'upcoming';
-}
-
-interface LiveSession {
-    id: string;
-    courseName: string;
-    startTime: string;
-    isLive: boolean;
-}
-
-interface Recording {
-    id: string;
-    title: string;
-    course: string;
-    duration: string;
-    uploadedAt: string;
-    thumbnail: string;
-}
-
-interface Assignment {
-    id: string;
-    title: string;
-    course: string;
-    dueDate: string;
-    status: 'pending' | 'submitted' | 'graded';
-    score?: number;
-}
-
-interface Announcement {
-    id: string;
-    from: string;
-    subject: string;
-    preview: string;
-    date: string;
-    unread: boolean;
 }
 
 // ============================================================================
@@ -90,60 +53,6 @@ const mockCourses: Course[] = [
         nextClass: '2025-12-18 2:00 PM',
         batchSchedule: 'Tue, Thu • 2:00 PM',
         status: 'active'
-    }
-];
-
-const mockLiveSession: LiveSession | null = {
-    id: 'live-1',
-    courseName: 'German A2',
-    startTime: '10:00 AM',
-    isLive: true
-};
-
-const mockRecordings: Recording[] = [
-    {
-        id: 'rec-1',
-        title: 'German Grammar - Past Tense',
-        course: 'German A2',
-        duration: '45:30',
-        uploadedAt: '2025-12-15',
-        thumbnail: '/placeholder-video.jpg'
-    },
-    {
-        id: 'rec-2',
-        title: 'IELTS Writing Task 2',
-        course: 'IELTS Preparation',
-        duration: '52:15',
-        uploadedAt: '2025-12-14',
-        thumbnail: '/placeholder-video.jpg'
-    }
-];
-
-const mockAssignments: Assignment[] = [
-    {
-        id: 'assign-1',
-        title: 'Write essay on German culture',
-        course: 'German A2',
-        dueDate: '2025-12-20',
-        status: 'pending'
-    },
-    {
-        id: 'assign-2',
-        title: 'IELTS Speaking Practice',
-        course: 'IELTS Preparation',
-        dueDate: '2025-12-18',
-        status: 'submitted'
-    }
-];
-
-const mockAnnouncements: Announcement[] = [
-    {
-        id: 'ann-1',
-        from: 'Dr. Schmidt',
-        subject: 'Class rescheduled to 11 AM tomorrow',
-        preview: 'Due to technical issues, tomorrow\'s class will start at 11 AM instead of 10 AM...',
-        date: '2 hours ago',
-        unread: true
     }
 ];
 
@@ -182,16 +91,14 @@ const ProgressRing: React.FC<{ progress: number; size?: number }> = ({ progress,
                 />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-2xl font-bold text-[#0a192f] dark:text-white">{progress}%</span>
+                <span className="text-xl font-bold text-[#0a192f] dark:text-white">{progress}%</span>
             </div>
         </div>
     );
 };
 
 const CourseCard: React.FC<{ course: Course }> = ({ course }) => {
-
     const handleJoinLive = () => {
-        // TODO: Integrate with backend
         if (typeof (window as any).api?.joinLiveClass === 'function') {
             (window as any).api.joinLiveClass(course.id);
         } else {
@@ -244,52 +151,14 @@ const CourseCard: React.FC<{ course: Course }> = ({ course }) => {
     );
 };
 
-const RecordingCard: React.FC<{ recording: Recording }> = ({ recording }) => {
-    return (
-        <div className="group overflow-hidden rounded-xl border border-gray-200 bg-white transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
-            <div className="relative aspect-video bg-gray-200 dark:bg-gray-700">
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <Play className="h-12 w-12 text-white opacity-75 transition-opacity group-hover:opacity-100" />
-                </div>
-            </div>
-            <div className="p-4">
-                <h4 className="mb-1 font-semibold text-gray-900 dark:text-white">{recording.title}</h4>
-                <p className="mb-2 text-xs text-gray-600 dark:text-gray-400">{recording.course}</p>
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span>{recording.duration}</span>
-                    <span>{recording.uploadedAt}</span>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
 const StudentDashboard: React.FC = () => {
+    const { user } = useAuth();
     const [courses] = useState<Course[]>(mockCourses);
-    const [liveSession] = useState<LiveSession | null>(mockLiveSession);
-    const [recordings] = useState<Recording[]>(mockRecordings);
-    const [assignments] = useState<Assignment[]>(mockAssignments);
-    const [announcements] = useState<Announcement[]>(mockAnnouncements);
-
-    // TODO: Replace with actual API call
-    useEffect(() => {
-        // window.api?.fetchDashboardData?.().then(setDashboardData);
-    }, []);
-
-    const handleJoinLiveSession = () => {
-        if (liveSession && typeof (window as any).api?.joinLiveClass === 'function') {
-            (window as any).api.joinLiveClass(liveSession.id);
-        } else if (liveSession) {
-            window.open(`/live-class/${liveSession.id}`, '_blank');
-        }
-    };
-
-    const unreadCount = announcements.filter((a) => a.unread).length;
-    const overallProgress = Math.round(courses.reduce((acc, c) => acc + c.progress, 0) / courses.length);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -308,203 +177,136 @@ const StudentDashboard: React.FC = () => {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mb-8 rounded-2xl bg-gradient-to-br from-[#0a192f] to-[#112240] p-8 text-white"
+                    className="mb-8 rounded-2xl bg-gradient-to-br from-[#0a192f] to-[#112240] p-8 text-white relative overflow-hidden"
                 >
-                    <div className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
-                        <div>
-                            <h1 className="mb-2 text-3xl font-bold">Welcome back, Student!</h1>
-                            <p className="text-gray-300">Continue your learning journey</p>
-                        </div>
-                        <ProgressRing progress={overallProgress} size={100} />
-                    </div>
+                    {/* Decorative Background Elements */}
+                    <div className="absolute top-0 right-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-[#d6b161] opacity-10 blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 h-32 w-32 -translate-x-1/2 translate-y-1/2 rounded-full bg-[#d6b161] opacity-10 blur-3xl"></div>
 
-                    {/* Live Class Alert */}
-                    {liveSession && (
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="mt-6 flex items-center justify-between rounded-xl border-2 border-[#d6b161] bg-[#d6b161]/10 p-4"
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500">
-                                    <Video className="h-5 w-5 text-white" />
-                                </div>
-                                <div>
-                                    <p className="font-semibold">{liveSession.courseName} is LIVE now!</p>
-                                    <p className="text-sm text-gray-300">Started at {liveSession.startTime}</p>
-                                </div>
-                            </div>
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleJoinLiveSession}
-                                className="rounded-lg bg-[#d6b161] px-6 py-3 font-bold text-[#0a192f] transition-colors hover:bg-[#c4a055]"
-                            >
-                                Join Now
-                            </motion.button>
-                        </motion.div>
-                    )}
+                    <div className="relative z-10 flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h1 className="mb-2 text-3xl font-bold">Student Dashboard</h1>
+                            <p className="text-gray-300">Welcome back, {user?.name}!</p>
+                        </div>
+                    </div>
                 </motion.div>
 
-                <div className="grid gap-6 lg:grid-cols-3">
-                    {/* Main Content */}
-                    <div className="space-y-6 lg:col-span-2">
-                        {/* Enrolled Courses */}
+                <div className="grid gap-8 lg:grid-cols-12">
+                    {/* Profile Section - Takes 4 columns */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="lg:col-span-4"
+                    >
+                        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                            <div className="mb-6 flex items-center justify-between">
+                                <h2 className="flex items-center gap-2 text-xl font-bold text-[#0a192f] dark:text-white">
+                                    <User className="h-5 w-5 text-[#d6b161]" />
+                                    My Profile
+                                </h2>
+                                <Button
+                                    onClick={() => setIsProfileModalOpen(true)}
+                                    className="p-2 text-gray-500 hover:text-[#d6b161] dark:text-gray-400 dark:hover:text-[#d6b161] transition-colors"
+                                    title="Edit Profile"
+                                >
+                                    <Edit className="h-5 w-5" />
+                                </Button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex items-start gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                                    <User className="h-5 w-5 text-[#d6b161] mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Full Name</p>
+                                        <p className="text-base font-semibold text-gray-900 dark:text-white">{user?.name}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                                    <Mail className="h-5 w-5 text-[#d6b161] mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Email Address</p>
+                                        <p className="text-base font-semibold text-gray-900 dark:text-white">{user?.email}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                                    <Phone className="h-5 w-5 text-[#d6b161] mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</p>
+                                        <p className="text-base font-semibold text-gray-900 dark:text-white">{user?.phoneNumber || 'Not set'}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                                    <CalendarDays className="h-5 w-5 text-[#d6b161] mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Date of Birth</p>
+                                        <p className="text-base font-semibold text-gray-900 dark:text-white">
+                                            {user?.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString() : 'Not set'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                                    <GraduationCap className="h-5 w-5 text-[#d6b161] mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Qualification</p>
+                                        <p className="text-base font-semibold text-gray-900 dark:text-white">{user?.qualification || 'Not set'}</p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Guardian Info</p>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-xs text-gray-400">Name</p>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">{user?.guardianName || '-'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-400">Phone</p>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">{user?.guardianPhone || '-'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </motion.div>
+
+                    {/* Enrolled Courses Section - Takes 8 columns */}
+                    <div className="lg:col-span-8">
                         <section>
                             <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[#0a192f] dark:text-white">
                                 <BookOpen className="h-6 w-6 text-[#d6b161]" />
-                                My Courses
+                                Enrolled Courses
                             </h2>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                {courses.map((course, idx) => (
-                                    <motion.div
-                                        key={course.id}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: idx * 0.1 }}
-                                    >
-                                        <CourseCard course={course} />
-                                    </motion.div>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* Recorded Classes */}
-                        <section>
-                            <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[#0a192f] dark:text-white">
-                                <Video className="h-6 w-6 text-[#d6b161]" />
-                                Recorded Classes
-                            </h2>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                {recordings.map((rec) => (
-                                    <RecordingCard key={rec.id} recording={rec} />
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* Assignments */}
-                        <section>
-                            <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[#0a192f] dark:text-white">
-                                <FileText className="h-6 w-6 text-[#d6b161]" />
-                                Assignments & Tests
-                            </h2>
-                            <div className="space-y-3">
-                                {assignments.map((assignment) => (
-                                    <div
-                                        key={assignment.id}
-                                        className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
-                                    >
-                                        <div>
-                                            <h4 className="font-semibold text-gray-900 dark:text-white">{assignment.title}</h4>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                {assignment.course} • Due: {assignment.dueDate}
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            {assignment.status === 'submitted' ? (
-                                                <CheckCircle className="h-5 w-5 text-green-500" />
-                                            ) : (
-                                                <button className="rounded-lg bg-[#d6b161] px-4 py-2 text-sm font-semibold text-[#0a192f] hover:bg-[#c4a055]">
-                                                    <Upload className="inline h-4 w-4 mr-1" />
-                                                    Submit
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-                    </div>
-
-                    {/* Sidebar */}
-                    <div className="space-y-6">
-                        {/* Announcements */}
-                        <section>
-                            <h3 className="mb-3 flex items-center gap-2 text-lg font-bold text-[#0a192f] dark:text-white">
-                                <Bell className="h-5 w-5 text-[#d6b161]" />
-                                Announcements
-                                {unreadCount > 0 && (
-                                    <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs text-white">{unreadCount}</span>
-                                )}
-                            </h3>
-                            <div className="space-y-2">
-                                {announcements.map((ann) => (
-                                    <div
-                                        key={ann.id}
-                                        className={`rounded-lg border p-3 ${ann.unread
-                                            ? 'border-[#d6b161] bg-[#d6b161]/5'
-                                            : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
-                                            }`}
-                                    >
-                                        <div className="mb-1 flex items-start justify-between">
-                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">{ann.subject}</p>
-                                            {ann.unread && <div className="h-2 w-2 rounded-full bg-[#d6b161]" />}
-                                        </div>
-                                        <p className="mb-1 text-xs text-gray-600 dark:text-gray-400">{ann.preview}</p>
-                                        <p className="text-xs text-gray-500">{ann.from} • {ann.date}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* Quick Stats */}
-                        <section className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-                            <h3 className="mb-4 text-lg font-bold text-[#0a192f] dark:text-white">Quick Stats</h3>
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <TrendingUp className="h-5 w-5 text-[#d6b161]" />
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">Attendance</span>
-                                    </div>
-                                    <span className="font-bold text-[#0a192f] dark:text-white">92%</span>
+                            {courses.length > 0 ? (
+                                <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
+                                    {courses.map((course, idx) => (
+                                        <motion.div
+                                            key={course.id}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: idx * 0.1 }}
+                                        >
+                                            <CourseCard course={course} />
+                                        </motion.div>
+                                    ))}
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Award className="h-5 w-5 text-[#d6b161]" />
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">Certificates</span>
-                                    </div>
-                                    <span className="font-bold text-[#0a192f] dark:text-white">3</span>
+                            ) : (
+                                <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-800">
+                                    <p className="text-gray-500 dark:text-gray-400">You are not enrolled in any courses yet.</p>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <FileText className="h-5 w-5 text-[#d6b161]" />
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">Pending Tasks</span>
-                                    </div>
-                                    <span className="font-bold text-[#0a192f] dark:text-white">2</span>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Quick Links */}
-                        <section className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-                            <h3 className="mb-4 text-lg font-bold text-[#0a192f] dark:text-white">Quick Links</h3>
-                            <div className="space-y-2">
-                                <button className="flex w-full items-center justify-between rounded-lg p-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
-                                    <div className="flex items-center gap-2">
-                                        <User className="h-4 w-4 text-[#d6b161]" />
-                                        <span className="text-sm font-medium">My Profile</span>
-                                    </div>
-                                    <ChevronRight className="h-4 w-4" />
-                                </button>
-                                <button className="flex w-full items-center justify-between rounded-lg p-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
-                                    <div className="flex items-center gap-2">
-                                        <CreditCard className="h-4 w-4 text-[#d6b161]" />
-                                        <span className="text-sm font-medium">Payment History</span>
-                                    </div>
-                                    <ChevronRight className="h-4 w-4" />
-                                </button>
-                                <button className="flex w-full items-center justify-between rounded-lg p-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700">
-                                    <div className="flex items-center gap-2">
-                                        <Download className="h-4 w-4 text-[#d6b161]" />
-                                        <span className="text-sm font-medium">Certificates</span>
-                                    </div>
-                                    <ChevronRight className="h-4 w-4" />
-                                </button>
-                            </div>
+                            )}
                         </section>
                     </div>
                 </div>
             </main>
+
+            <ProfileCompletionModal
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+            />
 
             <Footer />
         </div>

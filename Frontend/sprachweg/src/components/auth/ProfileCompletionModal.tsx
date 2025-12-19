@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../ui/Button';
 
 interface ProfileCompletionModalProps {
     isOpen: boolean;
+    onClose?: () => void;
 }
 
-const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen }) => {
+const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen, onClose }) => {
     const { user, updateProfile } = useAuth();
     const [formData, setFormData] = useState({
         phoneNumber: '',
@@ -30,7 +32,7 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen 
                 qualification: user.qualification || 'High School',
             }));
         }
-    }, [user]);
+    }, [user, isOpen]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -43,6 +45,9 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen 
 
         try {
             await updateProfile(formData);
+            if (onClose) {
+                onClose();
+            }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Failed to update profile');
         } finally {
@@ -59,8 +64,17 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen 
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="w-full max-w-md overflow-hidden rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-800"
+                    className="w-full max-w-md overflow-hidden rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-800 relative"
                 >
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            className="absolute right-4 top-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    )}
+
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Complete Your Profile</h2>
                     <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                         Please provide the following details to continue.
@@ -164,11 +178,20 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen 
                             </select>
                         </div>
 
-                        <div className="mt-6">
+                        <div className="mt-6 flex gap-3">
+                            {onClose && (
+                                <Button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="flex-1 justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600"
+                                >
+                                    Cancel
+                                </Button>
+                            )}
                             <Button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full justify-center rounded-md bg-[#d6b161] px-4 py-2 text-sm font-medium text-[#0a192f] shadow-sm hover:bg-[#c4a055] focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 disabled:opacity-50"
+                                className="flex-1 justify-center rounded-md bg-[#d6b161] px-4 py-2 text-sm font-medium text-[#0a192f] shadow-sm hover:bg-[#c4a055] focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 disabled:opacity-50"
                             >
                                 {loading ? 'Saving...' : 'Save & Continue'}
                             </Button>
