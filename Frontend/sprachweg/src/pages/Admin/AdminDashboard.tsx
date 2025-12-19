@@ -257,10 +257,31 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    const [promoteEmail, setPromoteEmail] = useState("");
+    const [promoting, setPromoting] = useState(false);
+
     const openAssignModal = (batch: Batch) => {
         setSelectedBatch(batch);
         setSelectedTrainer(batch.trainerId || '');
         setShowBatchModal(true);
+    };
+
+    const handlePromoteTrainer = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!promoteEmail) return;
+
+        try {
+            setPromoting(true);
+            const { data } = await api.post('/language-training/admin/promote-trainer', { email: promoteEmail });
+            alert(data.message);
+            setPromoteEmail("");
+            fetchInitialData(); // Refresh trainers list
+        } catch (error: any) {
+            console.error("Failed to promote user", error);
+            alert(error.response?.data?.message || 'Failed to promote user');
+        } finally {
+            setPromoting(false);
+        }
     };
 
     const handleApproveTrainer = (id: string) => {
@@ -550,6 +571,34 @@ const AdminDashboard: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
+                        </section>
+
+                        {/* Promote to Trainer */}
+                        <section className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+                            <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-[#0a192f] dark:text-white">
+                                <Users className="h-5 w-5 text-[#d6b161]" />
+                                Promote User to Trainer
+                            </h3>
+                            <form onSubmit={handlePromoteTrainer} className="space-y-3">
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    Enter the email of a registered user to grant them Trainer access.
+                                </p>
+                                <input
+                                    type="email"
+                                    placeholder="user@example.com"
+                                    value={promoteEmail}
+                                    onChange={(e) => setPromoteEmail(e.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 p-2.5 text-sm outline-none focus:border-[#d6b161] focus:ring-1 focus:ring-[#d6b161] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                    required
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={promoting}
+                                    className="w-full rounded-lg bg-[#d6b161] py-2.5 text-sm font-bold text-[#0a192f] transition-colors hover:bg-[#c4a055] disabled:opacity-50"
+                                >
+                                    {promoting ? "Promoting..." : "Promote to Trainer"}
+                                </button>
+                            </form>
                         </section>
 
                         {/* System Controls */}

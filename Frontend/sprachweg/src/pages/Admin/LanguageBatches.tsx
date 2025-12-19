@@ -37,6 +37,11 @@ const LanguageBatches: React.FC = () => {
     const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
     const [selectedTrainer, setSelectedTrainer] = useState("");
 
+    // Promote Trainer State
+    const [showPromoteModal, setShowPromoteModal] = useState(false);
+    const [promoteEmail, setPromoteEmail] = useState("");
+    const [promoting, setPromoting] = useState(false);
+
     const fetchData = async () => {
         try {
             const [batchesRes, trainersRes] = await Promise.all([
@@ -112,6 +117,25 @@ const LanguageBatches: React.FC = () => {
         }
     };
 
+    const handlePromoteTrainer = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!promoteEmail) return;
+
+        try {
+            setPromoting(true);
+            const { data } = await api.post('/language-training/admin/promote-trainer', { email: promoteEmail });
+            alert(data.message);
+            setPromoteEmail("");
+            setShowPromoteModal(false);
+            fetchData(); // Refresh trainers list
+        } catch (error: any) {
+            console.error("Failed to promote user", error);
+            alert(error.response?.data?.message || 'Failed to promote user');
+        } finally {
+            setPromoting(false);
+        }
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -160,6 +184,13 @@ const LanguageBatches: React.FC = () => {
                             Manage your running batches, assign trainers, and view enrolled students.
                         </p>
                     </div>
+                    <button
+                        onClick={() => setShowPromoteModal(true)}
+                        className="px-4 py-2 bg-[#d6b161] text-[#0a192f] font-bold rounded-lg hover:bg-[#c4a055] transition-colors flex items-center gap-2"
+                    >
+                        <Users className="w-5 h-5" />
+                        Promote New Trainer
+                    </button>
                 </div>
 
                 <div className="bg-white dark:bg-[#112240] p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm flex flex-col md:flex-row gap-4">
@@ -384,6 +415,47 @@ const LanguageBatches: React.FC = () => {
                                         className="flex-1 rounded-lg bg-[#d6b161] py-2.5 text-[#0a192f] transition-colors hover:bg-[#c4a055] font-bold"
                                     >
                                         Save Assignment
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Promote Trainer Modal */}
+                {showPromoteModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                        <div className="w-full max-w-md rounded-2xl bg-white p-6 dark:bg-gray-800 shadow-xl border border-gray-100 dark:border-gray-700">
+                            <h2 className="mb-4 text-xl font-bold dark:text-white">Promote User to Trainer</h2>
+                            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                                Enter the email of a registered user to grant them Trainer access.
+                            </p>
+                            <form onSubmit={handlePromoteTrainer} className="space-y-4">
+                                <div>
+                                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">User Email</label>
+                                    <input
+                                        type="email"
+                                        placeholder="user@example.com"
+                                        value={promoteEmail}
+                                        onChange={(e) => setPromoteEmail(e.target.value)}
+                                        className="w-full rounded-lg border p-2 bg-white dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:ring-2 focus:ring-[#d6b161] outline-none"
+                                        required
+                                    />
+                                </div>
+                                <div className="flex gap-2 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPromoteModal(false)}
+                                        className="flex-1 rounded-lg bg-gray-100 py-2.5 text-gray-800 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={promoting}
+                                        className="flex-1 rounded-lg bg-[#d6b161] py-2.5 text-[#0a192f] transition-colors hover:bg-[#c4a055] font-bold disabled:opacity-50"
+                                    >
+                                        {promoting ? "Promoting..." : "Promote"}
                                     </button>
                                 </div>
                             </form>

@@ -238,3 +238,28 @@ export const getTrainers = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Failed to fetch trainers", error });
   }
 };
+
+// POST /api/language-training/admin/promote-trainer
+export const promoteToTrainer = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.role === 'trainer') {
+      return res.status(400).json({ message: "User is already a trainer" });
+    }
+
+    user.role = 'trainer';
+    await user.save();
+
+    res.json({ message: `User ${user.name} (${user.email}) promoted to Trainer successfully.` });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to promote user", error });
+  }
+};
