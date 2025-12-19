@@ -210,7 +210,9 @@ const AboutPage: React.FC = () => {
                 <div className="mx-auto max-w-7xl">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                         <div>
-                            <span className="text-[#d6b161] font-bold tracking-wide uppercase text-sm">Who We Are</span>
+                            <div className="text-center mb-6">
+                                <span className="text-[#d6b161] font-bold tracking-wide uppercase text-sm">Who We Are</span>
+                            </div>
                             <SectionHeading id="who-we-are">SoVir Training Academy</SectionHeading>
                             <div className="space-y-4 text-gray-700 dark:text-gray-300 leading-relaxed text-base max-w-[65ch]">
                                 <p>
@@ -572,6 +574,147 @@ const AboutPage: React.FC = () => {
                             </motion.div>
                         ))}
                     </div>
+                </div>
+            </section>
+
+            {/* --- MEET OUR TEAM --- */}
+            <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 px-4 sm:px-6 lg:px-8" aria-labelledby="meet-team">
+                <div className="mx-auto max-w-7xl">
+                    <div className="text-center mb-12 sm:mb-16">
+                        <motion.span
+                            className="text-[#d6b161] font-bold tracking-wide uppercase text-sm"
+                            initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
+                            whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5 }}
+                        >
+                            Leadership & Expertise
+                        </motion.span>
+                        <SectionHeading id="meet-team" align="center">Meet Our Team</SectionHeading>
+                        <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mt-4 text-base leading-relaxed">
+                            Our dedicated team of experienced professionals committed to your success
+                        </p>
+                    </div>
+
+                    <motion.div
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8"
+                        variants={staggerContainer}
+                        initial={shouldReduceMotion ? {} : "hidden"}
+                        whileInView={shouldReduceMotion ? undefined : "visible"}
+                        viewport={{ once: true }}
+                    >
+                        {/* Team Member 1 - Melita Dsouza */}
+                        <motion.article
+                            className="group relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+                            variants={itemVariants}
+                        >
+                            <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-[#0a192f] to-[#1a2f4f]">
+                                {/* Profile Image Placeholder */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-32 h-32 rounded-full bg-[#d6b161]/20 flex items-center justify-center border-4 border-[#d6b161]/30">
+                                        <svg className="w-16 h-16 text-[#d6b161]" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                {/* Decorative overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            </div>
+                            <div className="p-6">
+                                <h3 className="text-xl font-bold text-[#0a192f] dark:text-white mb-1 text-center">
+                                    Melita Dsouza
+                                </h3>
+                                <p className="text-[#d6b161] font-semibold text-sm text-center mb-3">
+                                    Managing Director / Director
+                                </p>
+                                <div className="h-px w-16 bg-gradient-to-r from-transparent via-[#d6b161] to-transparent mx-auto" />
+                            </div>
+                        </motion.article>
+
+                        {/* Team Member 2 - Jacinta */}
+                        <motion.article
+                            className="group relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+                            variants={itemVariants}
+                        >
+                            <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-[#0a192f] to-[#1a2f4f]">
+                                {/* Profile Image Placeholder */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-32 h-32 rounded-full bg-[#d6b161]/20 flex items-center justify-center border-4 border-[#d6b161]/30">
+                                        <svg className="w-16 h-16 text-[#d6b161]" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                {/* Decorative overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            </div>
+                            <div className="p-6">
+                                <h3 className="text-xl font-bold text-[#0a192f] dark:text-white mb-1 text-center">
+                                    Jacinta
+                                </h3>
+                                <p className="text-[#d6b161] font-semibold text-sm text-center mb-3">
+                                    Academic Counselor & Placement Coordinator
+                                </p>
+                                <div className="h-px w-16 bg-gradient-to-r from-transparent via-[#d6b161] to-transparent mx-auto" />
+                            </div>
+                        </motion.article>
+
+                        {/* Team Member 3 - Ritika */}
+                        <motion.article
+                            className="group relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+                            variants={itemVariants}
+                        >
+                            <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-[#0a192f] to-[#1a2f4f]">
+                                {/* Profile Image Placeholder */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-32 h-32 rounded-full bg-[#d6b161]/20 flex items-center justify-center border-4 border-[#d6b161]/30">
+                                        <svg className="w-16 h-16 text-[#d6b161]" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                {/* Decorative overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            </div>
+                            <div className="p-6">
+                                <h3 className="text-xl font-bold text-[#0a192f] dark:text-white mb-1 text-center">
+                                    Ritika
+                                </h3>
+                                <p className="text-[#d6b161] font-semibold text-sm text-center mb-3">
+                                    Senior Trainer
+                                </p>
+                                <div className="h-px w-16 bg-gradient-to-r from-transparent via-[#d6b161] to-transparent mx-auto" />
+                            </div>
+                        </motion.article>
+
+                        {/* Team Member 4 - Viryam */}
+                        <motion.article
+                            className="group relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+                            variants={itemVariants}
+                        >
+                            <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-[#0a192f] to-[#1a2f4f]">
+                                {/* Profile Image Placeholder */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-32 h-32 rounded-full bg-[#d6b161]/20 flex items-center justify-center border-4 border-[#d6b161]/30">
+                                        <svg className="w-16 h-16 text-[#d6b161]" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                {/* Decorative overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            </div>
+                            <div className="p-6">
+                                <h3 className="text-xl font-bold text-[#0a192f] dark:text-white mb-1 text-center">
+                                    Viryam
+                                </h3>
+                                <p className="text-[#d6b161] font-semibold text-sm text-center mb-3">
+                                    Automation Trainer
+                                </p>
+                                <div className="h-px w-16 bg-gradient-to-r from-transparent via-[#d6b161] to-transparent mx-auto" />
+                            </div>
+                        </motion.article>
+                    </motion.div>
                 </div>
             </section>
 
