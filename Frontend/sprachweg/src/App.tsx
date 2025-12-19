@@ -135,7 +135,7 @@ const AppContent = () => {
 
         {/* Admin Routes */}
         <Route
-          path="/admin-dashboard"
+          path="/admin"
           element={
             <ProtectedRoute>
               <AdminDashboard />
