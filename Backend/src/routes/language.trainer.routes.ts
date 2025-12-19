@@ -10,7 +10,9 @@ import {
     deleteAnnouncement,
     scheduleClass,
     deleteClass,
-    joinClass
+    joinClass,
+    endClass,
+    updateAttendance
 } from '../controllers/language.trainer.controller';
 import { upload } from '../middlewares/upload.middleware';
 
@@ -26,6 +28,8 @@ router.post('/announcements', authorize('trainer'), addAnnouncement);
 router.delete('/announcements/:announcementId', authorize('trainer'), deleteAnnouncement);
 router.post('/classes', authorize('trainer'), scheduleClass);
 router.delete('/classes/:classId', authorize('trainer'), deleteClass);
+router.post('/classes/:classId/end', authorize('trainer'), endClass);
+router.put('/classes/:classId/attendance', authorize('trainer'), updateAttendance);
 
 // Student Routes
 router.get('/student/batches', getStudentBatches);

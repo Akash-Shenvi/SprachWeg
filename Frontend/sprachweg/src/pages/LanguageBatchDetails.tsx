@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
+    Video,
     FileText,
     Bell,
-    Download,
     Plus,
-    ArrowLeft,
-    Users,
-    File as FileIcon,
-    Image,
     X,
     Trash2,
-    Video
+    Users,
+    Download,
+    CheckCircle,
+    XCircle,
+    UserCheck,
+    Ban,
+    ArrowLeft
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -58,6 +60,7 @@ interface LanguageClass {
     startTime: string;
     meetLink: string;
     attendees: { studentId: string; joinedAt: string }[];
+    status: 'scheduled' | 'completed' | 'cancelled';
 }
 
 const LanguageBatchDetails: React.FC = () => {
@@ -80,6 +83,10 @@ const LanguageBatchDetails: React.FC = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+
+    // Attendance Modal State
+    const [attendanceClass, setAttendanceClass] = useState<LanguageClass | null>(null);
+    const [attendanceLoading, setAttendanceLoading] = useState(false);
 
     const isTrainer = user?.role === 'trainer' || user?._id === batch?.trainerId;
 
@@ -214,9 +221,50 @@ const LanguageBatchDetails: React.FC = () => {
         if (!window.confirm('Are you sure you want to delete this class?')) return;
         try {
             await api.delete(`/language-trainer/classes/${classId}`);
-            fetchBatchDetails();
+            setBatch(prev => prev ? {
+                ...prev,
+                classes: prev.classes.filter(c => c._id !== classId)
+            } : null);
         } catch (error) {
             console.error("Failed to delete class", error);
+        }
+    };
+
+    const handleEndClass = async (classId: string) => {
+        if (!window.confirm('Are you sure you want to end this class? This will disable the meeting link.')) return;
+        try {
+            await api.post(`/language-trainer/classes/${classId}/end`, {});
+            // Update local state
+            setBatch(prev => prev ? {
+                ...prev,
+                classes: prev.classes.map(c => c._id === classId ? { ...c, status: 'completed' } : c)
+            } : null);
+            alert('Class ended successfully.');
+        } catch (error) {
+            console.error("Failed to end class", error);
+            alert('Failed to end class');
+        }
+    };
+
+    const handleUpdateAttendance = async (studentId: string, attended: boolean) => {
+        if (!attendanceClass) return;
+        setAttendanceLoading(true);
+        try {
+            const response = await api.put(`/language-trainer/classes/${attendanceClass._id}/attendance`, {
+                studentId,
+                attended
+            });
+            // Update local state for modal
+            setAttendanceClass(prev => prev ? { ...prev, attendees: response.data.attendees } : null);
+            // Update main batch state
+            setBatch(prev => prev ? {
+                ...prev,
+                classes: prev.classes.map(c => c._id === attendanceClass._id ? { ...c, attendees: response.data.attendees } : c)
+            } : null);
+        } catch (error) {
+            console.error("Failed to update attendance", error);
+        } finally {
+            setAttendanceLoading(false);
         }
     };
 
@@ -247,9 +295,9 @@ const LanguageBatchDetails: React.FC = () => {
 
     const getFileIcon = (filename: string = '') => {
         const ext = filename.split('.').pop()?.toLowerCase();
-        if (['jpg', 'jpeg', 'png', 'gif'].includes(ext || '')) return <Image className="h-6 w-6" />;
+        if (['jpg', 'jpeg', 'png', 'gif'].includes(ext || '')) return <img className="h-6 w-6" />;
         if (['pdf'].includes(ext || '')) return <FileText className="h-6 w-6" />;
-        return <FileIcon className="h-6 w-6" />;
+        return <FileText className="h-6 w-6" />;
     };
 
     const getFileUrl = (path?: string) => {
@@ -397,23 +445,52 @@ const LanguageBatchDetails: React.FC = () => {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => handleJoinClass(cls._id, cls.meetLink)}
-                                                className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition w-full sm:w-auto text-sm"
-                                            >
-                                                Join Class
-                                            </button>
-                                            {isTrainer && (
+                                            {cls.status !== 'completed' ? (
                                                 <button
-                                                    onClick={() => handleDeleteClass(cls._id)}
-                                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
-                                                    title="Delete Class"
+                                                    onClick={() => handleJoinClass(cls._id, cls.meetLink)}
+                                                    className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition w-full sm:w-auto text-sm"
                                                 >
-                                                    <Trash2 className="h-5 w-5" />
+                                                    Join Class
                                                 </button>
+                                            ) : (
+                                                <span className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-500 rounded-lg font-medium text-sm">
+                                                    Class Ended
+                                                </span>
+                                            )}
+                                            {isTrainer && (
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => setAttendanceClass(cls)}
+                                                        className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
+                                                        title="Attendance"
+                                                    >
+                                                        <UserCheck className="h-5 w-5" />
+                                                    </button>
+                                                    {cls.status !== 'completed' && (
+                                                        <button
+                                                            onClick={() => handleEndClass(cls._id)}
+                                                            className="p-2 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition"
+                                                            title="End Class"
+                                                        >
+                                                            <Ban className="h-5 w-5" />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDeleteClass(cls._id)}
+                                                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                                                        title="Delete Class"
+                                                    >
+                                                        <Trash2 className="h-5 w-5" />
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
+                                    {cls.status === 'completed' && (
+                                        <div className="absolute top-4 right-4 bg-gray-100 dark:bg-gray-700 text-gray-500 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                                            Completed
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -599,17 +676,17 @@ const LanguageBatchDetails: React.FC = () => {
 
                                         {/* Google Calendar Connection Status */}
                                         <div className={`p-4 rounded-xl border ${isGoogleConnected
-                                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                                                : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'
+                                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                                            : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'
                                             }`}>
                                             <div className="flex items-center gap-3">
                                                 <div className={`p-2 rounded-full ${isGoogleConnected
-                                                        ? 'bg-green-100 dark:bg-green-800'
-                                                        : 'bg-blue-100 dark:bg-blue-800'
+                                                    ? 'bg-green-100 dark:bg-green-800'
+                                                    : 'bg-blue-100 dark:bg-blue-800'
                                                     }`}>
                                                     <Video className={`h-5 w-5 ${isGoogleConnected
-                                                            ? 'text-green-600 dark:text-green-300'
-                                                            : 'text-blue-600 dark:text-blue-300'
+                                                        ? 'text-green-600 dark:text-green-300'
+                                                        : 'text-blue-600 dark:text-blue-300'
                                                         }`} />
                                                 </div>
                                                 <div className="flex-1">
@@ -624,8 +701,8 @@ const LanguageBatchDetails: React.FC = () => {
                                                     type="button"
                                                     onClick={handleConnectGoogle}
                                                     className={`text-xs font-medium px-3 py-1.5 rounded-lg shadow-sm ${isGoogleConnected
-                                                            ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
-                                                            : 'bg-white border border-gray-200 hover:bg-gray-50 text-gray-700'
+                                                        ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
+                                                        : 'bg-white border border-gray-200 hover:bg-gray-50 text-gray-700'
                                                         }`}
                                                 >
                                                     {isGoogleConnected ? 'Reconnect' : 'Connect'}
@@ -699,7 +776,57 @@ const LanguageBatchDetails: React.FC = () => {
                         </div>
                     </div>
                 )}
-            </main >
+                {/* Attendance Modal */}
+                {attendanceClass && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="w-full max-w-lg rounded-3xl bg-white p-8 shadow-2xl dark:bg-gray-800 scale-100 max-h-[80vh] overflow-y-auto">
+                            <div className="flex justify-between items-center mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold font-serif dark:text-white">Attendance</h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">{attendanceClass.topic}</p>
+                                </div>
+                                <button onClick={() => setAttendanceClass(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                                    <X className="h-6 w-6" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {(!batch?.students || batch.students.length === 0) && (
+                                    <p className="text-center text-gray-500">No students enrolled.</p>
+                                )}
+
+                                {batch?.students.map(student => {
+                                    const isPresent = attendanceClass.attendees.some(a => a.studentId === student._id);
+                                    return (
+                                        <div key={student._id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">
+                                                    {student.name.charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-gray-900 dark:text-white">{student.name}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{student.email}</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                disabled={attendanceLoading}
+                                                onClick={() => handleUpdateAttendance(student._id, !isPresent)}
+                                                className={`p-2 rounded-lg transition-colors ${isPresent
+                                                    ? 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400'
+                                                    : 'bg-gray-200 text-gray-500 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-400'
+                                                    }`}
+                                                title={isPresent ? "Mark Absent" : "Mark Present"}
+                                            >
+                                                {isPresent ? <CheckCircle className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </main>
             <Footer />
         </div >
     );

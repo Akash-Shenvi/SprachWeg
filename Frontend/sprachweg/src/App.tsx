@@ -26,6 +26,8 @@ import CourseJapanesePage from './pages/CourseJapanesePage';
 import NotFound404 from './pages/NotFound404';
 import AboutPage from './pages/About';
 import GoogleCallback from './pages/GoogleCallback';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsAndConditions from './pages/TermsAndConditions';
 
 
 // Protected Route Component

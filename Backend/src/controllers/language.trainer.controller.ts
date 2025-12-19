@@ -311,6 +311,75 @@ export const deleteClass = async (req: AuthRequest, res: Response) => {
     }
 };
 
+// End a Class
+export const endClass = async (req: AuthRequest, res: Response) => {
+    try {
+        const { classId } = req.params;
+        const trainerId = req.user?._id;
+
+        const languageClass = await LanguageClass.findById(classId);
+        if (!languageClass) {
+            return res.status(404).json({ message: 'Class not found' });
+        }
+
+        if (languageClass.trainerId.toString() !== (trainerId || '').toString()) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        // Optional: Delete event from Google Calendar so link becomes invalid
+        // or just leave it. User decided they want "End Meet".
+        // Deleting the event is the safest way to "kill" the link.
+        if (languageClass.eventId) {
+            const trainer = await User.findById(trainerId).select('+googleRefreshToken');
+            if (trainer?.googleRefreshToken) {
+                googleService.setCredentials(trainer.googleRefreshToken);
+                await googleService.deleteEvent(languageClass.eventId);
+            }
+        }
+
+        languageClass.status = 'completed';
+        await languageClass.save();
+
+        res.json({ message: 'Class ended successfully', class: languageClass });
+    } catch (error) {
+        res.status(500).json({ message: 'Error ending class', error });
+    }
+};
+
+// Manually Update Attendance
+export const updateAttendance = async (req: AuthRequest, res: Response) => {
+    try {
+        const { classId } = req.params;
+        const { studentId, attended } = req.body;
+        const trainerId = req.user?._id;
+
+        const languageClass = await LanguageClass.findById(classId);
+        if (!languageClass) {
+            return res.status(404).json({ message: 'Class not found' });
+        }
+
+        if (languageClass.trainerId.toString() !== (trainerId || '').toString()) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        if (attended) {
+            // Add if not exists
+            const exists = languageClass.attendees.some(a => a.studentId.toString() === studentId);
+            if (!exists) {
+                languageClass.attendees.push({ studentId, joinedAt: new Date() });
+            }
+        } else {
+            // Remove
+            languageClass.attendees = languageClass.attendees.filter(a => a.studentId.toString() !== studentId);
+        }
+
+        await languageClass.save();
+        res.json({ message: 'Attendance updated', attendees: languageClass.attendees });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating attendance', error });
+    }
+};
+
 // Join Class (Record Attendance)
 export const joinClass = async (req: AuthRequest, res: Response) => {
     try {

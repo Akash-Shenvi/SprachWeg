@@ -13,6 +13,7 @@ export interface ILanguageClass extends Document {
     meetLink: string;
     eventId?: string;
     attendees: IAttendee[];
+    status: 'scheduled' | 'completed' | 'cancelled';
     createdAt: Date;
 }
 
@@ -29,7 +30,12 @@ const LanguageClassSchema: Schema = new Schema(
                 studentId: { type: Schema.Types.ObjectId, ref: 'User' },
                 joinedAt: { type: Date, default: Date.now }
             }
-        ]
+        ],
+        status: {
+            type: String,
+            enum: ['scheduled', 'completed', 'cancelled'],
+            default: 'scheduled'
+        }
     },
     { timestamps: true }
 );

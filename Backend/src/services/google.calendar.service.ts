@@ -68,6 +68,7 @@ export class GoogleCalendarService {
             calendarId: 'primary',
             requestBody: event,
             conferenceDataVersion: 1, // Required to create Google Meet link
+            sendUpdates: 'all', // Send emails to attendees
         });
 
         return {
