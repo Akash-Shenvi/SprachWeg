@@ -80,15 +80,12 @@ const Footer: React.FC = () => {
                         </ul>
                     </div>
 
-                    {/* Column 5: Resources */}
+                    {/* Column 5: Policies */}
                     <div>
-                        <h3 className="font-bold text-white mb-6 text-base">Resources</h3>
+                        <h3 className="font-bold text-white mb-6 text-base">Policies</h3>
                         <ul className="space-y-3 text-sm text-gray-400">
-                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Student Dashboard</Link></li>
-                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Knowledge Base</Link></li>
-                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Blog</Link></li>
-                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Events</Link></li>
-                            <li><Link to="#" className="hover:text-[#d6b161] transition-colors block">Partner With Us</Link></li>
+                            <li><Link to="/privacy-policy" className="hover:text-[#d6b161] transition-colors block">Privacy Policy</Link></li>
+                            <li><Link to="/terms-and-conditions" className="hover:text-[#d6b161] transition-colors block">Terms & Condition</Link></li>
                         </ul>
                     </div>
                 </div>
@@ -139,8 +136,8 @@ const Footer: React.FC = () => {
                 <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-500">
                     <p>&copy; 2025 SoVir Academy. All rights reserved.</p>
                     <div className="flex flex-wrap gap-4 justify-center">
-                        <Link to="#" className="hover:text-gray-300 transition-colors">Privacy Policy</Link>
-                        <Link to="#" className="hover:text-gray-300 transition-colors">Terms of Service</Link>
+                        <Link to="/privacy-policy" className="hover:text-gray-300 transition-colors">Privacy Policy</Link>
+                        <Link to="/terms-and-conditions" className="hover:text-gray-300 transition-colors">Terms of Service</Link>
                         <Link to="#" className="hover:text-gray-300 transition-colors">Imprint</Link>
                         <Link to="#" className="hover:text-gray-300 transition-colors">Cookie Settings</Link>
                     </div>

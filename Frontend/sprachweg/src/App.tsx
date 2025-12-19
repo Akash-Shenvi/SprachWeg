@@ -25,6 +25,8 @@ import CourseGermanPage from './pages/CourseGermanPage';
 import CourseJapanesePage from './pages/CourseJapanesePage';
 import NotFound404 from './pages/NotFound404';
 import AboutPage from './pages/About';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsAndConditions from './pages/TermsAndConditions';
 
 
 // Protected Route Component
@@ -92,6 +94,8 @@ const AppContent = () => {
         <Route path="/training/german" element={<CourseGermanPage />} />
         <Route path="/training/japanese" element={<CourseJapanesePage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
 
 
         <Route
