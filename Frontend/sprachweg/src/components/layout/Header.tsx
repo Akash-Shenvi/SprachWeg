@@ -443,18 +443,38 @@ const Header: React.FC = () => {
                             </button>
 
                             {isSettingsOpen && (
-                                <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#0a192f] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
-                                    <div className="p-2">
-                                        <button
-                                            onClick={() => {
-                                                toggleTheme();
-                                                setIsSettingsOpen(false);
-                                            }}
-                                            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 transition-colors text-sm"
-                                        >
-                                            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                                            <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-                                        </button>
+                                <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-[#0a192f] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                                    <div className="p-4">
+                                        {/* Settings Header */}
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">Settings</h3>
+
+                                        {/* Theme Toggle */}
+                                        <div className="flex items-center justify-between py-2">
+                                            <div className="flex items-center gap-2">
+                                                {theme === 'dark' ? <Moon className="w-4 h-4 text-gray-700 dark:text-gray-300" /> : <Sun className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                                                </span>
+                                            </div>
+
+                                            {/* Sliding Toggle Switch */}
+                                            <button
+                                                onClick={toggleTheme}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 ${theme === 'dark' ? 'bg-[#d6b161]' : 'bg-gray-300'
+                                                    }`}
+                                                aria-label="Toggle theme"
+                                            >
+                                                <span
+                                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+                                                        }`}
+                                                />
+                                            </button>
+                                        </div>
+
+                                        {/* Divider for future settings */}
+                                        {/* <div className="border-t border-gray-200 dark:border-gray-700 my-3"></div> */}
+
+                                        {/* Add more settings here in the future */}
                                     </div>
                                 </div>
                             )}
@@ -490,18 +510,38 @@ const Header: React.FC = () => {
                         </button>
 
                         {isSettingsOpen && (
-                            <div className="absolute right-4 top-16 w-48 bg-white dark:bg-[#0a192f] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
-                                <div className="p-2">
-                                    <button
-                                        onClick={() => {
-                                            toggleTheme();
-                                            setIsSettingsOpen(false);
-                                        }}
-                                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 transition-colors text-sm"
-                                    >
-                                        {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                                        <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-                                    </button>
+                            <div className="absolute right-4 top-16 w-64 bg-white dark:bg-[#0a192f] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                                <div className="p-4">
+                                    {/* Settings Header */}
+                                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">Settings</h3>
+
+                                    {/* Theme Toggle */}
+                                    <div className="flex items-center justify-between py-2">
+                                        <div className="flex items-center gap-2">
+                                            {theme === 'dark' ? <Moon className="w-4 h-4 text-gray-700 dark:text-gray-300" /> : <Sun className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                                            </span>
+                                        </div>
+
+                                        {/* Sliding Toggle Switch */}
+                                        <button
+                                            onClick={toggleTheme}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 ${theme === 'dark' ? 'bg-[#d6b161]' : 'bg-gray-300'
+                                                }`}
+                                            aria-label="Toggle theme"
+                                        >
+                                            <span
+                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+                                                    }`}
+                                            />
+                                        </button>
+                                    </div>
+
+                                    {/* Divider for future settings */}
+                                    {/* <div className="border-t border-gray-200 dark:border-gray-700 my-3"></div> */}
+
+                                    {/* Add more settings here in the future */}
                                 </div>
                             </div>
                         )}
