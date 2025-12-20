@@ -96,13 +96,6 @@ const ListWithIcon: React.FC<{ items: string[] }> = ({ items }) => (
 
 // --- Icons (Inline SVGs) ---
 const Icons = {
-    Globe: () => (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="2" y1="12" x2="22" y2="12" />
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-        </svg>
-    ),
     Gear: () => (
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -213,10 +206,12 @@ const AboutPage: React.FC = () => {
                             <div className="text-center mb-6">
                                 <span className="text-[#d6b161] font-bold tracking-wide uppercase text-sm">Who We Are</span>
                             </div>
-                            <SectionHeading id="who-we-are">SoVir Training Academy</SectionHeading>
+                            <SectionHeading id="who-we-are">SoVir Skilling &
+                                Training Center</SectionHeading>
                             <div className="space-y-4 text-gray-700 dark:text-gray-300 leading-relaxed text-base max-w-[65ch]">
                                 <p>
-                                    SoVir Training Academy, a professional training division of SoVir Technologies LLP, is committed to developing industry-ready professionals through foreign language training, automation technologies, and career-focused skill development.
+                                    SoVir Skilling &
+                                    Training Center , a professional training division of SoVir Technologies LLP, is committed to developing industry-ready professionals through foreign language training, automation technologies, and career-focused skill development.
                                 </p>
                                 <p>
                                     We combine education, technology, and real-world industry practices to prepare learners for global employment, industrial roles, and future-ready careers.
@@ -271,60 +266,7 @@ const AboutPage: React.FC = () => {
                         <SectionHeading id="core-programs" align="center">Our Core Training Programs</SectionHeading>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10">
-                        {/* Languages */}
-                        <motion.section
-                            initial={shouldReduceMotion ? {} : "hidden"}
-                            whileInView={shouldReduceMotion ? undefined : "visible"}
-                            viewport={{ once: true }}
-                            variants={sectionVariants}
-                            className="bg-white dark:bg-gray-800 rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 dark:border-gray-700"
-                            aria-labelledby="languages-heading"
-                        >
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="p-3 bg-[#e6f4ff] dark:bg-blue-900/30 rounded-lg text-[#0a192f] dark:text-blue-400" aria-hidden="true">
-                                    <Icons.Globe />
-                                </div>
-                                <h3 id="languages-heading" className="text-2xl font-semibold text-[#0a192f] dark:text-white">
-                                    Foreign Language Training
-                                </h3>
-                            </div>
-                            <p className="text-gray-600 dark:text-gray-400 mb-6 text-base">
-                                We offer structured, internationally aligned language programs including:
-                            </p>
-                            <div className="space-y-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                                    {[
-                                        { lang: 'English', level: 'Beginner to Advanced', students: '8,500+', price: '₹9,999', categories: 'Business & Academic' },
-                                        { lang: 'German', level: 'A1, A2, B1, B2', students: '6,200+', price: '₹15,999', categories: 'TELC / Goethe' },
-                                        { lang: 'Japanese', level: 'N5, N4, N3, N2, N1', students: '4,800+', price: '₹17,999', categories: 'JLPT Aligned' }
-                                    ].map((l, i) => (
-                                        <div key={i} className="h-full bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-[#d6b161] transition-colors">
-                                            <div className="font-semibold text-[#0a192f] dark:text-white mb-1 text-lg">{l.lang}</div>
-                                            <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">{l.level}</div>
-                                            <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 mb-1">
-                                                <Icons.Users />
-                                                <span>{l.students} students</span>
-                                            </div>
-                                            <div className="text-sm font-semibold text-[#d6b161] mb-1">{l.categories}</div>
-                                            <div className="text-sm font-semibold text-gray-700 dark:text-gray-300">Starting at {l.price}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div>
-                                    <h4 className="font-semibold text-[#0a192f] dark:text-white mb-3 text-base">Key focus areas:</h4>
-                                    <ListWithIcon
-                                        items={[
-                                            'Speaking & pronunciation',
-                                            'Grammar & vocabulary',
-                                            'Listening, writing & comprehension',
-                                            'Workplace and real-life communication'
-                                        ]}
-                                    />
-                                </div>
-                            </div>
-                        </motion.section>
-
+                    <div className="grid grid-cols-1 gap-8 md:gap-10">
                         {/* Automation */}
                         <motion.section
                             initial={shouldReduceMotion ? {} : "hidden"}
@@ -339,7 +281,7 @@ const AboutPage: React.FC = () => {
                                     <Icons.Gear />
                                 </div>
                                 <h3 id="automation-heading" className="text-2xl font-semibold text-[#0a192f] dark:text-white">
-                                    PLC & Industrial Automation
+                                    All skill training courses
                                 </h3>
                             </div>
                             <p className="text-gray-600 dark:text-gray-400 mb-6 text-base">
@@ -430,40 +372,7 @@ const AboutPage: React.FC = () => {
             {/* --- EXAM PREP & SKILLS --- */}
             <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 dark:bg-gray-900">
                 <div className="mx-auto max-w-7xl">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10">
-                        {/* Exam Prep */}
-                        <motion.div
-                            initial={shouldReduceMotion ? {} : "hidden"}
-                            whileInView={shouldReduceMotion ? undefined : "visible"}
-                            viewport={{ once: true }}
-                            variants={itemVariants}
-                        >
-                            <div className="border-l-4 border-[#d6b161] pl-6 mb-8">
-                                <h2 className="text-3xl sm:text-4xl font-semibold text-[#0a192f] dark:text-white">
-                                    Exam Preparation & Certifications
-                                </h2>
-                            </div>
-                            <div className="space-y-4 text-gray-700 dark:text-gray-300 text-base mb-6 max-w-[65ch]">
-                                <p className="leading-relaxed">We provide exam-oriented training and guidance for:</p>
-                                <ul className="space-y-2 ml-4">
-                                    <li>• Goethe-Institut (German)</li>
-                                    <li>• TELC</li>
-                                    <li>• ÖSD</li>
-                                    <li>• IELTS & English proficiency exams</li>
-                                    <li>• Industrial & skill-based certifications</li>
-                                </ul>
-                            </div>
-                            <div className="bg-gray-100 dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700">
-                                <h4 className="font-semibold text-[#0a192f] dark:text-white mb-3 text-base">Includes:</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700 dark:text-gray-300">
-                                    <span>• Mock tests & assessments</span>
-                                    <span>• Certification-aligned syllabus</span>
-                                    <span>• Performance feedback</span>
-                                    <span>• Confidence & exam strategy</span>
-                                </div>
-                            </div>
-                        </motion.div>
-
+                    <div className="grid grid-cols-1 gap-8 md:gap-10">
                         {/* Skill Dev */}
                         <ContentCard
                             title="Skill Development & Career Training"
@@ -528,7 +437,8 @@ const AboutPage: React.FC = () => {
                             icon={<Icons.Users />}
                         >
                             <p className="mb-4 text-base leading-relaxed">
-                                At SoVir Training Academy, training is career-oriented, not just academic.
+                                At SoVir Skilling &
+                                Training Center, training is career-oriented, not just academic.
                             </p>
                             <h4 className="font-semibold text-[#0a192f] dark:text-white mb-3 text-base">Our support includes:</h4>
                             <ListWithIcon
@@ -549,7 +459,7 @@ const AboutPage: React.FC = () => {
             <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8" aria-labelledby="why-choose">
                 <div className="mx-auto max-w-7xl">
                     <div className="text-center mb-12 sm:mb-16">
-                        <SectionHeading id="why-choose" align="center">Why Choose SoVir Training Academy?</SectionHeading>
+                        <SectionHeading id="why-choose" align="center">Why Choose SoVir Skilling & Training Center?</SectionHeading>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {[
@@ -576,148 +486,6 @@ const AboutPage: React.FC = () => {
                     </div>
                 </div>
             </section>
-
-            {/* --- MEET OUR TEAM --- */}
-            <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 px-4 sm:px-6 lg:px-8" aria-labelledby="meet-team">
-                <div className="mx-auto max-w-7xl">
-                    <div className="text-center mb-12 sm:mb-16">
-                        <motion.span
-                            className="text-[#d6b161] font-bold tracking-wide uppercase text-sm"
-                            initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
-                            whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5 }}
-                        >
-                            Leadership & Expertise
-                        </motion.span>
-                        <SectionHeading id="meet-team" align="center">Meet Our Team</SectionHeading>
-                        <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mt-4 text-base leading-relaxed">
-                            Our dedicated team of experienced professionals committed to your success
-                        </p>
-                    </div>
-
-                    <motion.div
-                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8"
-                        variants={staggerContainer}
-                        initial={shouldReduceMotion ? {} : "hidden"}
-                        whileInView={shouldReduceMotion ? undefined : "visible"}
-                        viewport={{ once: true }}
-                    >
-                        {/* Team Member 1 - Melita Dsouza */}
-                        <motion.article
-                            className="group relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
-                            variants={itemVariants}
-                        >
-                            <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-[#0a192f] to-[#1a2f4f]">
-                                {/* Profile Image Placeholder */}
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="w-32 h-32 rounded-full bg-[#d6b161]/20 flex items-center justify-center border-4 border-[#d6b161]/30">
-                                        <svg className="w-16 h-16 text-[#d6b161]" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                {/* Decorative overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            </div>
-                            <div className="p-6">
-                                <h3 className="text-xl font-bold text-[#0a192f] dark:text-white mb-1 text-center">
-                                    Melita Dsouza
-                                </h3>
-                                <p className="text-[#d6b161] font-semibold text-sm text-center mb-3">
-                                    Managing Director / Director
-                                </p>
-                                <div className="h-px w-16 bg-gradient-to-r from-transparent via-[#d6b161] to-transparent mx-auto" />
-                            </div>
-                        </motion.article>
-
-                        {/* Team Member 2 - Jacinta */}
-                        <motion.article
-                            className="group relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
-                            variants={itemVariants}
-                        >
-                            <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-[#0a192f] to-[#1a2f4f]">
-                                {/* Profile Image Placeholder */}
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="w-32 h-32 rounded-full bg-[#d6b161]/20 flex items-center justify-center border-4 border-[#d6b161]/30">
-                                        <svg className="w-16 h-16 text-[#d6b161]" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                {/* Decorative overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            </div>
-                            <div className="p-6">
-                                <h3 className="text-xl font-bold text-[#0a192f] dark:text-white mb-1 text-center">
-                                    Jacinta
-                                </h3>
-                                <p className="text-[#d6b161] font-semibold text-sm text-center mb-3">
-                                    Academic Counselor & Placement Coordinator
-                                </p>
-                                <div className="h-px w-16 bg-gradient-to-r from-transparent via-[#d6b161] to-transparent mx-auto" />
-                            </div>
-                        </motion.article>
-
-                        {/* Team Member 3 - Ritika */}
-                        <motion.article
-                            className="group relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
-                            variants={itemVariants}
-                        >
-                            <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-[#0a192f] to-[#1a2f4f]">
-                                {/* Profile Image Placeholder */}
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="w-32 h-32 rounded-full bg-[#d6b161]/20 flex items-center justify-center border-4 border-[#d6b161]/30">
-                                        <svg className="w-16 h-16 text-[#d6b161]" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                {/* Decorative overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            </div>
-                            <div className="p-6">
-                                <h3 className="text-xl font-bold text-[#0a192f] dark:text-white mb-1 text-center">
-                                    Ritika
-                                </h3>
-                                <p className="text-[#d6b161] font-semibold text-sm text-center mb-3">
-                                    Senior Trainer
-                                </p>
-                                <div className="h-px w-16 bg-gradient-to-r from-transparent via-[#d6b161] to-transparent mx-auto" />
-                            </div>
-                        </motion.article>
-
-                        {/* Team Member 4 - Viryam */}
-                        <motion.article
-                            className="group relative bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
-                            variants={itemVariants}
-                        >
-                            <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-[#0a192f] to-[#1a2f4f]">
-                                {/* Profile Image Placeholder */}
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="w-32 h-32 rounded-full bg-[#d6b161]/20 flex items-center justify-center border-4 border-[#d6b161]/30">
-                                        <svg className="w-16 h-16 text-[#d6b161]" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                                        </svg>
-                                    </div>
-                                </div>
-                                {/* Decorative overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            </div>
-                            <div className="p-6">
-                                <h3 className="text-xl font-bold text-[#0a192f] dark:text-white mb-1 text-center">
-                                    Viryam
-                                </h3>
-                                <p className="text-[#d6b161] font-semibold text-sm text-center mb-3">
-                                    Automation Trainer
-                                </p>
-                                <div className="h-px w-16 bg-gradient-to-r from-transparent via-[#d6b161] to-transparent mx-auto" />
-                            </div>
-                        </motion.article>
-                    </motion.div>
-                </div>
-            </section>
-
             {/* --- MISSION, VISION, VALUES --- */}
             <section className="py-12 sm:py-16 md:py-20 bg-[#0a192f] dark:bg-[#030810] text-white overflow-hidden relative px-4 sm:px-6 lg:px-8">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-[#d6b161]/10 rounded-full blur-3xl" aria-hidden="true" />
@@ -726,13 +494,13 @@ const AboutPage: React.FC = () => {
                         <div className="space-y-4">
                             <h3 className="text-2xl font-semibold text-[#d6b161]">Our Mission</h3>
                             <p className="text-gray-300 leading-relaxed text-base max-w-[65ch]">
-                                To deliver professional, practical, and globally relevant training that enables learners to succeed in international careers, industrial roles, and advanced technology domains.
+                                To provide high-quality training programs that enhance technical competence and global employability.
                             </p>
                         </div>
                         <div className="space-y-4">
                             <h3 className="text-2xl font-semibold text-[#d6b161]">Our Vision</h3>
                             <p className="text-gray-300 leading-relaxed text-base max-w-[65ch]">
-                                To become a trusted and recognized training academy known for excellence in language education, PLC & automation training, and career development.
+                                To become a global leader in industrial automation, empowering businesses with smart, efficient, and sustainable solutions.
                             </p>
                         </div>
                         <div className="space-y-4">
@@ -759,7 +527,8 @@ const AboutPage: React.FC = () => {
                             Powered by SoVir Technologies LLP
                         </p>
                         <p className="text-gray-400 max-w-[65ch] mx-auto text-base leading-relaxed">
-                            SoVir Training Academy operates under SoVir Technologies LLP, a service-based company delivering technology solutions, automation services, digital platforms, and professional training. This strong industry foundation ensures our training remains relevant, credible, and future-ready.
+                            SoVir Skilling &
+                            Training Center operates under SoVir Technologies LLP, a service-based company delivering technology solutions, automation services, digital platforms, and professional training. This strong industry foundation ensures our training remains relevant, credible, and future-ready.
                         </p>
                     </div>
                 </div>
@@ -777,7 +546,8 @@ const AboutPage: React.FC = () => {
                         Start Your Skill Journey With Us
                     </h2>
                     <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 mb-10 leading-relaxed">
-                        Whether your goal is international language certification, industrial automation expertise, or career advancement, SoVir Training Academy is your trusted partner for growth and success.
+                        Whether your goal is international language certification, industrial automation expertise, or career advancement, SoVir Skilling &
+                        Training Center is your trusted partner for growth and success.
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
