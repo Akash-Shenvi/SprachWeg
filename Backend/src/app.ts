@@ -42,6 +42,9 @@ app.use('/api/enrollment', enrollmentRoutes);
 app.use('/api/languages', languageRoutes);
 
 app.use('/api/language-training', languageTrainingRoutes);
+
+import skillTrainingDetailRoutes from './routes/skillTrainingDetail.routes';
+app.use('/api/skill-training-details', skillTrainingDetailRoutes);
 app.use('/api/language-trainer', languageTrainerRoutes);
 
 export default app;

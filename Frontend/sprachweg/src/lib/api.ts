@@ -73,8 +73,9 @@ export const enrollmentAPI = {
 
 // Skill Course API
 export const skillAPI = {
-    async getAll() {
-        const response = await api.get('/skills');
+    async getAll(search?: string) {
+        const url = search ? `/skills?search=${encodeURIComponent(search)}` : '/skills';
+        const response = await api.get(url);
         return response.data;
     },
 
@@ -131,6 +132,17 @@ export const languageAPI = {
         const response = await api.delete(`/languages/${id}`);
         return response.data;
     },
+};
+
+export const skillTrainingDetailAPI = {
+    async get(courseId: string) {
+        const response = await api.get(`/skill-training-details/${courseId}`);
+        return response.data;
+    },
+    async update(data: any) {
+        const response = await api.post('/skill-training-details', data);
+        return response.data;
+    }
 };
 
 export default api;

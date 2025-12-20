@@ -5,6 +5,7 @@ import { Check, ChevronRight, Clock, Target, Award, Users, BookOpen, Zap } from 
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import EnrollmentModal from '../../components/ui/EnrollmentModal';
+import { skillAPI, skillTrainingDetailAPI } from '../../lib/api';
 
 // --- Premium Animation Variants ---
 const fadeInUp = {
@@ -68,6 +69,46 @@ const HeroBackground: React.FC = () => {
 const SCADAAndHMIPage: React.FC = () => {
     const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
     const shouldReduceMotion = useReducedMotion();
+    const [courseDetails, setCourseDetails] = useState({
+        duration: '40 hours (5 weeks)',
+        deliveryMode: 'Online / Offline / Hybrid',
+        classTimings: 'Mon, Wed, Fri - 6 PM to 9 PM',
+        fees: '₹7200 to ₹13800'
+    });
+
+    React.useEffect(() => {
+        const fetchDetails = async () => {
+            try {
+                // Fetch only relevant courses to optimize performance
+                const courses = await skillAPI.getAll('scada');
+                const course = courses.find((c: any) => c.title.toLowerCase().includes('scada'));
+
+                if (course) {
+                    let details = {
+                        duration: course.duration || '40 hours (5 weeks)',
+                        deliveryMode: 'Online / Offline / Hybrid',
+                        classTimings: 'Mon, Wed, Fri - 6 PM to 9 PM',
+                        fees: '₹7200 to ₹13800'
+                    };
+
+                    try {
+                        const flexibleDetails = await skillTrainingDetailAPI.get(course._id);
+                        if (flexibleDetails) {
+                            details.deliveryMode = flexibleDetails.deliveryMode || details.deliveryMode;
+                            details.classTimings = flexibleDetails.classTimings || details.classTimings;
+                            details.fees = flexibleDetails.fees || details.fees;
+                        }
+                    } catch (err) {
+                        console.error("Error fetching flexible details", err);
+                    }
+                    setCourseDetails(details);
+                }
+            } catch (error) {
+                console.error("Failed to fetch course info", error);
+            }
+        };
+        fetchDetails();
+    }, []);
 
     const whyChooseFeatures = [
         "Hands-on training with industry-grade SCADA & HMI software",
@@ -190,7 +231,7 @@ const SCADAAndHMIPage: React.FC = () => {
                             >
                                 <Clock className="mb-4 h-10 w-10 text-[#d6b161]" />
                                 <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Duration</h3>
-                                <p className="text-xl font-bold text-gray-900 dark:text-white">40 hours (5 weeks)</p>
+                                <p className="text-xl font-bold text-gray-900 dark:text-white">{courseDetails.duration}</p>
                             </motion.div>
 
                             <motion.div
@@ -202,7 +243,7 @@ const SCADAAndHMIPage: React.FC = () => {
                             >
                                 <BookOpen className="mb-4 h-10 w-10 text-[#d6b161]" />
                                 <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Delivery Mode</h3>
-                                <p className="text-xl font-bold text-gray-900 dark:text-white">Online / Offline / Hybrid</p>
+                                <p className="text-xl font-bold text-gray-900 dark:text-white">{courseDetails.deliveryMode}</p>
                             </motion.div>
 
                             <motion.div
@@ -214,7 +255,7 @@ const SCADAAndHMIPage: React.FC = () => {
                             >
                                 <Target className="mb-4 h-10 w-10 text-[#d6b161]" />
                                 <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Class Timings</h3>
-                                <p className="text-xl font-bold text-gray-900 dark:text-white">Mon, Wed, Fri - 6 PM to 9 PM</p>
+                                <p className="text-xl font-bold text-gray-900 dark:text-white">{courseDetails.classTimings}</p>
                             </motion.div>
 
                             <motion.div
@@ -226,7 +267,7 @@ const SCADAAndHMIPage: React.FC = () => {
                             >
                                 <Award className="mb-4 h-10 w-10 text-[#d6b161]" />
                                 <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Fees</h3>
-                                <p className="text-xl font-bold text-gray-900 dark:text-white">₹7200 to ₹13800</p>
+                                <p className="text-xl font-bold text-gray-900 dark:text-white">{courseDetails.fees}</p>
                             </motion.div>
                         </div>
                     </div>

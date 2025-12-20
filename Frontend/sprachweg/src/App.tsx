@@ -15,6 +15,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import TrainerDashboard from './pages/TrainerDashboard';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import SkillDashboard from './pages/Admin/SkillDashboard';
+import SkillDashboard1 from './pages/Admin/SkillDashboard1';
 import LanguageDashboard from './pages/Admin/LanguageDashboard';
 import LanguageEnrollmentDetails from './pages/Admin/LanguageEnrollmentDetails';
 import LanguageBatches from './pages/Admin/LanguageBatches';
@@ -173,6 +174,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute>
               <SkillDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/skills-details"
+          element={
+            <ProtectedRoute>
+              <SkillDashboard1 />
             </ProtectedRoute>
           }
         />

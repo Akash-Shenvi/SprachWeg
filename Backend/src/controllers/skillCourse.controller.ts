@@ -46,7 +46,19 @@ export const createCourse = async (req: Request, res: Response) => {
 
 export const getAllCourses = async (req: Request, res: Response) => {
     try {
-        const courses = await SkillCourse.find().sort({ createdAt: -1 });
+        const { search } = req.query;
+        let query = {};
+
+        if (search) {
+            query = {
+                $or: [
+                    { title: { $regex: search, $options: 'i' } },
+                    { description: { $regex: search, $options: 'i' } }
+                ]
+            };
+        }
+
+        const courses = await SkillCourse.find(query).sort({ createdAt: -1 });
         res.status(200).json(courses);
     } catch (error: any) {
         res.status(500).json({ message: 'Error fetching courses', error: error.message });

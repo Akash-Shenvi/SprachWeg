@@ -188,8 +188,66 @@ const languageCourses = [
 ];
 
 const skillCourses: any[] = [
-    // Add any existing skill courses here if any, or keep it empty for now
-    // Example: { title: 'Web Development', category: 'Tech', ... }
+    {
+        title: 'PLC Industrial Automation',
+        subtitle: 'Master Programmable Logic Controllers (PLC) for industrial automation.',
+        category: 'Technical',
+        description: 'Comprehensive training on PLC programming, troubleshooting, and integration.',
+        image: 'plc-course.jpg',
+        popular: true,
+        features: ['Hands-on training', 'Real-world projects', 'Certification'],
+        price: '₹17800',
+        duration: '56 hours (7 weeks)',
+        mode: 'Online / Offline / Hybrid'
+    },
+    {
+        title: 'SCADA & HMI Training',
+        subtitle: 'Learn Supervisory Control and Data Acquisition systems.',
+        category: 'Technical',
+        description: 'In-depth course on SCADA systems and Human Machine Interface (HMI) design.',
+        image: 'scada-course.jpg',
+        popular: false,
+        features: ['System Design', 'Data Visualization', 'Alarm Management'],
+        price: '₹13800',
+        duration: '40 hours (5 weeks)',
+        mode: 'Online / Offline / Hybrid'
+    },
+    {
+        title: 'Industrial Drives & Motion Control',
+        subtitle: 'Expertise in VFDs, servo motors, and motion control systems.',
+        category: 'Technical',
+        description: 'Training on installation, configuration, and maintenance of industrial drives.',
+        image: 'drives-course.jpg',
+        popular: false,
+        features: ['VFD Configuration', 'Motion Profiles', 'Maintenance'],
+        price: '₹18800',
+        duration: '45 hours (5 weeks)',
+        mode: 'Online / Offline / Hybrid'
+    },
+    {
+        title: 'Advanced Industry 4.0',
+        subtitle: 'Future-proof your skills with Industry 4.0 technologies.',
+        category: 'Technical',
+        description: 'Learn about IIoT, smart factories, and digital transformation in manufacturing.',
+        image: 'industry4-course.jpg',
+        popular: true,
+        features: ['IIoT', 'Smart Sensors', 'Cloud Integration'],
+        price: '₹28000',
+        duration: '50 hours (6 weeks)',
+        mode: 'Online / Offline / Hybrid'
+    },
+    {
+        title: 'Customized Corporate Training',
+        subtitle: 'Tailored training solutions for your organization.',
+        category: 'Corporate',
+        description: 'Customized training programs to meet specific business needs and goals.',
+        image: 'corporate-course.jpg',
+        popular: false,
+        features: ['Custom Curriculum', 'On-site Training', 'Team Building'],
+        price: '₹28000',
+        duration: 'Flexible (Client-based)',
+        mode: 'On-site / Online / Hybrid'
+    }
 ];
 
 const seedDB = async () => {

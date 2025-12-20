@@ -1,6 +1,6 @@
 import React, { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, LogOut, Menu, X, Users } from 'lucide-react';
+import { LayoutDashboard, BookOpen, LogOut, Menu, X, Users, Edit } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 
@@ -20,6 +20,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         { path: '/admin/language-batches', icon: Users, label: 'Active Classes' },
         { path: '/admin/languages', icon: BookOpen, label: 'Language Courses' },
         { path: '/admin/skills', icon: BookOpen, label: 'Skill Courses' },
+        { path: '/admin/skills-details', icon: Edit, label: 'Skill Details' },
     ];
 
     const handleLogout = () => {
