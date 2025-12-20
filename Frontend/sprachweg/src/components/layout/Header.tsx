@@ -62,13 +62,23 @@ const Header: React.FC = () => {
 
                         {/* Language Training Mega Menu */}
                         <div className="relative group">
-                            <button
-                                onClick={() => toggleDropdown('language-desktop')}
-                                className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-3 py-2 flex items-center gap-1"
-                            >
-                                Language Training
-                                <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === 'language-desktop' ? 'rotate-180' : ''}`} />
-                            </button>
+                            <div className="flex items-center gap-1">
+                                <Link
+                                    to="/language-training"
+                                    className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-2 py-2"
+                                >
+                                    Language Training
+                                </Link>
+                                <button
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        toggleDropdown('language-desktop');
+                                    }}
+                                    className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors focus:outline-none"
+                                >
+                                    <ChevronDown className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${openDropdown === 'language-desktop' ? 'rotate-180' : ''}`} />
+                                </button>
+                            </div>
                             <div className={`absolute left-0 top-full mt-2 w-[650px] bg-white/95 dark:bg-[#0a192f]/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl transition-all duration-200 z-50 ${openDropdown === 'language-desktop' ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'}`}>
                                 <div className="grid grid-cols-3 gap-6 p-6">
                                     {/* LANGUAGES Column */}
@@ -178,13 +188,23 @@ const Header: React.FC = () => {
 
                         {/* Skill Training Mega Menu */}
                         <div className="relative group">
-                            <button
-                                onClick={() => toggleDropdown('skill-desktop')}
-                                className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-3 py-2 flex items-center gap-1"
-                            >
-                                Skill Training
-                                <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === 'skill-desktop' ? 'rotate-180' : ''}`} />
-                            </button>
+                            <div className="flex items-center gap-1">
+                                <Link
+                                    to="/skill-training"
+                                    className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-2 py-2"
+                                >
+                                    Skill Training
+                                </Link>
+                                <button
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        toggleDropdown('skill-desktop');
+                                    }}
+                                    className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors focus:outline-none"
+                                >
+                                    <ChevronDown className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${openDropdown === 'skill-desktop' ? 'rotate-180' : ''}`} />
+                                </button>
+                            </div>
                             <div className={`absolute left-0 top-full mt-2 w-[750px] bg-white/95 dark:bg-[#0a192f]/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl transition-all duration-200 z-50 ${openDropdown === 'skill-desktop' ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'}`}>
                                 <div className="grid grid-cols-3 gap-6 p-6">
                                     {/* INDUSTRIAL AUTOMATION Column */}
@@ -531,13 +551,21 @@ const Header: React.FC = () => {
                         <div className="px-4 py-4 space-y-2">
                             <Link to="/" className="block text-gray-700 dark:text-gray-300 font-medium py-2 text-sm" onClick={() => setIsMenuOpen(false)}>Home</Link>
 
-                            <button
-                                onClick={() => toggleDropdown('language')}
-                                className="w-full text-left text-gray-700 dark:text-gray-300 font-medium py-2 text-sm flex items-center justify-between"
-                            >
-                                Language Training
-                                <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === 'language' ? 'rotate-180' : ''}`} />
-                            </button>
+                            <div className="flex items-center justify-between w-full">
+                                <Link
+                                    to="/language-training"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="text-gray-700 dark:text-gray-300 font-medium py-2 text-sm flex-1"
+                                >
+                                    Language Training
+                                </Link>
+                                <button
+                                    onClick={() => toggleDropdown('language')}
+                                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10"
+                                >
+                                    <ChevronDown className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${openDropdown === 'language' ? 'rotate-180' : ''}`} />
+                                </button>
+                            </div>
                             {openDropdown === 'language' && (
                                 <div className="bg-gray-50 dark:bg-white/5 rounded pl-4 pr-2 py-2 space-y-3">
                                     {/* Languages */}
@@ -559,13 +587,21 @@ const Header: React.FC = () => {
                                 </div>
                             )}
 
-                            <button
-                                onClick={() => toggleDropdown('skill')}
-                                className="w-full text-left text-gray-700 dark:text-gray-300 font-medium py-2 text-sm flex items-center justify-between"
-                            >
-                                Skill Training
-                                <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === 'skill' ? 'rotate-180' : ''}`} />
-                            </button>
+                            <div className="flex items-center justify-between w-full">
+                                <Link
+                                    to="/skill-training"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="text-gray-700 dark:text-gray-300 font-medium py-2 text-sm flex-1"
+                                >
+                                    Skill Training
+                                </Link>
+                                <button
+                                    onClick={() => toggleDropdown('skill')}
+                                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10"
+                                >
+                                    <ChevronDown className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${openDropdown === 'skill' ? 'rotate-180' : ''}`} />
+                                </button>
+                            </div>
                             {openDropdown === 'skill' && (
                                 <div className="bg-gray-50 dark:bg-white/5 rounded pl-4 pr-2 py-2 space-y-3">
                                     {/* Industrial Automation */}
@@ -619,12 +655,27 @@ const Header: React.FC = () => {
                             <Link to="#" className="block text-gray-700 dark:text-gray-300 font-medium py-2 text-sm" onClick={() => setIsMenuOpen(false)}>Contact</Link>
 
                             <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-3">
-                                <Link to="/login" className="text-center text-gray-700 dark:text-white font-medium py-2 text-sm" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
-                                <Link to="/register" onClick={() => setIsMenuOpen(false)}>
-                                    <Button className="w-full bg-[#d6b161] text-[#0a192f] font-semibold rounded-full text-sm py-2">
-                                        Enroll Now
-                                    </Button>
-                                </Link>
+                                {user ? (
+                                    <Link
+                                        to={`/${user.role}-dashboard`}
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <Button className="w-full bg-[#0a192f] hover:bg-[#112240] text-white font-semibold rounded-full text-sm py-2 dark:bg-gray-700 dark:hover:bg-gray-600">
+                                            Dashboard
+                                        </Button>
+                                    </Link>
+                                ) : (
+                                    <>
+                                        <Link to="/login" className="text-center text-gray-700 dark:text-white font-medium py-2 text-sm" onClick={() => setIsMenuOpen(false)}>
+                                            Sign In
+                                        </Link>
+                                        <Link to="/register" onClick={() => setIsMenuOpen(false)}>
+                                            <Button className="w-full bg-[#d6b161] text-[#0a192f] font-semibold rounded-full text-sm py-2">
+                                                Enroll Now
+                                            </Button>
+                                        </Link>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </motion.div>
