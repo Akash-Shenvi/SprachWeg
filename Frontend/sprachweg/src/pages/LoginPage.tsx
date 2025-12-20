@@ -112,15 +112,9 @@ const LoginPage: React.FC = () => {
 
                 {/* Right Panel - Form */}
                 <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative">
-                    {/* Mobile Header (Visible only on small screens) */}
-                    <div className="lg:hidden absolute top-4 left-8 flex items-center gap-2">
-                        <div className="w-8 h-8 bg-[#0a192f] rounded-lg flex items-center justify-center text-white">
-                            <span className="font-sans font-bold">S</span>
-                        </div>
-                        <span className="font-sans font-bold text-[#0a192f] dark:text-white">SOVIR</span>
-                    </div>
-
                     <div className="w-full max-w-md">
+                        {/* Mobile Header (Visible only on small screens) */}
+                        
                         {/* Tab Switcher */}
                         <div className="bg-white dark:bg-gray-800 p-1.5 rounded-xl flex mb-8 shadow-sm border border-gray-100 dark:border-gray-700 w-full max-w-sm mx-auto">
                             <button
