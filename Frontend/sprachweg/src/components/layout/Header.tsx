@@ -191,83 +191,47 @@ const Header: React.FC = () => {
                                     <div>
                                         <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Industrial Automation</h3>
                                         <div className="space-y-3">
-                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                            <Link to="/skill-training/scada" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
                                                 <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">⚙️</span>
+                                                    <span className="text-lg">🖥️</span>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Overview</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">All automation courses</p>
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">SCADA & HMI</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Interface design & control</p>
                                                 </div>
                                             </Link>
-                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                            <Link to="/skill-training/plc" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
                                                 <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
                                                     <span className="text-lg">🔧</span>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">PLC Programming</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Ladder logic & PLC systems</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Industrial automation</p>
                                                 </div>
                                             </Link>
-                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                            <Link to="/skill-training/drives" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
                                                 <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">🖥️</span>
+                                                    <span className="text-lg">⚡</span>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">HMI & SCADA</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Interface design & control</p>
-                                                </div>
-                                            </Link>
-                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
-                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">🤖</span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Robotics</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Industrial robotics</p>
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Industrial Drives</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Motion control systems</p>
                                                 </div>
                                             </Link>
                                         </div>
                                     </div>
 
-                                    {/* TECHNOLOGY TRAINING Column */}
+                                    {/* ADVANCED TRAINING Column */}
                                     <div>
-                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Technology Training</h3>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Advanced Training</h3>
                                         <div className="space-y-3">
-                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                            <Link to="/skill-training/industry4" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
                                                 <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">📊</span>
+                                                    <span className="text-lg">🏭</span>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Overview</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">All technology courses</p>
-                                                </div>
-                                            </Link>
-                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
-                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">📡</span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Industrial IoT</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Connected factory solutions</p>
-                                                </div>
-                                            </Link>
-                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
-                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">📈</span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Data Analytics</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Industrial data insights</p>
-                                                </div>
-                                            </Link>
-                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
-                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">☁️</span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Cloud Computing</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Cloud automation</p>
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Industry 4.0</p>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Smart factory & IIoT</p>
                                                 </div>
                                             </Link>
                                         </div>
@@ -277,21 +241,12 @@ const Header: React.FC = () => {
                                     <div>
                                         <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Corporate Training</h3>
                                         <div className="space-y-3">
-                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
-                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">👥</span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Team Upskilling</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Bulk training programs</p>
-                                                </div>
-                                            </Link>
-                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
+                                            <Link to="/skill-training/corporate" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
                                                 <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
                                                     <span className="text-lg">🎯</span>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Custom Programs</p>
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Customized Training</p>
                                                     <p className="text-xs text-gray-600 dark:text-gray-400">Tailored solutions</p>
                                                 </div>
                                             </Link>
@@ -607,24 +562,21 @@ const Header: React.FC = () => {
                                     {/* Industrial Automation */}
                                     <div className="space-y-1">
                                         <h4 className="text-xs font-bold uppercase text-[#d6b161] mb-2">Industrial Automation</h4>
-                                        <Link to="#" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>PLC Programming</Link>
-                                        <Link to="#" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>HMI & SCADA</Link>
-                                        <Link to="#" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Robotics</Link>
+                                        <Link to="/skill-training/scada" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>SCADA & HMI</Link>
+                                        <Link to="/skill-training/plc" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>PLC Programming</Link>
+                                        <Link to="/skill-training/drives" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Industrial Drives</Link>
                                     </div>
 
-                                    {/* Technology Training */}
+                                    {/* Advanced Training */}
                                     <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-2">
-                                        <h4 className="text-xs font-bold uppercase text-[#d6b161] mb-2">Technology</h4>
-                                        <Link to="#" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Industrial IoT</Link>
-                                        <Link to="#" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Data Analytics</Link>
-                                        <Link to="#" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Cloud Computing</Link>
+                                        <h4 className="text-xs font-bold uppercase text-[#d6b161] mb-2">Advanced Training</h4>
+                                        <Link to="/skill-training/industry4" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Industry 4.0</Link>
                                     </div>
 
                                     {/* Corporate */}
                                     <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-2">
                                         <h4 className="text-xs font-bold uppercase text-[#d6b161] mb-2">Corporate</h4>
-                                        <Link to="#" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Team Upskilling</Link>
-                                        <Link to="#" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Custom Programs</Link>
+                                        <Link to="/skill-training/corporate" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Customized Training</Link>
                                     </div>
                                 </div>
                             )}
