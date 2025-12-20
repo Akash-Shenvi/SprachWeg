@@ -23,7 +23,7 @@ const LoginPage: React.FC = () => {
             try {
                 setLoading(true);
                 await googleLogin(tokenResponse.access_token);
-                navigate('/dashboard');
+                navigate('/student-dashboard');
             } catch (err: any) {
                 setError(err.response?.data?.message || 'Google Login failed');
             } finally {
@@ -42,7 +42,7 @@ const LoginPage: React.FC = () => {
 
         try {
             await login(formData.email, formData.password);
-            navigate('/dashboard');
+            navigate('/student-dashboard');
         } catch (err: any) {
             setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
         } finally {

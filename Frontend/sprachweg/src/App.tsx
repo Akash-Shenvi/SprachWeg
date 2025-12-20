@@ -143,7 +143,7 @@ const AppContent = () => {
 
         {/* Protected Routes */}
         <Route
-          path="/dashboard"
+          path="/student-dashboard"
           element={
             <ProtectedRoute>
               <StudentDashboard />
