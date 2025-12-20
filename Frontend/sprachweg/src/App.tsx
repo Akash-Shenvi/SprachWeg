@@ -35,6 +35,7 @@ import AboutPage from './pages/About';
 import GoogleCallback from './pages/GoogleCallback';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsAndConditions from './pages/TermsAndConditions';
+import ContactPage from './pages/ContactPage';
 
 
 // Protected Route Component
@@ -104,6 +105,7 @@ const AppContent = () => {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+        <Route path="/contact" element={<ContactPage />} />
 
 
         {/* Skill Training Routes */}

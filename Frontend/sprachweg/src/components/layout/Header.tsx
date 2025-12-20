@@ -408,7 +408,7 @@ const Header: React.FC = () => {
                             About
                         </Link>
                         <Link
-                            to="#"
+                            to="/contact"
                             className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-3 py-2"
                         >
                             Contact
@@ -652,7 +652,7 @@ const Header: React.FC = () => {
                             )}
 
                             <Link to="/about" className="block text-gray-700 dark:text-gray-300 font-medium py-2 text-sm" onClick={() => setIsMenuOpen(false)}>About</Link>
-                            <Link to="#" className="block text-gray-700 dark:text-gray-300 font-medium py-2 text-sm" onClick={() => setIsMenuOpen(false)}>Contact</Link>
+                            <Link to="/contact" className="block text-gray-700 dark:text-gray-300 font-medium py-2 text-sm" onClick={() => setIsMenuOpen(false)}>Contact</Link>
 
                             <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-3">
                                 {user ? (
