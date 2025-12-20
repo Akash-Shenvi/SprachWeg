@@ -130,7 +130,7 @@ const ForgotPasswordPage: React.FC = () => {
                                                     id="email"
                                                     type="email"
                                                     placeholder="you@example.com"
-                                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pl-10 text-gray-900 placeholder:text-gray-400 transition-all focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:bg-white dark:bg-gray-900 dark:border-gray-700 dark:text-white"
+                                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pl-10 text-gray-900 placeholder:text-gray-400 transition-all focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder:text-gray-400"
                                                     value={email}
                                                     onChange={(e) => setEmail(e.target.value)}
                                                     required

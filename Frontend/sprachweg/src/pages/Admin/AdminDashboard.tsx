@@ -5,7 +5,8 @@ import {
     BookOpen,
     TrendingUp,
     Shield,
-    Award
+    Award,
+    Trash2
 } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
@@ -124,6 +125,25 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    const handleRemoveTrainer = async (id: string) => {
+        if (!window.confirm("Are you sure you want to remove this trainer? This action cannot be undone.")) {
+            return;
+        }
+
+        try {
+            await api.delete(`/language-training/admin/trainers/${id}`);
+            setTrainers(trainers.filter(t => t._id !== id));
+            // Recalculate stats
+            setStats(prev => ({
+                ...prev,
+                activeTrainers: prev.activeTrainers - 1
+            }));
+        } catch (error: any) {
+            console.error("Failed to remove trainer", error);
+            alert(error.response?.data?.message || 'Failed to remove trainer');
+        }
+    };
+
     return (
         <AdminLayout>
             <div className="max-w-7xl mx-auto space-y-8">
@@ -195,46 +215,79 @@ const AdminDashboard: React.FC = () => {
                         </section>
                     </div>
 
-                    {/* Sidebar / Quick Actions */}
-                    <div className="space-y-6">
-                        {/* Promote to Trainer */}
-                        <section className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-[#112240]">
-                            <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-[#0a192f] dark:text-white">
-                                <Shield className="h-5 w-5 text-[#d6b161]" />
-                                Promote User to Trainer
-                            </h3>
-                            <form onSubmit={handlePromoteTrainer} className="space-y-4">
-                                <div>
-                                    <label className="text-sm text-gray-600 dark:text-gray-400 block mb-2">
-                                        Enter email to grant Trainer access
-                                    </label>
-                                    <input
-                                        type="email"
-                                        placeholder="user@example.com"
-                                        value={promoteEmail}
-                                        onChange={(e) => setPromoteEmail(e.target.value)}
-                                        className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0a192f] p-2.5 text-sm outline-none focus:ring-2 focus:ring-[#d6b161] dark:text-white transition-all"
-                                        required
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={promoting}
-                                    className="w-full rounded-lg bg-[#d6b161] py-2.5 text-sm font-bold text-[#0a192f] transition-colors hover:bg-[#c4a055] disabled:opacity-50 flex justify-center"
-                                >
-                                    {promoting ? "Promoting..." : "Promote User"}
-                                </button>
-                            </form>
-                        </section>
+                    {/* Promote to Trainer */}
+                    <section className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-[#112240]">
+                        <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-[#0a192f] dark:text-white">
+                            <Shield className="h-5 w-5 text-[#d6b161]" />
+                            Promote User to Trainer
+                        </h3>
+                        <form onSubmit={handlePromoteTrainer} className="space-y-4">
+                            <div>
+                                <label className="text-sm text-gray-600 dark:text-gray-400 block mb-2">
+                                    Enter email to grant Trainer access
+                                </label>
+                                <input
+                                    type="email"
+                                    placeholder="user@example.com"
+                                    value={promoteEmail}
+                                    onChange={(e) => setPromoteEmail(e.target.value)}
+                                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0a192f] p-2.5 text-sm outline-none focus:ring-2 focus:ring-[#d6b161] dark:text-white transition-all"
+                                    required
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={promoting}
+                                className="w-full rounded-lg bg-[#d6b161] py-2.5 text-sm font-bold text-[#0a192f] transition-colors hover:bg-[#c4a055] disabled:opacity-50 flex justify-center"
+                            >
+                                {promoting ? "Promoting..." : "Promote User"}
+                            </button>
+                        </form>
+                    </section>
 
-                        <section className="p-6 rounded-2xl bg-linear-to-br from-[#0a192f] to-[#112240] text-white">
-                            <h3 className="font-bold text-lg mb-2">Admin Tips</h3>
-                            <ul className="text-sm space-y-2 text-gray-300 list-disc list-inside">
-                                <li>Use the <strong>Active Classes</strong> page to manage detailed batch assignments.</li>
-                                <li><strong>Language Enrollments</strong> shows all student applications.</li>
-                            </ul>
-                        </section>
-                    </div>
+                    {/* Manage Trainers List */}
+                    <section className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-[#112240]">
+                        <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-[#0a192f] dark:text-white">
+                            <Users className="h-5 w-5 text-[#d6b161]" />
+                            Manage Trainers
+                        </h3>
+                        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                            {loading ? (
+                                <p className="text-gray-500 text-sm">Loading trainers...</p>
+                            ) : trainers.length === 0 ? (
+                                <p className="text-gray-500 text-sm">No trainers found.</p>
+                            ) : (
+                                trainers.map((trainer) => (
+                                    <div key={trainer._id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-[#0a192f]/50 border border-gray-100 dark:border-gray-700">
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                                {trainer.name}
+                                            </p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                                {trainer.email}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => handleRemoveTrainer(trainer._id)}
+                                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors ml-2 shrink-0"
+                                            title="Remove Trainer"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </section>
+
+                    <section className="p-6 rounded-2xl bg-linear-to-br from-[#0a192f] to-[#112240] text-white">
+                        <h3 className="font-bold text-lg mb-2">Admin Tips</h3>
+                        <ul className="text-sm space-y-2 text-gray-300 list-disc list-inside">
+                            <li>Review trainer applications carefully</li>
+                            <li>Monitor class attendance regularly</li>
+                            <li>Keep platform announcements updated</li>
+                        </ul>
+                    </section>
                 </div>
             </div>
         </AdminLayout>
