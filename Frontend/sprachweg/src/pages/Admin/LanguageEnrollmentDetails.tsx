@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import AdminLayout from "../../components/admin/AdminLayout";
-import { Check, X, Filter, Search, Mail, BookOpen } from "lucide-react";
+import { Check, X, Filter, Search, Mail, BookOpen, Eye, Phone } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -10,6 +10,14 @@ interface Enrollment {
     userId: {
         name: string;
         email: string;
+        phoneNumber?: string;
+        germanLevel?: string;
+        guardianName?: string;
+        guardianPhone?: string;
+        qualification?: string;
+        dateOfBirth?: string;
+        avatar?: string;
+        role?: string;
     } | null;
     courseTitle: string;
     name: string; // was levelName
@@ -23,6 +31,9 @@ const LanguageEnrollmentDetails: React.FC = () => {
     const [error, setError] = useState("");
     const [filterLevel, setFilterLevel] = useState("All");
     const [searchTerm, setSearchTerm] = useState("");
+
+    // Modal State
+    const [selectedEnrollment, setSelectedEnrollment] = useState<Enrollment | null>(null);
 
     // Extract unique levels for the filter dropdown
     const levels = ["All", ...Array.from(new Set(
@@ -58,7 +69,8 @@ const LanguageEnrollmentDetails: React.FC = () => {
         }
     };
 
-    const handleApprove = async (id: string) => {
+    const handleApprove = async (id: string, e?: React.MouseEvent) => {
+        e?.stopPropagation();
         try {
             const token = localStorage.getItem("token");
             const config = {
@@ -70,13 +82,15 @@ const LanguageEnrollmentDetails: React.FC = () => {
                 config
             );
             setEnrollments(enrollments.filter((e) => e._id !== id));
+            if (selectedEnrollment?._id === id) setSelectedEnrollment(null);
             // Optional: Add toast notification here
         } catch (err) {
             alert("Failed to approve");
         }
     };
 
-    const handleReject = async (id: string) => {
+    const handleReject = async (id: string, e?: React.MouseEvent) => {
+        e?.stopPropagation();
         if (!confirm("Are you sure you want to reject this enrollment?")) return;
         try {
             const token = localStorage.getItem("token");
@@ -89,6 +103,7 @@ const LanguageEnrollmentDetails: React.FC = () => {
                 config
             );
             setEnrollments(enrollments.filter((e) => e._id !== id));
+            if (selectedEnrollment?._id === id) setSelectedEnrollment(null);
         } catch (err) {
             alert("Failed to reject");
         }
@@ -177,55 +192,134 @@ const LanguageEnrollmentDetails: React.FC = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredEnrollments.map((enrollment) => (
-                            <div key={enrollment._id} className="bg-white dark:bg-[#112240] rounded-xl border border-gray-200 dark:border-gray-800 p-6 shadow-sm hover:shadow-md transition-all group">
+                            <div
+                                key={enrollment._id}
+                                className="bg-[#0B1221] text-white rounded-xl border border-gray-800 p-6 shadow-lg hover:shadow-xl transition-all relative group cursor-pointer"
+                                onClick={() => setSelectedEnrollment(enrollment)}
+                            >
                                 <div className="flex justify-between items-start mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161] font-bold text-lg">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-full bg-[#1A2333] flex items-center justify-center text-[#d6b161] font-bold text-xl border border-gray-700">
                                             {enrollment.userId?.name?.charAt(0).toUpperCase() || "U"}
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-gray-900 dark:text-white line-clamp-1">
+                                            <h3 className="font-bold text-white text-lg line-clamp-1">
                                                 {enrollment.userId?.name || "Unknown User"}
                                             </h3>
-                                            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                            <div className="flex items-center gap-1.5 text-xs text-gray-400">
                                                 <Mail className="w-3 h-3" />
                                                 <span className="line-clamp-1">{enrollment.userId?.email || "No Email"}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30">
+                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#1E3A8A] text-blue-300 border border-blue-900">
                                         {enrollment.name}
                                     </span>
                                 </div>
 
                                 <div className="space-y-3 mb-6">
-                                    <div className="p-3 rounded-lg bg-gray-50 dark:bg-[#0a192f] border border-gray-100 dark:border-gray-800">
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-semibold mb-1">Applying For</p>
-                                        <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                                    <div className="p-4 rounded-lg bg-[#111827] border border-gray-700">
+                                        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">Applying For</p>
+                                        <p className="text-base font-medium text-white flex items-center gap-2">
                                             <BookOpen className="w-4 h-4 text-[#d6b161]" />
                                             {enrollment.courseTitle}
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="flex gap-3">
+                                <div className="flex gap-3 mt-auto">
                                     <button
-                                        onClick={() => handleApprove(enrollment._id)}
-                                        className="flex-1 bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] py-2 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-colors"
+                                        onClick={(e) => handleApprove(enrollment._id, e)}
+                                        className="flex-1 bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg"
                                     >
                                         <Check className="w-4 h-4" />
                                         Approve
                                     </button>
                                     <button
-                                        onClick={() => handleReject(enrollment._id)}
-                                        className="flex-1 bg-white dark:bg-transparent border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 py-2 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-colors"
+                                        onClick={(e) => handleReject(enrollment._id, e)}
+                                        className="flex-1 bg-transparent border border-red-900/50 text-red-500 hover:bg-red-900/20 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-colors"
                                     >
                                         <X className="w-4 h-4" />
                                         Reject
                                     </button>
                                 </div>
+
+                                {/* Hover Hint */}
+                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Eye className="w-5 h-5 text-gray-400 hover:text-white" />
+                                </div>
                             </div>
                         ))}
+                    </div>
+                )}
+
+                {/* User Profile Modal */}
+                {selectedEnrollment && selectedEnrollment.userId && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-[#112240] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
+                            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-[#112240] z-10">
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                    Student Profile
+                                </h2>
+                                <button
+                                    onClick={() => setSelectedEnrollment(null)}
+                                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                                >
+                                    <X className="w-6 h-6 text-gray-500" />
+                                </button>
+                            </div>
+
+                            <div className="p-6">
+                                <div className="flex flex-col sm:flex-row items-center gap-6">
+                                    <div className="w-24 h-24 rounded-full bg-[#d6b161] text-[#0a192f] text-4xl font-bold flex items-center justify-center shadow-lg shrink-0">
+                                        {selectedEnrollment.userId.avatar ? (
+                                            <img src={selectedEnrollment.userId.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                                        ) : (
+                                            selectedEnrollment.userId.name.charAt(0).toUpperCase()
+                                        )}
+                                    </div>
+                                    <div className="text-center sm:text-left">
+                                        <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                                            {selectedEnrollment.userId.name}
+                                        </h3>
+                                        <div className="flex flex-col sm:flex-row items-center gap-4 text-gray-500 dark:text-gray-400">
+                                            <a
+                                                href={`mailto:${selectedEnrollment.userId.email}`}
+                                                className="flex items-center gap-2 hover:text-[#d6b161] transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                                            >
+                                                <Mail className="w-4 h-4" />
+                                                {selectedEnrollment.userId.email}
+                                            </a>
+                                            {selectedEnrollment.userId.phoneNumber && (
+                                                <a
+                                                    href={`tel:${selectedEnrollment.userId.phoneNumber}`}
+                                                    className="flex items-center gap-2 hover:text-[#d6b161] transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                                                >
+                                                    <Phone className="w-4 h-4" />
+                                                    {selectedEnrollment.userId.phoneNumber}
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0a192f]/50 flex justify-end gap-3 rounded-b-2xl">
+                                <button
+                                    onClick={() => setSelectedEnrollment(null)}
+                                    className="px-6 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-white dark:hover:bg-[#112240] transition-colors"
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    onClick={() => handleApprove(selectedEnrollment._id)}
+                                    className="px-6 py-2 rounded-lg bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] font-bold shadow-md transition-colors flex items-center gap-2"
+                                >
+                                    <Check className="w-4 h-4" />
+                                    Approve Enrollment
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

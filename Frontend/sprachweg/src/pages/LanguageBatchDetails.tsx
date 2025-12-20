@@ -14,6 +14,12 @@ import {
     UserCheck,
     Ban,
     ArrowLeft,
+    Mail,
+    Phone,
+    Calendar,
+    GraduationCap,
+    User as UserIcon,
+
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -40,6 +46,13 @@ interface Student {
     _id: string;
     name: string;
     email: string;
+    phoneNumber?: string;
+    avatar?: string;
+    germanLevel?: string;
+    guardianName?: string;
+    guardianPhone?: string;
+    qualification?: string;
+    dateOfBirth?: string;
 }
 
 interface BatchDetails {
@@ -88,6 +101,9 @@ const LanguageBatchDetails: React.FC = () => {
     // Attendance Modal State
     const [attendanceClass, setAttendanceClass] = useState<LanguageClass | null>(null);
     const [attendanceLoading, setAttendanceLoading] = useState(false);
+
+    // View Student Profile State
+    const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
     const isTrainer = user?.role === 'trainer' || user?._id === batch?.trainerId;
 
@@ -678,14 +694,17 @@ const LanguageBatchDetails: React.FC = () => {
                                                 </p>
                                             </div>
                                         </div>
-                                        <button
-                                            className="flex-shrink-0 text-sm font-semibold text-gray-400 hover:text-[#d6b161] transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b161]/30 rounded px-3 py-2"
-                                            role="button"
-                                            aria-label={`View ${student.name}'s profile`}
-                                        >
-                                            <span className="hidden sm:inline">View Profile</span>
-                                            <span className="sm:hidden">→</span>
-                                        </button>
+                                        {isTrainer && (
+                                            <button
+                                                onClick={() => setSelectedStudent(student)}
+                                                className="flex-shrink-0 text-sm font-semibold text-gray-400 hover:text-[#d6b161] transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b161]/30 rounded px-3 py-2"
+                                                role="button"
+                                                aria-label={`View ${student.name}'s profile`}
+                                            >
+                                                <span className="hidden sm:inline">View Profile</span>
+                                                <span className="sm:hidden">→</span>
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -964,6 +983,111 @@ const LanguageBatchDetails: React.FC = () => {
                                         </div>
                                     );
                                 })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Student Profile Modal */}
+            {selectedStudent && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-300"
+                    role="dialog"
+                    aria-modal="true"
+                >
+                    <div className="bg-white dark:bg-[#112240] rounded-2xl shadow-2xl w-full max-w-lg overflow-y-auto animate-in zoom-in-95 fade-in duration-300 relative">
+                        <button
+                            onClick={() => setSelectedStudent(null)}
+                            className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-500"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+
+                        <div className="p-8">
+                            <div className="flex flex-col sm:flex-row items-center gap-6 mb-8">
+                                <div className="w-24 h-24 rounded-full bg-[#d6b161] text-[#0a192f] text-4xl font-bold flex items-center justify-center shadow-lg shrink-0">
+                                    {selectedStudent.avatar ? (
+                                        <img src={selectedStudent.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                                    ) : (
+                                        selectedStudent.name.charAt(0).toUpperCase()
+                                    )}
+                                </div>
+                                <div className="text-center sm:text-left w-full">
+                                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                                        {selectedStudent.name}
+                                    </h2>
+                                    <div className="flex flex-wrap justify-center sm:justify-start gap-4">
+                                        <a
+                                            href={`mailto:${selectedStudent.email}`}
+                                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                                        >
+                                            <Mail className="w-4 h-4" />
+                                            <span className="font-medium text-sm">{selectedStudent.email}</span>
+                                        </a>
+                                        {selectedStudent.phoneNumber && (
+                                            <a
+                                                href={`tel:${selectedStudent.phoneNumber}`}
+                                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                                            >
+                                                <Phone className="w-4 h-4" />
+                                                <span className="font-medium text-sm">{selectedStudent.phoneNumber}</span>
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                {/* Date of Birth */}
+                                <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#0a192f] border border-gray-100 dark:border-gray-800">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                                            <Calendar className="w-5 h-5" />
+                                        </div>
+                                        <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Date of Birth</span>
+                                    </div>
+                                    <p className="text-lg font-bold text-gray-900 dark:text-white ml-12">
+                                        {selectedStudent.dateOfBirth ? new Date(selectedStudent.dateOfBirth).toLocaleDateString() : "Not Specified"}
+                                    </p>
+                                </div>
+
+                                {/* Qualification */}
+                                <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#0a192f] border border-gray-100 dark:border-gray-800">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
+                                            <GraduationCap className="w-5 h-5" />
+                                        </div>
+                                        <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Qualification</span>
+                                    </div>
+                                    <p className="text-lg font-bold text-gray-900 dark:text-white ml-12">
+                                        {selectedStudent.qualification || "Not Specified"}
+                                    </p>
+                                </div>
+
+                                {/* Guardian Info */}
+                                <div className="p-4 rounded-xl bg-gray-50 dark:bg-[#0a192f] border border-gray-100 dark:border-gray-800 sm:col-span-2">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="p-2 rounded-lg bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400">
+                                            <UserIcon className="w-5 h-5" />
+                                        </div>
+                                        <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Guardian Information</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 ml-12">
+                                        <div>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Name</p>
+                                            <p className="text-base font-bold text-gray-900 dark:text-white">
+                                                {selectedStudent.guardianName || "Not Provided"}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Phone</p>
+                                            <p className="text-base font-bold text-gray-900 dark:text-white">
+                                                {selectedStudent.guardianPhone || "Not Provided"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

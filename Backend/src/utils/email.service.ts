@@ -30,7 +30,7 @@ export class EmailService {
 
         try {
             await this.transporter.sendMail(mailOptions);
-            console.log(`OTP sent to ${to}`);
+
         } catch (error) {
             console.error('Error sending email:', error);
             throw new Error('Email service failed');

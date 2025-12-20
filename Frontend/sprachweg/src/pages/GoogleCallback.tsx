@@ -24,15 +24,15 @@ const GoogleCallback: React.FC = () => {
 
             // Get the return URL from sessionStorage (stored before OAuth redirect)
             const returnUrl = sessionStorage.getItem('googleOAuthReturnUrl');
-            console.log('Retrieved return URL from sessionStorage:', returnUrl);
+
             sessionStorage.removeItem('googleOAuthReturnUrl'); // Clean up
 
             // Redirect back to where they came from, or to their dashboard
             if (returnUrl) {
-                console.log('Redirecting to:', `${returnUrl}?googleConnected=true`);
+
                 navigate(`${returnUrl}?googleConnected=true`);
             } else {
-                console.log('No return URL found, using fallback dashboard');
+
                 // Fallback to role-based dashboard
                 const dashboard = user?.role === 'trainer' ? '/trainer-dashboard' : '/dashboard';
                 navigate(dashboard);

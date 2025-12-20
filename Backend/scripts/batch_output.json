@@ -1,0 +1,70 @@
+[
+  {
+    "id": "694642c54bbe6ac6bba81e1d",
+    "name": "Beginner",
+    "courseTitle": "Scada-hmi",
+    "students": [
+      {
+        "id": "693e4f12f43ccc5f3a0768f3",
+        "name": "Akash",
+        "email": "akashshenvi93@gmail.com",
+        "guardianName": "Shenvi",
+        "qualification": "Undergraduate",
+        "dateOfBirth": "2004-07-20T00:00:00.000Z"
+      },
+      {
+        "id": "694659a7c4be752e86bbc7e0",
+        "name": "Dinesh Shenvi",
+        "email": "shenvidinesh08@gmail.com",
+        "guardianName": "Akajs",
+        "qualification": "High School",
+        "dateOfBirth": "2000-02-20T00:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "id": "69464d84491eb943b5c45041",
+    "name": "Beginner",
+    "courseTitle": "Plc-automation",
+    "students": [
+      {
+        "id": "693e4f12f43ccc5f3a0768f3",
+        "name": "Akash",
+        "email": "akashshenvi93@gmail.com",
+        "guardianName": "Shenvi",
+        "qualification": "Undergraduate",
+        "dateOfBirth": "2004-07-20T00:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "id": "69464d84491eb943b5c45048",
+    "name": "Beginner",
+    "courseTitle": "Industrial-drives",
+    "students": [
+      {
+        "id": "693e4f12f43ccc5f3a0768f3",
+        "name": "Akash",
+        "email": "akashshenvi93@gmail.com",
+        "guardianName": "Shenvi",
+        "qualification": "Undergraduate",
+        "dateOfBirth": "2004-07-20T00:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "id": "69465820c4be752e86bbc767",
+    "name": "Beginner",
+    "courseTitle": "Corporate-training",
+    "students": [
+      {
+        "id": "693e4f12f43ccc5f3a0768f3",
+        "name": "Akash",
+        "email": "akashshenvi93@gmail.com",
+        "guardianName": "Shenvi",
+        "qualification": "Undergraduate",
+        "dateOfBirth": "2004-07-20T00:00:00.000Z"
+      }
+    ]
+  }
+]

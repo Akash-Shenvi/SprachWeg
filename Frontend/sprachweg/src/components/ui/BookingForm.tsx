@@ -179,7 +179,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, originPath, 
 
             await axios.post('http://localhost:5000/api/language-training/enroll', payload, config);
 
-            console.log('Booking Data Submitted:', formData);
+
             setShowSuccess(true);
 
             setTimeout(() => {

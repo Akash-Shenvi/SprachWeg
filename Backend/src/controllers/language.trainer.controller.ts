@@ -111,10 +111,12 @@ export const getBatchDetails = async (req: AuthRequest, res: Response) => {
         const userId = req.user?._id;
 
         const batch = await LanguageBatch.findById(batchId)
-            .populate('students', 'name email')
+            .populate('students', 'name email phoneNumber avatar germanLevel guardianName guardianPhone qualification dateOfBirth')
             .populate('materials')
             .populate('announcements')
             .populate('classes');
+
+
 
         if (!batch) {
             return res.status(404).json({ message: 'Batch not found' });
@@ -128,7 +130,37 @@ export const getBatchDetails = async (req: AuthRequest, res: Response) => {
             return res.status(403).json({ message: 'Not authorized to view this batch' });
         }
 
-        res.json(batch);
+
+        // Explicitly map response to ensure all fields are sent
+        const batchObj: any = batch.toObject();
+
+        try {
+            fs.appendFileSync(path.join(process.cwd(), 'controller_debug.log'), `\n\n--- Request at ${new Date().toISOString()} ---\n`);
+            if (batch.students && batch.students.length > 0) {
+                const firstStudent = batch.students[0] as any;
+                fs.appendFileSync(path.join(process.cwd(), 'controller_debug.log'), `First Student Raw: ${JSON.stringify(firstStudent, null, 2)}\n`);
+            } else {
+                fs.appendFileSync(path.join(process.cwd(), 'controller_debug.log'), `No students found in batch\n`);
+            }
+        } catch (err) {
+            console.error("Log error", err);
+        }
+
+        batchObj.students = batch.students.map((s: any) => ({
+            _id: s._id,
+            name: s.name,
+            email: s.email,
+            phoneNumber: s.phoneNumber,
+            avatar: s.avatar,
+            germanLevel: s.germanLevel,
+            guardianName: s.guardianName,
+            guardianPhone: s.guardianPhone,
+            qualification: s.qualification,
+            dateOfBirth: s.dateOfBirth,
+            isProfileComplete: !!(s.phoneNumber && s.guardianName && s.guardianPhone && s.qualification)
+        }));
+
+        res.json(batchObj);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching batch details', error });
     }
@@ -161,7 +193,7 @@ export const deleteMaterial = async (req: AuthRequest, res: Response) => {
 
                 if (fs.existsSync(filePath)) {
                     fs.unlinkSync(filePath);
-                    console.log(`Deleted file: ${filePath}`);
+
                 } else {
                     console.warn(`File not found for deletion: ${filePath}`);
                 }

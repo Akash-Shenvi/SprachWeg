@@ -68,7 +68,7 @@ export const getEnrollments = async (req: Request, res: Response) => {
   const filter = req.query.status ? { status: req.query.status } : {};
 
   const enrollments = await Enrollment.find(filter)
-    .populate("userId", "name email");
+    .populate("userId", "name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role");
 
   res.json(enrollments);
 };

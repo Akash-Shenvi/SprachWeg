@@ -5,8 +5,7 @@ export const updateProfile = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user._id;
         const { phoneNumber, guardianName, guardianPhone, qualification, dateOfBirth } = req.body;
-        console.log('Update Profile Body:', req.body);
-        console.log('Date of Birth received:', dateOfBirth);
+
 
         const user = await User.findById(userId);
         if (!user) {
