@@ -7,11 +7,38 @@ import {
     Globe,
     Play,
     GraduationCap,
-    ArrowRight
+    ArrowRight,
+    Users,
+    BookOpen
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { Header, Footer } from '../components/layout';
 import UnifiedBookingForm from '../components/ui/UnifiedBookingForm';
+
+// Animation variants
+const fadeInUp = {
+    hidden: { opacity: 0, y: 40 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.0, 0.0, 0.2, 1] as const } }
+};
+
+// Star Rating Component
+const StarRating: React.FC<{ rating: number }> = ({ rating }) => {
+    return (
+        <div className="flex items-center gap-0.5">
+            {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                    key={star}
+                    className={`w-4 h-4 ${star <= Math.floor(rating)
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : star <= rating
+                            ? 'fill-yellow-400/50 text-yellow-400'
+                            : 'fill-gray-200 text-gray-200 dark:fill-gray-600 dark:text-gray-600'
+                        }`}
+                />
+            ))}
+        </div>
+    );
+};
 
 // Carousel for Trusted Partners with smooth infinite scroll
 const TrustedPartnersCarousel = () => {
@@ -314,153 +341,96 @@ const RotatingImageStack: React.FC = () => {
 interface SkillCourseStatic {
     _id: string;
     title: string;
-    subtitle: string;
-    category: string;
-    duration: string;
-    mode: string;
+    students: string;
+    courses: number;
+    reviews: string;
+    levels: string[];
     price: string;
-    originalPrice?: string;
     image: string;
     rating: number;
-    level: string;
-    popular: boolean;
     link: string;
+    bgColor: string;
+    borderColor: string;
 }
 
-// Enhanced Skill Card with 3D Tilt
+// Enhanced Skill Card matching LanguageTraining design
 interface SkillCardProps {
     course: SkillCourseStatic;
 }
 
 const SkillCard: React.FC<SkillCardProps> = ({ course }) => {
-    const shouldReduceMotion = useReducedMotion();
-    const cardRef = useRef<HTMLDivElement>(null);
-
-    const mouseX = useMotionValue(0);
-    const mouseY = useMotionValue(0);
-
-    const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [5, -5]), { stiffness: 300, damping: 30 });
-    const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-5, 5]), { stiffness: 300, damping: 30 });
-
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (shouldReduceMotion || !cardRef.current) return;
-
-        const rect = cardRef.current.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-
-        const deltaX = (e.clientX - centerX) / (rect.width / 2);
-        const deltaY = (e.clientY - centerY) / (rect.height / 2);
-
-        mouseX.set(deltaX);
-        mouseY.set(deltaY);
-    };
-
-    const handleMouseLeave = () => {
-        mouseX.set(0);
-        mouseY.set(0);
-    };
-
-    const formatPrice = (val: string | number) => {
-        if (!val) return '₹0';
-        if (String(val).includes('₹') || String(val).includes('$') || String(val).includes('€')) return val;
-        return `₹${Number(val).toLocaleString('en-IN')}`;
-    };
-
     return (
         <motion.div
-            ref={cardRef}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            style={{
-                rotateX: shouldReduceMotion ? 0 : rotateX,
-                rotateY: shouldReduceMotion ? 0 : rotateY,
-                transformStyle: 'preserve-3d',
-                willChange: 'transform'
-            }}
-            whileHover={{ scale: shouldReduceMotion ? 1 : 1.03 }}
-            className="bg-white dark:bg-[#112240] rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden group hover:shadow-2xl hover:shadow-[#d6b161]/20 transition-all duration-300 hover:border-[#d6b161]/50 flex flex-col h-full"
-            tabIndex={0}
-            role="article"
-            aria-label={`${course.title} course card`}
+            variants={fadeInUp}
+            whileHover={{ y: -8, transition: { duration: 0.3 } }}
+            className={`relative rounded-2xl border-2 ${course.borderColor} ${course.bgColor} shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group cursor-default`}
         >
-            {/* Grain overlay */}
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 brightness-100 contrast-150 mix-blend-overlay pointer-events-none z-10" aria-hidden="true"></div>
-
             {/* Image Area */}
-            <div className="relative h-48 overflow-hidden bg-gray-200 dark:bg-gray-700">
-                {/* LQIP */}
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700" />
+            <div className="h-48 relative overflow-hidden bg-gray-200 dark:bg-gray-800 z-20">
                 <img
                     src={course.image}
                     alt={course.title}
-                    className="relative z-10 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
                 />
-
-                {/* Floating Badges */}
-                {course.popular && (
-                    <div className="absolute top-4 left-4 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-md z-20">
-                        Popular
-                    </div>
-                )}
-                {course.level && (
-                    <div className="absolute top-4 right-4 bg-[#d6b161] text-[#0a192f] text-xs font-bold px-3 py-1 rounded-full shadow-md z-20">
-                        {course.level}
-                    </div>
-                )}
-
-                {/* Rim light */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
 
-            {/* Content Area */}
-            <div className="p-6 flex-1 flex flex-col relative z-20">
-                <div className="flex justify-between items-start mb-2">
-                    <div className="text-[#d6b161] text-sm font-semibold">{course.category}</div>
-                    {course.rating && (
-                        <div className="flex items-center gap-1 text-sm text-yellow-500 font-semibold">
-                            <Star className="w-3.5 h-3.5 fill-current" /> {Number(course.rating).toFixed(1)}
-                        </div>
-                    )}
-                </div>
+            {/* Decorative gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent dark:from-white/5 pointer-events-none" />
 
-                <h3 className="text-xl font-serif font-bold text-gray-900 dark:text-white mb-1 line-clamp-2" title={course.title}>
+            {/* Content wrapper with z-index */}
+            <div className="relative z-10 p-6">
+                {/* Title */}
+                <h3 className="text-xl font-sans font-bold text-center text-[#0a192f] dark:text-white mb-5 line-clamp-2 min-h-[3.5rem] flex items-center justify-center">
                     {course.title}
                 </h3>
 
-                {course.subtitle && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-1">
-                        {course.subtitle}
-                    </p>
-                )}
-
-                <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    {course.duration && <span>⏱️ {course.duration}</span>}
-                    {course.mode && <span>📍 {course.mode}</span>}
+                {/* Stats Row */}
+                <div className="flex items-center justify-center gap-6 text-sm text-gray-700 dark:text-gray-300 mb-4">
+                    <div className="flex items-center gap-1.5">
+                        <Users className="w-4 h-4 text-[#0a192f] dark:text-gray-400" />
+                        <span className="font-medium">{course.students} students</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <BookOpen className="w-4 h-4 text-[#0a192f] dark:text-gray-400" />
+                        <span className="font-medium">{course.courses} modules</span>
+                    </div>
                 </div>
 
-                {/* Footer */}
-                <div className="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto">
-                    <div className="flex flex-col">
-                        {course.originalPrice && (
-                            <span className="text-xs text-gray-400 line-through">
-                                {formatPrice(course.originalPrice)}
-                            </span>
-                        )}
-                        <span className="text-lg font-bold text-[#0a192f] dark:text-white">
-                            {course.price ? formatPrice(course.price) : 'Free'}
+                {/* Rating */}
+                <div className="flex items-center justify-center gap-2 mb-5">
+                    <StarRating rating={course.rating} />
+                    <span className="text-sm font-semibold text-[#0a192f] dark:text-white">{course.rating}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">({course.reviews} reviews)</span>
+                </div>
+
+                {/* Level Tags */}
+                <div className="flex flex-wrap justify-center gap-2 mb-3">
+                    {course.levels.map((level) => (
+                        <span
+                            key={level}
+                            className="px-3 py-1.5 text-xs font-semibold rounded-full bg-white dark:bg-gray-800 text-[#0a192f] dark:text-gray-200 border border-gray-300 dark:border-gray-600 shadow-sm"
+                        >
+                            {level}
                         </span>
+                    ))}
+                </div>
+
+                {/* Price and CTA */}
+                <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-300 dark:border-gray-600">
+                    <div>
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Starting at</span>
+                        <span className="text-2xl font-bold text-[#0a192f] dark:text-white">₹{Number(course.price).toLocaleString('en-IN')}</span>
                     </div>
                     <Link to={course.link}>
-                        <Button
-                            className="bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] text-sm font-bold px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all focus-visible:ring-2 focus-visible:ring-[#d6b161]"
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-[#0a192f] dark:bg-[#d6b161] text-white dark:text-[#0a192f] rounded-lg font-semibold text-sm hover:bg-[#112240] dark:hover:bg-[#c4a055] transition-colors shadow-md hover:shadow-lg"
                         >
                             Explore
-                        </Button>
+                            <ArrowRight className="w-4 h-4" />
+                        </motion.button>
                     </Link>
                 </div>
             </div>
@@ -476,44 +446,44 @@ const LandingPage: React.FC = () => {
         {
             _id: '1',
             title: 'SCADA & HMI Training',
-            subtitle: 'Master supervisory control and data acquisition',
-            category: 'Industrial Automation',
-            duration: '40 hours',
-            mode: 'Live/Hybrid',
+            students: '1,200+',
+            courses: 12,
+            reviews: '450',
+            levels: ['Beginner', 'Advanced'],
             price: '7200',
             image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
             rating: 4.8,
-            level: 'Intermediate',
-            popular: true,
-            link: '/skill-training'
+            link: '/skill-training',
+            bgColor: 'bg-blue-50 dark:bg-blue-950/30',
+            borderColor: 'border-blue-200 dark:border-blue-800'
         },
         {
             _id: '2',
             title: 'PLC Programming & Industrial Automation',
-            subtitle: 'Complete industrial automation systems',
-            category: 'Industrial Automation',
-            duration: '56 hours',
-            mode: 'Live/Hybrid',
+            students: '2,500+',
+            courses: 18,
+            reviews: '890',
+            levels: ['Foundational', 'Expert'],
             price: '9200',
             image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
             rating: 4.9,
-            level: 'Advanced',
-            popular: true,
-            link: '/skill-training'
+            link: '/skill-training',
+            bgColor: 'bg-purple-50 dark:bg-purple-950/30',
+            borderColor: 'border-purple-200 dark:border-purple-800'
         },
         {
             _id: '3',
             title: 'Industrial Drives & Motion Control',
-            subtitle: 'VFDs, servo systems, and motion control',
-            category: 'Industrial Automation',
-            duration: '45 hours',
-            mode: 'Live/Hybrid',
+            students: '900+',
+            courses: 8,
+            reviews: '210',
+            levels: ['Intermediate', 'Professional'],
             price: '10200',
             image: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
             rating: 4.7,
-            level: 'Intermediate',
-            popular: false,
-            link: '/skill-training'
+            link: '/skill-training',
+            bgColor: 'bg-green-50 dark:bg-green-950/30',
+            borderColor: 'border-green-200 dark:border-green-800'
         }
     ];
 
