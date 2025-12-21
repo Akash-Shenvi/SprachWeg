@@ -114,7 +114,7 @@ const SectionHeading: React.FC<{ children: React.ReactNode; align?: 'left' | 'ce
     return (
         <h2
             id={id}
-            className={`text-3xl sm:text-4xl font-semibold text-[#0a192f] dark:text-white mb-6 relative inline-block`}
+            className={`text-3xl sm:text-4xl font-semibold text-[#0a192f] dark:text-white mb-6 relative inline-block ${align === 'center' ? 'mx-auto' : ''}`}
         >
             {children}
             <motion.span
