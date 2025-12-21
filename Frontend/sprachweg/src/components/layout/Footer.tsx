@@ -17,7 +17,7 @@ const Footer: React.FC = () => {
                             <img
                                 src="/sovir-logo.png"
                                 alt="SoVir Logo"
-                                className="h-10 w-auto object-contain"
+                                className="h-20 w-auto object-contain brightness-0 invert transform scale-125"
                             />
                             <div>
                                 <span className="font-serif font-bold text-lg leading-tight text-white block">SoVir Skilling & Training Center</span>
