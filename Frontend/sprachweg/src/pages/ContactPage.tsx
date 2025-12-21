@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+
 import { MessageCircle } from 'lucide-react';
 
 // Lazy-load heavy route chrome (Header/Footer)
@@ -314,7 +314,7 @@ const itemVariants = {
 };
 
 const ContactPage: React.FC = () => {
-    const navigate = useNavigate();
+    
     const [form, setForm] = useState<FormData>({ name: "", email: "", subject: "", message: "" });
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
@@ -391,9 +391,7 @@ const ContactPage: React.FC = () => {
         }, 1500);
     };
 
-    const handlePartnershipClick = () => {
-        navigate('/partnership-inquiry');
-    };
+ 
 
     // Data
     const contactEmails: ContactEmail[] = [
