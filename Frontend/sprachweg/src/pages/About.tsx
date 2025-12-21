@@ -1,13 +1,23 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
-import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
+import { motion, useScroll, useTransform, useReducedMotion, useInView, useAnimation } from 'framer-motion';
+import { Award } from 'lucide-react';
 
 // --- Theme Colors ---
 // Navy: #0a192f
 // Gold: #d6b161
 
 // --- Animation Variants ---
+const fadeInUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: (custom: number = 0) => ({
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.6, delay: custom * 0.1, ease: [0.22, 1, 0.36, 1] as const }
+    })
+};
+
 const sectionVariants = {
     hidden: { opacity: 0, y: 24 },
     visible: {
@@ -21,15 +31,38 @@ const staggerContainer = {
     hidden: { opacity: 0 },
     visible: {
         opacity: 1,
-        transition: {
-            staggerChildren: 0.1
-        }
+        transition: { staggerChildren: 0.15, delayChildren: 0.2 }
     }
 };
 
 const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+};
+
+// Animated section wrapper (from SkillTrainingOverviewPage.tsx)
+const AnimatedSection: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => {
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true, margin: '-100px' });
+    const controls = useAnimation();
+
+    useEffect(() => {
+        if (isInView) {
+            controls.start('visible');
+        }
+    }, [isInView, controls]);
+
+    return (
+        <motion.div
+            ref={ref}
+            initial="hidden"
+            animate={controls}
+            variants={staggerContainer}
+            className={className}
+        >
+            {children}
+        </motion.div>
+    );
 };
 
 // --- Reusable Components ---
@@ -185,21 +218,16 @@ const AboutPage: React.FC = () => {
                 <HeroBackground />
 
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <motion.div
-                        className="flex flex-col items-center text-center"
-                        initial="hidden"
-                        animate="visible"
-                        variants={staggerContainer}
-                    >
-                        <motion.span
-                            className="inline-block text-[#d6b161] font-semibold tracking-wider text-sm uppercase mb-4"
-                            variants={itemVariants}
-                        >
-                            Learn. Automate. Communicate. Succeed.
-                        </motion.span>
+                    <AnimatedSection className="flex flex-col items-center text-center">
+                        <motion.div variants={fadeInUp} className="mb-6 flex justify-center">
+                            <span className="inline-flex items-center gap-2 rounded-full border border-[#d6b161]/20 bg-[#d6b161]/10 px-4 py-1.5 text-sm font-semibold text-[#d6b161] backdrop-blur-sm">
+                                <Award className="h-4 w-4 fill-current" />
+                                Learn. Automate. Communicate. Succeed.
+                            </span>
+                        </motion.div>
                         <motion.h1
+                            variants={fadeInUp}
                             className="text-4xl md:text-5xl lg:text-6xl font-sans font-bold text-white mb-6 leading-tight"
-                            variants={itemVariants}
                         >
                             About SoVir Skilling & <br />
                             <span className="text-[#d6b161] relative">
@@ -213,12 +241,13 @@ const AboutPage: React.FC = () => {
                             </span>
                         </motion.h1>
                         <motion.p
+                            variants={fadeInUp}
+                            custom={1}
                             className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed"
-                            variants={itemVariants}
                         >
                             Empowering Global Careers Through Language, Skills & Automation
                         </motion.p>
-                    </motion.div>
+                    </AnimatedSection>
                 </div>
             </section>
 

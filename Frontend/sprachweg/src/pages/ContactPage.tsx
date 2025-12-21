@@ -357,8 +357,8 @@ const ContactPage: React.FC = () => {
             </Suspense>
 
             {/* Hero Section */}
-            <section className="relative py-28 sm:py-36 text-center overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white dark:from-[#0d1f3a] dark:to-[#0a192f]" />
+            {/* Hero Section */}
+            <section className="relative bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#1a365d] py-28 sm:py-36 text-center overflow-hidden">
                 <HeroBackground startAnimations={startHeavyAnimations} />
 
                 <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
@@ -378,14 +378,14 @@ const ContactPage: React.FC = () => {
 
                         <motion.h1
                             variants={fadeInUp}
-                            className="font-display mb-4 text-4xl font-bold tracking-tight text-[#0a192f] dark:text-white sm:text-5xl lg:text-6xl"
+                            className="font-display mb-4 text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl"
                         >
                             Contact <span className="bg-gradient-to-r from-[#d6b161] to-[#b38f3f] bg-clip-text text-transparent">Us</span>
                         </motion.h1>
 
                         <motion.p
                             variants={fadeInUp}
-                            className="mx-auto mb-8 max-w-2xl text-base leading-relaxed text-gray-600 dark:text-gray-300 sm:text-lg"
+                            className="mx-auto mb-8 max-w-2xl text-base leading-relaxed text-gray-300 sm:text-lg"
                         >
                             Ready to transform your industry with cutting-edge automation solutions? Let's discuss how our PLC, IoT, and SCADA expertise can revolutionize your operations.
                         </motion.p>

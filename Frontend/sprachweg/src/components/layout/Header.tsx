@@ -42,13 +42,13 @@ const Header: React.FC = () => {
     return (
         <nav ref={navRef} className="fixed w-full z-50 bg-white/90 dark:bg-[#0a192f]/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-16">
+                <div className="flex justify-between items-center h-20">
                     {/* Logo */}
                     <Link to="/" className="flex items-center gap-1 flex-shrink-0">
                         <img
                             src="/sovir-logo.png"
                             alt="SoVir Logo"
-                            className="h-25 w-auto object-contain dark:brightness-0 dark:invert transition-all duration-300 mt-2"
+                            className="h-14 sm:h-16 lg:h-20 w-auto object-contain dark:brightness-0 dark:invert transition-all duration-300 mt-2"
                         />
                         <span className="font-serif font-bold text-base lg:text-lg text-gray-900 dark:text-white"></span>
                     </Link>
@@ -410,7 +410,7 @@ const Header: React.FC = () => {
                         </button>
 
                         {isSettingsOpen && (
-                            <div className="absolute right-4 top-16 w-64 bg-white dark:bg-[#0a192f] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                            <div className="absolute right-4 top-20 w-64 bg-white dark:bg-[#0a192f] border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
                                 <div className="p-4">
                                     {/* Settings Header */}
                                     <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">Settings</h3>
@@ -462,7 +462,7 @@ const Header: React.FC = () => {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="lg:hidden bg-white dark:bg-[#0a192f] border-t border-gray-100 dark:border-gray-800 max-h-[calc(100vh-4rem)] overflow-y-auto"
+                        className="lg:hidden bg-white dark:bg-[#0a192f] border-t border-gray-100 dark:border-gray-800 max-h-[calc(100vh-5rem)] overflow-y-auto"
                     >
                         <div className="px-4 py-4 space-y-2">
                             <Link to="/" className="block text-gray-700 dark:text-gray-300 font-medium py-2 text-sm" onClick={() => setIsMenuOpen(false)}>Home</Link>

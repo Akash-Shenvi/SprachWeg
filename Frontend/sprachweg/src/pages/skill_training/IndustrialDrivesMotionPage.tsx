@@ -130,8 +130,8 @@ const IndustrialDrivesMotionPage: React.FC = () => {
             </a>
 
             {/* Hero Section */}
-            <section className="relative py-28 sm:py-36 text-center overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white dark:from-[#0d1f3a] dark:to-[#0a192f]" />
+            {/* Hero Section */}
+            <section className="relative bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#1a365d] py-28 sm:py-36 text-center overflow-hidden">
                 <HeroBackground />
 
                 <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
@@ -150,7 +150,7 @@ const IndustrialDrivesMotionPage: React.FC = () => {
 
                         <motion.h1
                             variants={fadeInUp}
-                            className="font-display mb-6 text-5xl font-bold tracking-tight text-[#0a192f] dark:text-white sm:text-6xl lg:text-7xl"
+                            className="font-display mb-6 text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl"
                         >
                             Industrial Drives & <br className="hidden sm:inline" />
                             <span className="bg-gradient-to-r from-[#d6b161] to-[#b38f3f] bg-clip-text text-transparent">Motion Control</span>
@@ -158,7 +158,7 @@ const IndustrialDrivesMotionPage: React.FC = () => {
 
                         <motion.p
                             variants={fadeInUp}
-                            className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-gray-600 dark:text-gray-300 sm:text-xl"
+                            className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-gray-300 sm:text-xl"
                         >
                             At Sovir Technologies, our Industrial Drives & Motion Control training teaches candidates to understand, program, and maintain advanced motion systems and industrial drives. Gain hands-on experience with variable frequency drives (VFD), servo motors, stepper motors, and motion control systems used in modern industries.
                         </motion.p>
