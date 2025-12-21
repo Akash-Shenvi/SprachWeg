@@ -48,7 +48,7 @@ const Header: React.FC = () => {
                         <img
                             src="/sovir-logo.png"
                             alt="SoVir Logo"
-                            className="h-14 sm:h-16 lg:h-20 w-auto object-contain dark:brightness-0 dark:invert transition-all duration-300 mt-2"
+                            className="h-16 sm:h-20 md:h-24 lg:h-28 xl:h-32 w-auto object-contain dark:brightness-0 dark:invert transition-all duration-300 mt-2"
                         />
                         <span className="font-serif font-bold text-base lg:text-lg text-gray-900 dark:text-white"></span>
                     </Link>
