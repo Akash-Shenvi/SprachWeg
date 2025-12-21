@@ -34,6 +34,43 @@ const itemVariants = {
 
 // --- Reusable Components ---
 
+// Hero Background Component with parallax blobs + grain (From OverView.tsx)
+const HeroBackground: React.FC = () => {
+    const shouldReduceMotion = useReducedMotion();
+    const { scrollY } = useScroll();
+    const y1 = useTransform(scrollY, [0, 500], [0, shouldReduceMotion ? 0 : 150]);
+    const y2 = useTransform(scrollY, [0, 500], [0, shouldReduceMotion ? 0 : -150]);
+    const opacity = useTransform(scrollY, [0, 500], [1, 0]);
+
+    return (
+        <motion.div
+            style={{ opacity }}
+            className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
+            aria-hidden="true"
+        >
+            <motion.div
+                style={{ y: y1 }}
+                animate={{
+                    scale: [1, 1.1, 1],
+                    opacity: [0.3, 0.5, 0.3]
+                }}
+                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -top-[10%] -right-[10%] h-[600px] w-[600px] rounded-full bg-gradient-to-br from-[#d6b161]/20 to-red-500/10 blur-[120px]"
+            />
+            <motion.div
+                style={{ y: y2 }}
+                animate={{
+                    scale: [1, 1.2, 1],
+                    opacity: [0.2, 0.4, 0.2]
+                }}
+                transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                className="absolute top-[20%] -left-[10%] h-[500px] w-[500px] rounded-full bg-yellow-500/10 blur-[100px]"
+            />
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
+        </motion.div>
+    );
+};
+
 const SectionHeading: React.FC<{ children: React.ReactNode; align?: 'left' | 'center'; id?: string }> = ({
     children,
     align = 'left',
@@ -137,8 +174,6 @@ const Icons = {
 };
 
 const AboutPage: React.FC = () => {
-    const { scrollY } = useScroll();
-    const heroY = useTransform(scrollY, [0, 500], [0, 150]);
     const shouldReduceMotion = useReducedMotion();
 
     return (
@@ -146,47 +181,40 @@ const AboutPage: React.FC = () => {
             <Header />
 
             {/* --- HERO SECTION --- */}
-            <section className="relative py-28 sm:py-36 text-center overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white dark:from-[#0d1f3a] dark:to-[#0a192f]" />
+            <section className="relative bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#1a365d] overflow-hidden py-28 sm:py-36 text-center">
+                <HeroBackground />
 
-                {/* Parallax Background Band */}
-                <motion.div
-                    className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
-                    style={{ y: shouldReduceMotion ? 0 : heroY }}
-                    aria-hidden="true"
-                >
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-10 mix-blend-overlay" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-[#0a192f]/80 to-[#0a192f]" />
-                </motion.div>
-
-                <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8 z-10">
+                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <motion.div
-                        initial={shouldReduceMotion ? {} : { opacity: 0, y: 30 }}
-                        animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
-                        className="mx-auto max-w-4xl"
+                        className="flex flex-col items-center text-center"
+                        initial="hidden"
+                        animate="visible"
+                        variants={staggerContainer}
                     >
                         <motion.span
                             className="inline-block text-[#d6b161] font-semibold tracking-wider text-sm uppercase mb-4"
-                            initial={shouldReduceMotion ? {} : { opacity: 0 }}
-                            animate={shouldReduceMotion ? {} : { opacity: 1 }}
-                            transition={{ delay: 0.5 }}
+                            variants={itemVariants}
                         >
                             Learn. Automate. Communicate. Succeed.
                         </motion.span>
                         <motion.h1
-                            className="font-display text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight text-white"
-                            initial={shouldReduceMotion ? {} : { opacity: 0, scale: 0.9 }}
-                            animate={shouldReduceMotion ? {} : { opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.8, delay: 0.2 }}
+                            className="text-4xl md:text-5xl lg:text-6xl font-sans font-bold text-white mb-6 leading-tight"
+                            variants={itemVariants}
                         >
-                            About SoVir Skilling & Training Center
+                            About SoVir Skilling & <br />
+                            <span className="text-[#d6b161] relative">
+                                Training Center
+                                <motion.span
+                                    initial={{ scaleX: 0 }}
+                                    animate={{ scaleX: 1 }}
+                                    transition={{ delay: 0.8, duration: 0.6 }}
+                                    className="absolute -bottom-2 left-0 w-full h-1 bg-[#d6b161]/50 rounded-full origin-left"
+                                />
+                            </span>
                         </motion.h1>
                         <motion.p
-                            className="mx-auto mb-10 max-w-2xl text-lg sm:text-xl text-gray-300 font-light leading-relaxed"
-                            initial={shouldReduceMotion ? {} : { opacity: 0 }}
-                            animate={shouldReduceMotion ? {} : { opacity: 1 }}
-                            transition={{ duration: 0.6, delay: 0.4 }}
+                            className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed"
+                            variants={itemVariants}
                         >
                             Empowering Global Careers Through Language, Skills & Automation
                         </motion.p>

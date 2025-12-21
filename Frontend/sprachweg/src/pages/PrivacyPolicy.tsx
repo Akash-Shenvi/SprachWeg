@@ -1,7 +1,54 @@
 import React from 'react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
+
+// Hero Background Component with parallax blobs + grain
+const HeroBackground: React.FC = () => {
+    const shouldReduceMotion = useReducedMotion();
+    const { scrollY } = useScroll();
+    const y1 = useTransform(scrollY, [0, 500], [0, shouldReduceMotion ? 0 : 150]);
+    const y2 = useTransform(scrollY, [0, 500], [0, shouldReduceMotion ? 0 : -150]);
+    const opacity = useTransform(scrollY, [0, 500], [1, 0]);
+
+    return (
+        <motion.div
+            style={{ opacity }}
+            className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
+            aria-hidden="true"
+        >
+            <motion.div
+                style={{ y: y1 }}
+                animate={{
+                    scale: [1, 1.1, 1],
+                    opacity: [0.3, 0.5, 0.3]
+                }}
+                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -top-[10%] -right-[10%] h-[600px] w-[600px] rounded-full bg-gradient-to-br from-[#d6b161]/20 to-red-500/10 blur-[120px]"
+            />
+            <motion.div
+                style={{ y: y2 }}
+                animate={{
+                    scale: [1, 1.2, 1],
+                    opacity: [0.2, 0.4, 0.2]
+                }}
+                transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                className="absolute top-[20%] -left-[10%] h-[500px] w-[500px] rounded-full bg-yellow-500/10 blur-[100px]"
+            />
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
+        </motion.div>
+    );
+};
+
+// Animation variants
+const fadeInUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const }
+    }
+};
 
 const PrivacyPolicy: React.FC = () => {
     return (
@@ -10,28 +57,25 @@ const PrivacyPolicy: React.FC = () => {
 
             <main className="flex-1">
                 {/* Hero Section */}
-                <div className="relative bg-[#0a192f] dark:bg-[#030810] text-white py-28 sm:py-36 text-center overflow-hidden">
-                    {/* Subtle pattern overlay */}
-                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,white_1px,transparent_1px)] bg-[length:25px_25px] pointer-events-none" />
+                <section className="relative bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#1a365d] overflow-hidden py-28 sm:py-36 text-center">
+                    <HeroBackground />
 
-                    {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0a192f]/50" />
-
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+                    <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6 }}
+                            className="flex flex-col items-center text-center"
+                            initial="hidden"
+                            animate="visible"
+                            variants={fadeInUp}
                         >
-                            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-tight mb-4">
-                                Privacy Policy
+                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-sans font-bold text-white mb-6 leading-tight">
+                                Privacy <span className="text-[#d6b161]">Policy</span>
                             </h1>
-                            <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">
+                            <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
                                 Learn how we collect, use, and protect your personal information
                             </p>
                         </motion.div>
                     </div>
-                </div>
+                </section>
 
                 {/* Content Section */}
                 <section className="py-12 sm:py-16 md:py-20">
