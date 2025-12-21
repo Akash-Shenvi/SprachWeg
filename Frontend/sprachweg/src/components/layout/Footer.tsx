@@ -9,10 +9,10 @@ const Footer: React.FC = () => {
     return (
         <footer className="bg-[#050c18] text-white pt-16 pb-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Main Grid - 5 Columns with equal spacing */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12 mb-16">
-                    {/* Column 1: Company Info */}
-                    <div className="space-y-6 lg:col-span-1">
+                {/* Main Grid - 4 Columns with Company Info spanning 2 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 mb-16">
+                    {/* Column 1-2: Company Info (spans 2 columns on large screens) */}
+                    <div className="space-y-6 lg:col-span-2">
                         <div className="flex items-center gap-3">
                             <img
                                 src="/sovir-logo.png"
@@ -23,7 +23,7 @@ const Footer: React.FC = () => {
                                 <span className="text-xs tracking-wider text-gray-400">A Division of SoVir Technologies LLP</span>
                             </div>
                         </div>
-                        <p className="text-gray-400 text-sm leading-relaxed">
+                        <p className="text-gray-400 text-sm leading-relaxed max-w-md">
                             Your gateway to advanced industry skills and international career opportunities. Join thousands of successful learners worldwide.
                         </p>
                         <div className="space-y-3 pt-2">
