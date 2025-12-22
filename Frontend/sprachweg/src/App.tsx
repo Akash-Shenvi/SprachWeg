@@ -200,7 +200,7 @@ const AppContent = () => {
         {/* Admin Routes */}
         <Route path="/auth/google/callback" element={<GoogleCallback />} />
         <Route
-          path="/admin"
+          path="/admin-dashboard"
           element={
             <AdminRoute>
               <AdminDashboard />
