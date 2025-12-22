@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import SkillCourse from '../src/models/skillCourse.model';
 import SkillTrainingDetail from '../src/models/skillTrainingDetail.model';
 
-dotenv.config();
+dotenv.config({ path: '/home/sovirtraining/.env' });
 
 /**
  * Migration script to seed SkillTrainingDetail for existing SkillCourses

@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import User from '../src/models/user.model';
 
-dotenv.config();
+dotenv.config({ path: '/home/sovirtraining/.env' });
 
 
 import fs from 'fs';

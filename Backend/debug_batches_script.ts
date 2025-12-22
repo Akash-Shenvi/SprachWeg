@@ -5,7 +5,7 @@ import User from './src/models/user.model';
 import dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config();
+dotenv.config({ path: '/home/sovirtraining/.env' });
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/sprachweg';
 

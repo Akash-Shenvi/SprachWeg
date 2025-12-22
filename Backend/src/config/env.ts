@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ path: '/home/sovirtraining/.env' });
 
 export const env = {
     PORT: process.env.PORT || 5000,

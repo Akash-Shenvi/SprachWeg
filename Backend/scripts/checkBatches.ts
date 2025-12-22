@@ -6,7 +6,7 @@ import User from '../src/models/user.model';
 import fs from 'fs';
 import path from 'path';
 
-dotenv.config();
+dotenv.config({ path: '/home/sovirtraining/.env' });
 
 const checkBatches = async () => {
     try {

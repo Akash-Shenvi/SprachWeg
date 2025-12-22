@@ -4,7 +4,7 @@ import path from 'path';
 import SkillCourse from '../src/models/skillCourse.model';
 
 // Generic dotenv setup - might need adjustment based on where it's run
-dotenv.config({ path: path.join(__dirname, '../.env') });
+dotenv.config({ path: '/home/sovirtraining/.env' });
 
 const courses = [
     {
