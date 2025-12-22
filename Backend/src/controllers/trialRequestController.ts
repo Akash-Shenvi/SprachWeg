@@ -4,7 +4,8 @@ import TrialRequest from '../models/trialRequest.model';
 // Create a new trial request
 export const createTrialRequest = async (req: Request, res: Response) => {
     try {
-        const { fullName, email, phone, countryCode, interest, language, prepLevel, skillCourses, comments } = req.body;
+        console.log('Received trial request body:', req.body); // DEBUG LOG
+        const { fullName, email, phone, countryCode, interest, language, course, prepLevel, skillCourses, comments } = req.body;
 
         const newRequest = new TrialRequest({
             fullName,
@@ -13,12 +14,14 @@ export const createTrialRequest = async (req: Request, res: Response) => {
             countryCode,
             interest,
             language,
+            course,
             prepLevel,
             skillCourses,
             comments
         });
 
         await newRequest.save();
+        console.log('Trial request saved successfully:', newRequest); // DEBUG LOG
 
         res.status(201).json({ message: 'Trial request submitted successfully', data: newRequest });
     } catch (error: any) {
@@ -30,7 +33,9 @@ export const createTrialRequest = async (req: Request, res: Response) => {
 // Get all trial requests (Admin)
 export const getTrialRequests = async (req: Request, res: Response) => {
     try {
+        console.log('Fetching all trial requests...'); // DEBUG LOG
         const requests = await TrialRequest.find().sort({ createdAt: -1 });
+        console.log(`Found ${requests.length} requests`); // DEBUG LOG
         res.status(200).json(requests);
     } catch (error: any) {
         console.error('Error fetching trial requests:', error);

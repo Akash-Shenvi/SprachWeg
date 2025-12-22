@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, Check, AlertCircle, Mail, User, Globe, Zap, Languages } from 'lucide-react';
-import axios from 'axios';
+import api from '../../lib/api';
 
 // Unified Booking Form for Landing Page "Book Free Trial"
 // Allows selection of Language, Skill, or Both.
@@ -18,6 +18,7 @@ interface FormData {
     email: string;
     interest: 'Language' | 'Skill' | 'Both';
     language: string;
+    course: string;
     prepLevel: string;
     skillCourses: string[]; // Multi-select for skill courses
     comments: string;
@@ -30,17 +31,20 @@ const initialFormData: FormData = {
     email: '',
     interest: 'Language',
     language: '',
+    course: '',
     prepLevel: '',
     skillCourses: [],
     comments: '',
 };
 
-const LANGUAGE_COURSES = [
-    'A1 to B1', 'A1 to B2', 'A1', 'A2', 'B1', 'B2',
-    'Preparation course 7 days (telc)', 'Preparation course 15 days (telc)',
-    'Academic IELTS', 'General IELTS',
-    'N5', 'N4', 'N3', 'N2', 'N1'
-];
+const COURSES_BY_LANGUAGE: Record<string, string[]> = {
+    german: [
+        'A1 to B1', 'A1 to B2', 'A1', 'A2', 'B1', 'B2',
+        'Preparation course 7 days (telc)', 'Preparation course 15 days (telc)'
+    ],
+    english: ['Academic IELTS', 'General IELTS'],
+    japanese: ['N5', 'N4', 'N3', 'N2', 'N1']
+};
 
 const SKILL_COURSES = [
     'SCADA & HMI',
@@ -93,9 +97,10 @@ const UnifiedBookingForm: React.FC<UnifiedBookingFormProps> = ({ isOpen, onClose
         let isValid = true;
 
         if (formData.interest === 'Language' || formData.interest === 'Both') {
-            if (!formData.language) { newErrors.language = 'Please select a language course'; isValid = false; }
-            if (formData.language && PREP_COURSES.includes(formData.language) && !formData.prepLevel) {
-                newErrors.prepLevel = 'Please select a level'; isValid = false;
+            if (!formData.language) { newErrors.language = 'Please select a language'; isValid = false; }
+            if (!formData.course) { newErrors.course = 'Please select a course'; isValid = false; }
+            if (formData.language === 'german' && PREP_COURSES.includes(formData.course)) {
+                if (!formData.prepLevel) { newErrors.prepLevel = 'Please select a level'; isValid = false; }
             }
         }
 
@@ -121,14 +126,20 @@ const UnifiedBookingForm: React.FC<UnifiedBookingFormProps> = ({ isOpen, onClose
 
         setIsSubmitting(true);
         try {
-            // Use the new API endpoint
-            await axios.post('http://localhost:5000/api/trials', formData);
+            // Log the data being sent
+            console.log('Submitting trial request:', formData);
+
+            // Use the shared api instance (baseURL is already configured)
+            const response = await api.post('/trials', formData);
+            console.log('Trial request response:', response.data);
+
             setShowSuccess(true);
             setTimeout(() => {
                 handleClose();
             }, 2500);
         } catch (error: any) {
             console.error('Request error:', error);
+            console.error('Error response:', error.response?.data);
             alert(error.response?.data?.message || 'Failed to submit request');
         } finally {
             setIsSubmitting(false);
@@ -146,7 +157,13 @@ const UnifiedBookingForm: React.FC<UnifiedBookingFormProps> = ({ isOpen, onClose
     };
 
     const handleInputChange = (field: keyof FormData, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        setFormData(prev => {
+            const next = { ...prev, [field]: value };
+            // Reset dependent fields
+            if (field === 'language') { next.course = ''; next.prepLevel = ''; }
+            if (field === 'course') { next.prepLevel = ''; }
+            return next;
+        });
         setErrors(prev => ({ ...prev, [field]: undefined }));
     };
 
@@ -263,13 +280,48 @@ const UnifiedBookingForm: React.FC<UnifiedBookingFormProps> = ({ isOpen, onClose
                                             {(formData.interest === 'Language' || formData.interest === 'Both') && (
                                                 <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-white/5">
                                                     <h4 className="font-bold text-[#d6b161] mb-3 flex items-center gap-2"><Languages className="w-4 h-4" /> Language Training</h4>
-                                                    <SelectField label="Select Course" value={formData.language} onChange={(v: string) => handleInputChange('language', v)} error={errors.language} options={[{ label: 'Select...', value: '' }, ...LANGUAGE_COURSES.map(c => ({ label: c, value: c }))]} />
 
-                                                    {formData.language && PREP_COURSES.includes(formData.language) && (
-                                                        <div className="mt-3">
-                                                            <SelectField label="Target Level" value={formData.prepLevel} onChange={(v: string) => handleInputChange('prepLevel', v)} error={errors.prepLevel} options={[{ label: 'Select Level...', value: '' }, { label: 'B1', value: 'B1' }, { label: 'B2', value: 'B2' }]} />
-                                                        </div>
-                                                    )}
+                                                    <div className="space-y-3">
+                                                        <SelectField
+                                                            label="Select Language"
+                                                            value={formData.language}
+                                                            onChange={(v: string) => handleInputChange('language', v)}
+                                                            error={errors.language}
+                                                            options={[
+                                                                { label: 'Select Language...', value: '' },
+                                                                { label: 'German', value: 'german' },
+                                                                { label: 'English', value: 'english' },
+                                                                { label: 'Japanese', value: 'japanese' },
+                                                            ]}
+                                                        />
+
+                                                        {formData.language && (
+                                                            <SelectField
+                                                                label="Select Course"
+                                                                value={formData.course}
+                                                                onChange={(v: string) => handleInputChange('course', v)}
+                                                                error={errors.course}
+                                                                options={[
+                                                                    { label: 'Select Course...', value: '' },
+                                                                    ...(COURSES_BY_LANGUAGE[formData.language] || []).map(c => ({ label: c, value: c }))
+                                                                ]}
+                                                            />
+                                                        )}
+
+                                                        {formData.language === 'german' && PREP_COURSES.includes(formData.course) && (
+                                                            <SelectField
+                                                                label="Target Level"
+                                                                value={formData.prepLevel}
+                                                                onChange={(v: string) => handleInputChange('prepLevel', v)}
+                                                                error={errors.prepLevel}
+                                                                options={[
+                                                                    { label: 'Select Level...', value: '' },
+                                                                    { label: 'B1', value: 'B1' },
+                                                                    { label: 'B2', value: 'B2' }
+                                                                ]}
+                                                            />
+                                                        )}
+                                                    </div>
                                                 </div>
                                             )}
 

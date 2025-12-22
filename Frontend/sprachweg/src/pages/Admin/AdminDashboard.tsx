@@ -37,7 +37,13 @@ interface TrialRequest {
     fullName: string;
     email: string;
     phone: string;
+    countryCode: string;
     interest: string;
+    language?: string;
+    course?: string;
+    prepLevel?: string;
+    skillCourses?: string[];
+    comments?: string;
     createdAt: string;
 }
 
@@ -125,6 +131,7 @@ const AdminDashboard: React.FC = () => {
     const [trainers, setTrainers] = useState<Trainer[]>([]);
     const [trialRequests, setTrialRequests] = useState<TrialRequest[]>([]);
     const [loading, setLoading] = useState(true);
+    const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
 
     // Stats State
     const [stats, setStats] = useState({
@@ -139,6 +146,13 @@ const AdminDashboard: React.FC = () => {
 
     useEffect(() => {
         fetchData();
+
+        // Auto-refresh every 10 seconds
+        const interval = setInterval(() => {
+            fetchData();
+        }, 10000);
+
+        return () => clearInterval(interval);
     }, []);
 
     const fetchData = async () => {
@@ -151,6 +165,9 @@ const AdminDashboard: React.FC = () => {
 
             const fetchedBatches: Batch[] = batchesRes.data;
             const fetchedTrainers: Trainer[] = trainersRes.data;
+
+            console.log('Fetched trial requests:', trialsRes.data);
+            console.log('Number of trial requests:', trialsRes.data.length);
             setTrialRequests(trialsRes.data);
 
             setBatches(fetchedBatches);
@@ -217,6 +234,18 @@ const AdminDashboard: React.FC = () => {
             console.error("Failed to delete trial request", error);
             alert(error.response?.data?.message || 'Failed to delete request');
         }
+    };
+
+    const toggleRequestDetails = (id: string) => {
+        setExpandedRequests(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(id)) {
+                newSet.delete(id);
+            } else {
+                newSet.add(id);
+            }
+            return newSet;
+        });
     };
 
     return (
@@ -294,31 +323,112 @@ const AdminDashboard: React.FC = () => {
                         ) : trialRequests.length === 0 ? (
                             <p className="text-gray-500">No new booking requests.</p>
                         ) : (
-                            trialRequests.map((req) => (
-                                <div key={req._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-lg border border-gray-100 p-4 dark:border-gray-700 bg-gray-50 dark:bg-[#0a192f]/50">
-                                    <div>
-                                        <div className="flex items-center gap-2 font-bold text-gray-900 dark:text-white">
-                                            {req.fullName}
-                                            <span className={`px-2 py-0.5 rounded text-xs border ${req.interest === 'Language' ? 'bg-blue-100 text-blue-700 border-blue-200' : req.interest === 'Skill' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-orange-100 text-orange-700 border-orange-200'}`}>
-                                                {req.interest}
-                                            </span>
+                            trialRequests.map((req) => {
+                                const isExpanded = expandedRequests.has(req._id);
+                                return (
+                                    <div key={req._id} className="rounded-lg border border-gray-100 p-4 dark:border-gray-700 bg-gray-50 dark:bg-[#0a192f]/50">
+                                        {/* Summary View - Always Visible */}
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                    <span className="font-bold text-gray-900 dark:text-white">{req.fullName}</span>
+                                                    <span className={`px-2 py-0.5 rounded text-xs border ${req.interest === 'Language' ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300' : req.interest === 'Skill' ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300'}`}>
+                                                        {req.interest}
+                                                    </span>
+                                                </div>
+                                                <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                                    {req.email}
+                                                </div>
+                                                <div className="text-xs text-gray-400 mt-1">
+                                                    {new Date(req.createdAt).toLocaleDateString()} at {new Date(req.createdAt).toLocaleTimeString()}
+                                                </div>
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <button
+                                                    onClick={() => toggleRequestDetails(req._id)}
+                                                    className="px-3 py-1.5 text-sm font-medium text-[#0a192f] dark:text-white bg-[#d6b161] hover:bg-[#c4a055] rounded-lg transition-colors"
+                                                    title={isExpanded ? "Hide Details" : "View Details"}
+                                                >
+                                                    {isExpanded ? 'Hide' : 'View'}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteTrialRequest(req._id)}
+                                                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border border-transparent hover:border-red-200"
+                                                    title="Delete Request"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            {req.email} • {req.phone}
-                                        </div>
-                                        <div className="text-xs text-gray-400 mt-1">
-                                            {new Date(req.createdAt).toLocaleDateString()}
-                                        </div>
+
+                                        {/* Expanded Details */}
+                                        {isExpanded && (
+                                            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+                                                {/* Contact Info */}
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                    <div>
+                                                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Email</span>
+                                                        <p className="text-sm text-gray-900 dark:text-white">{req.email}</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Phone</span>
+                                                        <p className="text-sm text-gray-900 dark:text-white">{req.countryCode} {req.phone}</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Language Training Details */}
+                                                {(req.interest === 'Language' || req.interest === 'Both') && req.language && (
+                                                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30">
+                                                        <h4 className="text-sm font-bold text-blue-900 dark:text-blue-300 mb-2">Language Training</h4>
+                                                        <div className="space-y-1 text-sm">
+                                                            <div>
+                                                                <span className="font-semibold text-gray-700 dark:text-gray-300">Language: </span>
+                                                                <span className="text-gray-600 dark:text-gray-400 capitalize">{req.language}</span>
+                                                            </div>
+                                                            {req.course && (
+                                                                <div>
+                                                                    <span className="font-semibold text-gray-700 dark:text-gray-300">Course: </span>
+                                                                    <span className="text-gray-600 dark:text-gray-400">{req.course}</span>
+                                                                </div>
+                                                            )}
+                                                            {req.prepLevel && (
+                                                                <div>
+                                                                    <span className="font-semibold text-gray-700 dark:text-gray-300">Target Level: </span>
+                                                                    <span className="text-gray-600 dark:text-gray-400">{req.prepLevel}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Skill Training Details */}
+                                                {(req.interest === 'Skill' || req.interest === 'Both') && req.skillCourses && req.skillCourses.length > 0 && (
+                                                    <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30">
+                                                        <h4 className="text-sm font-bold text-purple-900 dark:text-purple-300 mb-2">Skill Training</h4>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {req.skillCourses.map((course, idx) => (
+                                                                <span key={idx} className="px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded border border-purple-200 dark:border-purple-800">
+                                                                    {course}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Comments */}
+                                                {req.comments && (
+                                                    <div className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                                                        <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Comments</h4>
+                                                        <p className="text-sm text-gray-700 dark:text-gray-300 italic">{req.comments}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
-                                    <button
-                                        onClick={() => handleDeleteTrialRequest(req._id)}
-                                        className="self-end sm:self-center p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors border border-transparent hover:border-red-200"
-                                        title="Delete Request"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 </section>

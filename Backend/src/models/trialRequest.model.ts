@@ -7,6 +7,7 @@ export interface ITrialRequest extends Document {
     countryCode: string;
     interest: 'Language' | 'Skill' | 'Both';
     language?: string;
+    course?: string;
     prepLevel?: string;
     skillCourses?: string[];
     comments?: string;
@@ -20,6 +21,7 @@ const TrialRequestSchema: Schema = new Schema({
     countryCode: { type: String, required: true, default: '+91' },
     interest: { type: String, enum: ['Language', 'Skill', 'Both'], required: true },
     language: { type: String },
+    course: { type: String },
     prepLevel: { type: String },
     skillCourses: { type: [String], default: [] },
     comments: { type: String },
