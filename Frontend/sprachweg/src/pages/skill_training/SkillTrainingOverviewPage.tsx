@@ -122,7 +122,7 @@ const courses = [
         fees: '₹9,200+',
         icon: Cpu,
         route: '/skill-training/plc',
-        image: 'https://images.unsplash.com/photo-1581091012184-7b6f6f0d2b09?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        image: 'https://images.unsplash.com/photo-1537462715879-360eeb61a0ad?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
         bgColor: 'bg-white dark:bg-purple-950/30',
         borderColor: 'border-purple-200 dark:border-purple-800'
     },
@@ -234,8 +234,8 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
             {/* Grain overlay */}
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 brightness-100 contrast-150 mix-blend-overlay pointer-events-none z-10"></div>
 
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent dark:from-white/5 pointer-events-none z-10" />
+            {/* Gradient overlay - fixed for light mode visibility */}
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent to-transparent dark:from-white/5 pointer-events-none z-10" />
 
             {/* Image Area */}
             <div className="h-48 relative overflow-hidden bg-gray-200 dark:bg-gray-800">
