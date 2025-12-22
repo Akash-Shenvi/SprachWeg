@@ -39,6 +39,7 @@ import TermsAndConditions from './pages/TermsAndConditions';
 import ContactPage from './pages/ContactPage';
 import AdminContactMessages from './pages/Admin/AdminContactMessages';
 import AdminBookingRequests from './pages/Admin/AdminBookingRequests';
+import ManageTrainers from './pages/Admin/ManageTrainers';
 
 
 
@@ -270,6 +271,14 @@ const AppContent = () => {
           element={
             <AdminRoute>
               <AdminBookingRequests />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/trainers"
+          element={
+            <AdminRoute>
+              <ManageTrainers />
             </AdminRoute>
           }
         />

@@ -12,10 +12,8 @@ const emailService = new EmailService();
 
 // POST /api/language-training/enroll
 export const applyEnrollment = async (req: Request, res: Response) => {
-  console.log('[EnrollmentController] applyEnrollment called');
   try {
     const { courseTitle, name } = req.body;
-    console.log(`[EnrollmentController] Payload: courseTitle=${courseTitle}, name=${name}`);
 
     if (!courseTitle || !name) {
       return res.status(400).json({ message: "courseTitle and name required" });
@@ -36,7 +34,6 @@ export const applyEnrollment = async (req: Request, res: Response) => {
         // Send "Request Received" Email for Re-enrollment
         const userEmail = (req as any).user.email;
         const userName = (req as any).user.name;
-        console.log(`[EnrollmentController] Sending re-enrollment email to ${userEmail}`);
         await emailService.sendEnrollmentEmail(userEmail, userName, courseTitle, 'PENDING');
 
         return res.status(200).json({
@@ -92,7 +89,6 @@ export const getEnrollments = async (req: Request, res: Response) => {
 
 // POST /api/language-training/admin/enroll/:id/approve
 export const approveEnrollment = async (req: Request, res: Response) => {
-  console.log(`[EnrollmentController] approveEnrollment called for ID: ${req.params.id}`);
   try {
     const enrollment = await Enrollment.findById(req.params.id).populate('userId');
 

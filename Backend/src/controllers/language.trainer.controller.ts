@@ -134,17 +134,6 @@ export const getBatchDetails = async (req: AuthRequest, res: Response) => {
         // Explicitly map response to ensure all fields are sent
         const batchObj: any = batch.toObject();
 
-        try {
-            fs.appendFileSync(path.join(process.cwd(), 'controller_debug.log'), `\n\n--- Request at ${new Date().toISOString()} ---\n`);
-            if (batch.students && batch.students.length > 0) {
-                const firstStudent = batch.students[0] as any;
-                fs.appendFileSync(path.join(process.cwd(), 'controller_debug.log'), `First Student Raw: ${JSON.stringify(firstStudent, null, 2)}\n`);
-            } else {
-                fs.appendFileSync(path.join(process.cwd(), 'controller_debug.log'), `No students found in batch\n`);
-            }
-        } catch (err) {
-            console.error("Log error", err);
-        }
 
         batchObj.students = batch.students.map((s: any) => ({
             _id: s._id,

@@ -279,9 +279,7 @@ export class EmailService {
         };
 
         try {
-            console.log(`[EmailService] Attempting to send email to: ${to} with subject: ${subject}`);
             const info = await this.transporter.sendMail(mailOptions);
-            console.log(`[EmailService] Email sent successfully: ${info.messageId}`);
         } catch (error) {
             console.error('Error sending enrollment email:', error);
         }

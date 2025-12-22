@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { env } from './config/env';
+
 
 const app = express();
 
@@ -12,7 +12,7 @@ app.use(helmet({
 
 // CORS Configuration
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'https://training.sovirtechnologies.in'], // Allow frontend origins
+    origin: ['https://training.sovirtechnologies.in'], // Allow frontend origins
     credentials: true, // Allow cookies and credentials
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
