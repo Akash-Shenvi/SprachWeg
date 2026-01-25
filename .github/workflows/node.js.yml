@@ -38,7 +38,7 @@ jobs:
         working-directory: ./Frontend/sprachweg
         run: npm run build
 
-      # ---------------- Nginx Reload ----------------
+      # ---------------- Nginx Reload ---------------
       - name: Reload Nginx to serve new build
         run: |
           sudo nginx -t
