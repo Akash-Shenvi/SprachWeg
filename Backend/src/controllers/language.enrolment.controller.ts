@@ -300,10 +300,10 @@ export const demoteTrainer = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "User is not a trainer" });
     }
 
-    user.role = 'user';
+    user.role = 'student';
     await user.save();
 
-    res.json({ message: `Trainer demoted to User successfully.` });
+    res.json({ message: `Trainer demoted to Student successfully.` });
   } catch (error) {
     res.status(500).json({ message: "Failed to demote trainer", error });
   }

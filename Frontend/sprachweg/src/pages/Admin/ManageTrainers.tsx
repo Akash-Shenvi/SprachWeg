@@ -61,14 +61,14 @@ const ManageTrainers: React.FC = () => {
     };
 
     const handleDemoteTrainer = async (id: string) => {
-        if (!window.confirm("Are you sure you want to demote this trainer back to a regular user? They will lose access to course management.")) {
+        if (!window.confirm("Are you sure you want to demote this trainer back to a student? They will lose access to course management.")) {
             return;
         }
 
         try {
             await api.delete(`/language-training/admin/trainers/${id}`);
             setTrainers(trainers.filter(t => t._id !== id));
-            toast?.success("Trainer successfully demoted to user");
+            toast?.success("Trainer successfully demoted to student");
         } catch (error: any) {
             console.error("Failed to demote trainer", error);
             alert(error.response?.data?.message || 'Failed to demote trainer');
@@ -144,7 +144,7 @@ const ManageTrainers: React.FC = () => {
                                             <button
                                                 onClick={() => handleDemoteTrainer(trainer._id)}
                                                 className="p-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                                title="Demote to User"
+                                                title="Demote to Student"
                                             >
                                                 <UserMinus className="w-5 h-5" />
                                             </button>
