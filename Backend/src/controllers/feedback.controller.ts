@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { Feedback } from '../models/feedback.model';
+import fs from 'fs';
+import path from 'path';
 
 // @desc    Submit new feedback
 // @route   POST /api/feedback
@@ -57,6 +59,22 @@ export const markFeedbackAsSolved = async (req: Request, res: Response): Promise
         if (!feedback) {
             res.status(404).json({ success: false, message: 'Feedback not found' });
             return;
+        }
+
+        // Delete the associated image file if it exists
+        if (feedback.imageUrl) {
+            const filename = feedback.imageUrl.replace('/materials/', '');
+            const uploadDir = '/home/sovirtraining/file_serve/materials';
+            const filePath = path.join(uploadDir, filename);
+
+            try {
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                }
+            } catch (fileError) {
+                console.error('Error deleting image file:', fileError);
+                // We shouldn't stop the feedback deletion just because file deletion failed
+            }
         }
 
         await feedback.deleteOne();
