@@ -285,3 +285,27 @@ export const promoteToTrainer = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Failed to promote user", error });
   }
 };
+
+// DELETE /api/language-training/admin/trainers/:id
+export const demoteTrainer = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.role !== 'trainer') {
+      return res.status(400).json({ message: "User is not a trainer" });
+    }
+
+    user.role = 'user';
+    await user.save();
+
+    res.json({ message: `Trainer demoted to User successfully.` });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to demote trainer", error });
+  }
+};
+

@@ -145,10 +145,10 @@ const AdminFeedback: React.FC = () => {
                                 {fb.imageUrl && (
                                     <div className="w-full md:w-64 flex-shrink-0 flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900/50 rounded-xl p-3 border border-gray-100 dark:border-gray-800">
                                         <img 
-                                            src={`${API_URL}/api${fb.imageUrl}`} 
+                                            src={`${API_URL}/api/uploads/${fb.imageUrl}`} 
                                             alt="Screenshot" 
                                             className="max-h-48 rounded object-contain cursor-pointer transition-transform hover:scale-105 shadow-sm"
-                                            onClick={() => setSelectedImage(`${API_URL}/api${fb.imageUrl}`)}
+                                            onClick={() => setSelectedImage(`${API_URL}/api/uploads/${fb.imageUrl}`)}
                                         />
                                         <span className="text-xs text-gray-500 dark:text-gray-400 mt-3 flex items-center gap-1.5 font-medium">
                                             <ImageIcon className="w-3.5 h-3.5" /> Click to enlarge

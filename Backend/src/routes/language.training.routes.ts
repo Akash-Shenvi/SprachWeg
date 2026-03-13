@@ -10,7 +10,8 @@ import {
     deleteBatch,
     assignTrainer,
     getTrainers,
-    promoteToTrainer
+    promoteToTrainer,
+    demoteTrainer
 } from "../controllers/language.enrolment.controller";
 import { isAuth, isAdmin } from "../middlewares/auth.middleware";
 
@@ -29,6 +30,7 @@ router.get("/admin/batches", isAuth, isAdmin, getBatches);
 router.get("/admin/trainers", isAuth, isAdmin, getTrainers);
 router.put("/admin/batches/:batchId/assign-trainer", isAuth, isAdmin, assignTrainer);
 router.post("/admin/promote-trainer", isAuth, isAdmin, promoteToTrainer);
+router.delete("/admin/trainers/:id", isAuth, isAdmin, demoteTrainer);
 router.delete("/admin/batches/:batchId/students/:studentId", isAuth, isAdmin, removeStudentFromBatch);
 router.delete("/admin/batches/:id", isAuth, isAdmin, deleteBatch);
 

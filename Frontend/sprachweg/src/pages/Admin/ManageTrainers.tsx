@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
+import toast from 'react-hot-toast';
 import {
     Users,
     Search,
-    Trash2,
+    UserMinus,
     Shield,
     Mail,
     Loader2,
@@ -59,17 +60,18 @@ const ManageTrainers: React.FC = () => {
         }
     };
 
-    const handleRemoveTrainer = async (id: string) => {
-        if (!window.confirm("Are you sure you want to remove this trainer? This action cannot be undone.")) {
+    const handleDemoteTrainer = async (id: string) => {
+        if (!window.confirm("Are you sure you want to demote this trainer back to a regular user? They will lose access to course management.")) {
             return;
         }
 
         try {
             await api.delete(`/language-training/admin/trainers/${id}`);
             setTrainers(trainers.filter(t => t._id !== id));
+            toast?.success("Trainer successfully demoted to user");
         } catch (error: any) {
-            console.error("Failed to remove trainer", error);
-            alert(error.response?.data?.message || 'Failed to remove trainer');
+            console.error("Failed to demote trainer", error);
+            alert(error.response?.data?.message || 'Failed to demote trainer');
         }
     };
 
@@ -140,11 +142,11 @@ const ManageTrainers: React.FC = () => {
                                                 </div>
                                             </div>
                                             <button
-                                                onClick={() => handleRemoveTrainer(trainer._id)}
-                                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                                title="Remove Trainer"
+                                                onClick={() => handleDemoteTrainer(trainer._id)}
+                                                className="p-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                title="Demote to User"
                                             >
-                                                <Trash2 className="w-5 h-5" />
+                                                <UserMinus className="w-5 h-5" />
                                             </button>
                                         </motion.div>
                                     ))}
