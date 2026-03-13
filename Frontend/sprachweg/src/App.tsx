@@ -40,6 +40,8 @@ import ContactPage from './pages/ContactPage';
 import AdminContactMessages from './pages/Admin/AdminContactMessages';
 import AdminBookingRequests from './pages/Admin/AdminBookingRequests';
 import ManageTrainers from './pages/Admin/ManageTrainers';
+import FeedbackPage from './pages/FeedbackPage';
+import AdminFeedback from './pages/Admin/AdminFeedback';
 
 
 
@@ -137,6 +139,7 @@ const AppContent = () => {
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/feedback" element={<FeedbackPage />} />
 
 
         {/* Skill Training Routes */}
@@ -279,6 +282,14 @@ const AppContent = () => {
           element={
             <AdminRoute>
               <ManageTrainers />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/feedback"
+          element={
+            <AdminRoute>
+              <AdminFeedback />
             </AdminRoute>
           }
         />

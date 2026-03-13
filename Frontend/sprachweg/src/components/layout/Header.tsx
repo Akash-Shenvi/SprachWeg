@@ -370,7 +370,17 @@ const Header: React.FC = () => {
                                         </div>
 
                                         {/* Divider for future settings */}
-                                        {/* <div className="border-t border-gray-200 dark:border-gray-700 my-3"></div> */}
+                                        <div className="border-t border-gray-200 dark:border-gray-700 my-3"></div>
+
+                                        {/* Feedback Link */}
+                                        <Link
+                                            to="/feedback"
+                                            onClick={() => setIsSettingsOpen(false)}
+                                            className="flex items-center gap-2 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#d6b161] dark:hover:text-[#d6b161] transition-colors"
+                                        >
+                                            <span className="text-lg">🐞</span>
+                                            Report an Issue / Feedback
+                                        </Link>
 
                                         {/* Add more settings here in the future */}
                                     </div>
@@ -439,7 +449,17 @@ const Header: React.FC = () => {
                                     </div>
 
                                     {/* Divider for future settings */}
-                                    {/* <div className="border-t border-gray-200 dark:border-gray-700 my-3"></div> */}
+                                    <div className="border-t border-gray-200 dark:border-gray-700 my-3"></div>
+
+                                    {/* Feedback Link */}
+                                    <Link
+                                        to="/feedback"
+                                        onClick={() => setIsSettingsOpen(false)}
+                                        className="flex items-center gap-2 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-[#d6b161] dark:hover:text-[#d6b161] transition-colors"
+                                    >
+                                        <span className="text-lg">🐞</span>
+                                        Report an Issue / Feedback
+                                    </Link>
 
                                     {/* Add more settings here in the future */}
                                 </div>
