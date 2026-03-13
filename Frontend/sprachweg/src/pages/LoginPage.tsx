@@ -74,18 +74,18 @@ const LoginPage: React.FC = () => {
                             <h1 className="font-sans text-5xl font-medium leading-tight mb-6">
                                 Welcome Back to<br />
                                 Your<br />
-                                Learning Journey
+                                Skill Training
                             </h1>
 
                             <p className="text-blue-100 text-lg mb-12 max-w-md leading-relaxed">
-                                Continue your path to language fluency and global career opportunities.
+                                Continue your path to technical mastery and global career opportunities in the industry.
                             </p>
 
                             <div className="space-y-6">
                                 {[
-                                    "Live interactive classes with expert instructors",
-                                    "Comprehensive language certification preparation",
-                                    "Direct pathway to international careers"
+                                    "Live hands-on sessions with industry experts",
+                                    "Comprehensive technical skill certification preparation",
+                                    "Direct pathway to international industrial careers"
                                 ].map((item, i) => (
                                     <motion.div
                                         key={i}

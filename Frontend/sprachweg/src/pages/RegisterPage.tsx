@@ -95,19 +95,19 @@ const RegisterPage: React.FC = () => {
                         >
                             <h1 className="font-sans text-5xl font-medium leading-tight mb-6">
                                 Start Your<br />
-                                Global Career<br />
+                                Technical Career<br />
                                 Journey
                             </h1>
 
                             <p className="text-blue-100 text-lg mb-12 max-w-md leading-relaxed">
-                                Join thousands of successful students who have transformed their lives through language.
+                                Join thousands of successful students who have transformed their lives through industry-ready skills.
                             </p>
 
                             <div className="space-y-6">
                                 {[
-                                    "Access to complete A1-C2 curriculum",
+                                    "Access to complete technical curriculum",
                                     "Free career counseling session",
-                                    "Join a community of 150+ learners"
+                                    "Join a community of professional learners"
                                 ].map((item, i) => (
                                     <motion.div
                                         key={i}

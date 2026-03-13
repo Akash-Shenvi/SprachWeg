@@ -61,7 +61,7 @@ const ForgotPasswordPage: React.FC = () => {
                             </h1>
 
                             <p className="text-blue-100 text-lg mb-12 max-w-md leading-relaxed">
-                                Don't worry, even the best of us forget. We'll help you get back to your learning journey in no time.
+                                Don't worry, even the best of us forget. We'll help you get back to your skill training journey in no time.
                             </p>
 
                             <div className="space-y-6">

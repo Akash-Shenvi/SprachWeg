@@ -518,7 +518,7 @@ const LandingPage: React.FC = () => {
 
                             <h1 className="font-sans text-5xl lg:text-7xl font-medium text-gray-900 dark:text-white leading-tight mb-6">
                                 SoVir Skilling & <br />
-                                <span className="text-[#d6b161]">Training Center</span> <br />
+                                <span>Training Center</span> <br />
                             </h1>
 
                             <p className="text-xl font-semibold text-gray-600 dark:text-gray-300 mb-4">
