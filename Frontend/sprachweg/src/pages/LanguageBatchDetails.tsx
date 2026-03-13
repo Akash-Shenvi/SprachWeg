@@ -106,10 +106,69 @@ const LanguageBatchDetails: React.FC = () => {
     // View Student Profile State
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
-    // Pagination State
-    const [visibleStudentsCount, setVisibleStudentsCount] = useState(15);
+    // Pagination State — per tab
+    const PAGE_LIMIT = 10;
+
+    const [announcements, setAnnouncements] = useState<Annotation[]>([]);
+    const [annPage, setAnnPage] = useState(1);
+    const [annHasMore, setAnnHasMore] = useState(false);
+    const [annLoading, setAnnLoading] = useState(false);
+
+    const [materials, setMaterials] = useState<Material[]>([]);
+    const [matPage, setMatPage] = useState(1);
+    const [matHasMore, setMatHasMore] = useState(false);
+    const [matLoading, setMatLoading] = useState(false);
+
+    const [students, setStudents] = useState<Student[]>([]);
+    const [stuPage, setStuPage] = useState(1);
+    const [stuHasMore, setStuHasMore] = useState(false);
+    const [stuLoading, setStuLoading] = useState(false);
+
+    const [classes, setClasses] = useState<LanguageClass[]>([]);
+    const [clsPage, setClsPage] = useState(1);
+    const [clsHasMore, setClsHasMore] = useState(false);
+    const [clsLoading, setClsLoading] = useState(false);
 
     const isTrainer = user?.role === 'trainer' || user?._id === batch?.trainerId;
+
+    // --- Paginated fetch helpers ---
+    const fetchTab = async (tab: typeof activeTab, page: number, append = false) => {
+        if (!batchId) return;
+        const setLoading = tab === 'announcements' ? setAnnLoading
+            : tab === 'materials' ? setMatLoading
+            : tab === 'students' ? setStuLoading
+            : setClsLoading;
+
+        setLoading(true);
+        try {
+            const res = await api.get(`/language-trainer/batch/${batchId}/${tab}`, {
+                params: { page, limit: PAGE_LIMIT }
+            });
+            const { data, hasMore } = res.data;
+            if (tab === 'announcements') {
+                setAnnouncements(prev => append ? [...prev, ...data] : data);
+                setAnnHasMore(hasMore);
+                setAnnPage(page);
+            } else if (tab === 'materials') {
+                setMaterials(prev => append ? [...prev, ...data] : data);
+                setMatHasMore(hasMore);
+                setMatPage(page);
+            } else if (tab === 'students') {
+                setStudents(prev => append ? [...prev, ...data] : data);
+                setStuHasMore(hasMore);
+                setStuPage(page);
+            } else {
+                setClasses(prev => append ? [...prev, ...data] : data);
+                setClsHasMore(hasMore);
+                setClsPage(page);
+            }
+        } catch (err) {
+            console.error(`Failed to fetch ${tab}`, err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     useEffect(() => {
         fetchBatchDetails();
@@ -120,6 +179,11 @@ const LanguageBatchDetails: React.FC = () => {
             window.history.replaceState({}, '', window.location.pathname);
         }
     }, [batchId]);
+
+    // Re-fetch active tab whenever batchId or activeTab changes
+    useEffect(() => {
+        if (batchId) fetchTab(activeTab, 1, false);
+    }, [batchId, activeTab]);
 
     const fetchBatchDetails = async () => {
         try {
@@ -190,7 +254,7 @@ const LanguageBatchDetails: React.FC = () => {
 
             setShowAddModal(false);
             resetForm();
-            fetchBatchDetails();
+            fetchTab(activeTab, 1, false); // refresh this tab from page 1
         } catch (error) {
             console.error("Failed to add item", error);
             alert("Failed to add item. Please try again.");
@@ -213,7 +277,7 @@ const LanguageBatchDetails: React.FC = () => {
 
         try {
             await api.delete(`/language-trainer/announcements/${announcementId}`);
-            fetchBatchDetails();
+            fetchTab('announcements', 1, false);
         } catch (error) {
             console.error("Failed to delete announcement", error);
             alert("Failed to delete announcement. Please try again.");
@@ -225,7 +289,7 @@ const LanguageBatchDetails: React.FC = () => {
 
         try {
             await api.delete(`/language-trainer/materials/${materialId}`);
-            fetchBatchDetails();
+            fetchTab('materials', 1, false);
         } catch (error) {
             console.error("Failed to delete material", error);
             alert("Failed to delete material. Please try again.");
@@ -535,23 +599,16 @@ const LanguageBatchDetails: React.FC = () => {
                         </div>
                     ) : activeTab === 'announcements' ? (
                         <div className="space-y-4 sm:space-y-5">
-                            {(!batch.announcements || batch.announcements.length === 0) && (
+                            {!annLoading && announcements.length === 0 && (
                                 <div className="text-center py-12 sm:py-16 bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700/50 backdrop-blur-xl">
                                     <Bell className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                                     <p className="text-gray-500 dark:text-gray-400 text-base font-medium">No announcements yet.</p>
                                 </div>
                             )}
-
-                            {(batch.announcements || []).slice().reverse().map((item, idx) => (
-                                <div
-                                    key={item._id}
-                                    className="group relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-800/50 backdrop-blur-xl p-5 sm:p-6 lg:p-7 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-right duration-500"
-                                    style={{ animationDelay: `${idx * 50}ms` }}
-                                >
+                            {announcements.map((item, idx) => (
+                                <div key={item._id} className="group relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-800/50 backdrop-blur-xl p-5 sm:p-6 lg:p-7 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-right duration-500" style={{ animationDelay: `${idx * 50}ms` }}>
                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-cyan-400" />
-
                                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
                                     <div className="relative z-10">
                                         <div className="flex items-start gap-4 sm:gap-5">
                                             <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 p-3 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 transition-transform group-hover:scale-110 duration-300">
@@ -559,55 +616,45 @@ const LanguageBatchDetails: React.FC = () => {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-3">
-                                                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white group-hover:text-[#d6b161] transition-colors break-words">
-                                                        {item.title}
-                                                    </h3>
+                                                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white group-hover:text-[#d6b161] transition-colors break-words">{item.title}</h3>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg whitespace-nowrap">
                                                             {new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
                                                         </span>
                                                         {isTrainer && (
-                                                            <button
-                                                                onClick={() => handleDeleteAnnouncement(item._id)}
-                                                                className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 hover:text-red-600 dark:text-red-400 duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
-                                                                title="Delete announcement"
-                                                                aria-label="Delete announcement"
-                                                            >
+                                                            <button onClick={() => handleDeleteAnnouncement(item._id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 hover:text-red-600 dark:text-red-400 duration-200" title="Delete" aria-label="Delete announcement">
                                                                 <Trash2 className="h-4 w-4" />
                                                             </button>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-sm sm:text-base whitespace-pre-wrap break-words">
-                                                    {item.content}
-                                                </p>
+                                                <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-sm sm:text-base whitespace-pre-wrap break-words">{item.content}</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             ))}
+                            {annHasMore && (
+                                <div className="flex justify-center mt-6 pb-4">
+                                    <button onClick={() => fetchTab('announcements', annPage + 1, true)} disabled={annLoading} className="px-6 py-2.5 bg-white dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold rounded-xl border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors shadow-sm disabled:opacity-50">
+                                        {annLoading ? 'Loading...' : 'Load More'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     ) : activeTab === 'materials' ? (
                         <div className="grid gap-5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            {(!batch.materials || batch.materials.length === 0) && (
+                            {!matLoading && materials.length === 0 && (
                                 <div className="col-span-full text-center py-12 sm:py-16 bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700/50 backdrop-blur-xl">
                                     <FileText className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                                     <p className="text-gray-500 dark:text-gray-400 text-base font-medium">No learning materials uploaded yet.</p>
                                 </div>
                             )}
-
-                            {(batch.materials || []).slice().reverse().map((item, idx) => (
-                                <div
-                                    key={item._id}
-                                    className="group relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-800/50 backdrop-blur-xl p-5 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 flex flex-col h-full animate-in fade-in slide-in-from-bottom duration-500"
-                                    style={{ animationDelay: `${idx * 50}ms` }}
-                                >
+                            {materials.map((item, idx) => (
+                                <div key={item._id} className="group relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-800/50 backdrop-blur-xl p-5 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 flex flex-col h-full animate-in fade-in slide-in-from-bottom duration-500" style={{ animationDelay: `${idx * 50}ms` }}>
                                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-green-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
                                     <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
                                     <div className="relative z-10 flex flex-col h-full">
-                                        {/* Header Row: Icon, Date, Delete Button */}
                                         <div className="mb-4 flex items-start justify-between">
                                             <div className="flex gap-3 items-center">
                                                 <div className="flex flex-shrink-0 h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-green-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 transition-transform group-hover:scale-110 duration-300">
@@ -619,104 +666,63 @@ const LanguageBatchDetails: React.FC = () => {
                                                     </span>
                                                 )}
                                             </div>
-                                            
                                             {isTrainer && (
-                                                <button
-                                                    onClick={() => handleDeleteMaterial(item._id)}
-                                                    className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 ml-2 rounded-lg bg-white/80 dark:bg-gray-800/80 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 hover:text-red-600 dark:text-red-400 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
-                                                    title="Delete material"
-                                                    aria-label="Delete material"
-                                                >
+                                                <button onClick={() => handleDeleteMaterial(item._id)} className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 ml-2 rounded-lg bg-white/80 dark:bg-gray-800/80 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 hover:text-red-600 dark:text-red-400 shadow-sm" title="Delete" aria-label="Delete material">
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>
                                             )}
                                         </div>
-
                                         <div className="flex-1 mb-4">
-                                            <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-1 line-clamp-2 group-hover:text-[#d6b161] transition-colors" title={item.title}>
-                                                {item.title}
-                                            </h3>
-                                            {item.subtitle && (
-                                                <p className="text-sm font-semibold text-[#d6b161] mb-2 line-clamp-1">{item.subtitle}</p>
-                                            )}
-                                            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 leading-relaxed">
-                                                {item.description}
-                                            </p>
+                                            <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-1 line-clamp-2 group-hover:text-[#d6b161] transition-colors" title={item.title}>{item.title}</h3>
+                                            {item.subtitle && <p className="text-sm font-semibold text-[#d6b161] mb-2 line-clamp-1">{item.subtitle}</p>}
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 leading-relaxed">{item.description}</p>
                                         </div>
-
                                         {item.fileUrl ? (
                                             <div className="mt-auto flex items-center gap-2 pt-4 border-t border-gray-100 dark:border-gray-700/50">
-                                                <a
-                                                    href={getAssetUrl(item.fileUrl)}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 transition-all duration-300 border border-gray-200 dark:border-gray-700"
-                                                    title="View in new tab"
-                                                    aria-label={`View ${item.title}`}
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                    View
+                                                <a href={getAssetUrl(item.fileUrl)} target="_blank" rel="noopener noreferrer" className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 transition-all duration-300 border border-gray-200 dark:border-gray-700" aria-label={`View ${item.title}`}>
+                                                    <Eye className="h-4 w-4" /> View
                                                 </a>
-                                                <a
-                                                    href={getAssetUrl(item.fileUrl)}
-                                                    download={item.title}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500/10 to-green-500/10 hover:from-emerald-500 hover:to-green-500 py-2.5 text-sm font-semibold text-emerald-600 hover:text-white dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:text-white transition-all duration-300 border border-emerald-200 dark:border-emerald-700/50 hover:border-emerald-500 dark:hover:border-emerald-400"
-                                                    title="Download file directly"
-                                                    aria-label={`Download ${item.title}`}
-                                                >
-                                                    <Download className="h-4 w-4" />
-                                                    Download
+                                                <a href={getAssetUrl(item.fileUrl)} download={item.title} target="_blank" rel="noopener noreferrer" className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500/10 to-green-500/10 hover:from-emerald-500 hover:to-green-500 py-2.5 text-sm font-semibold text-emerald-600 hover:text-white dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:text-white transition-all duration-300 border border-emerald-200 dark:border-emerald-700/50" aria-label={`Download ${item.title}`}>
+                                                    <Download className="h-4 w-4" /> Download
                                                 </a>
                                             </div>
                                         ) : (
-                                            <div className="mt-auto w-full py-2.5 text-center text-sm font-medium text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                                                No file
-                                            </div>
+                                            <div className="mt-auto w-full py-2.5 text-center text-sm font-medium text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-xl">No file</div>
                                         )}
                                     </div>
                                 </div>
                             ))}
+                            {matHasMore && (
+                                <div className="col-span-full flex justify-center mt-6 pb-4">
+                                    <button onClick={() => fetchTab('materials', matPage + 1, true)} disabled={matLoading} className="px-6 py-2.5 bg-white dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold rounded-xl border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors shadow-sm disabled:opacity-50">
+                                        {matLoading ? 'Loading...' : 'Load More'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
-                    ) : (
+                    ) : activeTab === 'students' ? (
                         <div className="space-y-4 sm:space-y-5">
-                            {(!batch.students || batch.students.length === 0) && (
+                            {!stuLoading && students.length === 0 && (
                                 <div className="text-center py-12 sm:py-16 bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700/50 backdrop-blur-xl">
                                     <Users className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                                     <p className="text-gray-500 dark:text-gray-400 text-base font-medium">No students enrolled yet.</p>
                                 </div>
                             )}
-
-                            {(batch.students || []).slice(0, visibleStudentsCount).map((student, idx) => (
-                                <div
-                                    key={student._id}
-                                    className="group relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-800/50 backdrop-blur-xl p-5 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-left duration-500"
-                                    style={{ animationDelay: `${idx * 50}ms` }}
-                                >
+                            {students.map((student, idx) => (
+                                <div key={student._id} className="group relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-800/50 backdrop-blur-xl p-5 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-left duration-500" style={{ animationDelay: `${idx * 50}ms` }}>
                                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
                                     <div className="relative z-10 flex items-center justify-between gap-4">
                                         <div className="flex items-center gap-4 min-w-0 flex-1">
                                             <div className="flex-shrink-0 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 text-blue-600 font-bold text-lg dark:bg-blue-900/20 dark:text-blue-400 transition-transform group-hover:scale-110 duration-300">
                                                 {student.name.charAt(0).toUpperCase()}
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <p className="font-bold text-gray-900 dark:text-white text-base sm:text-lg truncate">
-                                                    {student.name}
-                                                </p>
-                                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                                                    {student.email}
-                                                </p>
+                                                <p className="font-bold text-gray-900 dark:text-white text-base sm:text-lg truncate">{student.name}</p>
+                                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">{student.email}</p>
                                             </div>
                                         </div>
                                         {isTrainer && (
-                                            <button
-                                                onClick={() => setSelectedStudent(student)}
-                                                className="flex-shrink-0 text-sm font-semibold text-gray-400 hover:text-[#d6b161] transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b161]/30 rounded px-3 py-2"
-                                                role="button"
-                                                aria-label={`View ${student.name}'s profile`}
-                                            >
+                                            <button onClick={() => setSelectedStudent(student)} className="flex-shrink-0 text-sm font-semibold text-gray-400 hover:text-[#d6b161] transition-colors duration-300 rounded px-3 py-2" aria-label={`View ${student.name}'s profile`}>
                                                 <span className="hidden sm:inline">View Profile</span>
                                                 <span className="sm:hidden">→</span>
                                             </button>
@@ -724,13 +730,84 @@ const LanguageBatchDetails: React.FC = () => {
                                     </div>
                                 </div>
                             ))}
-                            {(batch.students || []).length > visibleStudentsCount && (
-                                <div className="flex justify-center mt-8 pb-4">
-                                    <button
-                                        onClick={() => setVisibleStudentsCount((prev) => prev + 15)}
-                                        className="px-6 py-2.5 bg-white dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold rounded-lg border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b161]/50 shadow-sm"
-                                    >
-                                        Load More ({batch.students.length - visibleStudentsCount} remaining)
+                            {stuHasMore && (
+                                <div className="flex justify-center mt-6 pb-4">
+                                    <button onClick={() => fetchTab('students', stuPage + 1, true)} disabled={stuLoading} className="px-6 py-2.5 bg-white dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold rounded-xl border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors shadow-sm disabled:opacity-50">
+                                        {stuLoading ? 'Loading...' : 'Load More'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="space-y-4 sm:space-y-5">
+                            {!clsLoading && classes.length === 0 && (
+                                <div className="text-center py-12 sm:py-16 bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700/50 backdrop-blur-xl">
+                                    <Video className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                                    <p className="text-gray-500 dark:text-gray-400 text-base font-medium">No live classes scheduled yet.</p>
+                                </div>
+                            )}
+                            {classes.map((cls, idx) => (
+                                <div key={cls._id} className="group relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-800/50 backdrop-blur-xl p-5 sm:p-6 lg:p-7 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-left duration-500" style={{ animationDelay: `${idx * 50}ms` }}>
+                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-green-500 to-emerald-400" />
+                                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                    <div className="relative z-10">
+                                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                                            <div className="flex items-start gap-4 min-w-0 flex-1">
+                                                <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 p-3 text-green-600 dark:bg-green-900/20 dark:text-green-400 transition-transform group-hover:scale-110 duration-300">
+                                                    <Video className="h-6 w-6" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2 truncate group-hover:text-[#d6b161] transition-colors">{cls.topic}</h3>
+                                                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                                        <span className="inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg font-medium">
+                                                            {new Date(cls.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                        </span>
+                                                        <span className="inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg font-medium">
+                                                            {new Date(cls.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                        <span className="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                                                            <Users className="h-4 w-4" /> {cls.attendees?.length || 0} joined
+                                                        </span>
+                                                        {cls.status === 'completed' && (
+                                                            <span className="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1.5 rounded-lg font-bold text-xs uppercase tracking-wider">✓ Completed</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                                                {cls.status !== 'completed' ? (
+                                                    <button onClick={() => handleJoinClass(cls._id, cls.meetLink)} className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-green-500/20 hover:-translate-y-0.5 transition-all duration-300 text-sm" aria-label="Join class">
+                                                        <Video className="h-4 w-4" />
+                                                        <span className="hidden sm:inline">Join Class</span>
+                                                        <span className="sm:hidden">Join</span>
+                                                    </button>
+                                                ) : (
+                                                    <span className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 rounded-xl font-semibold text-sm">Class Ended</span>
+                                                )}
+                                                {isTrainer && (
+                                                    <div className="flex gap-1">
+                                                        <button onClick={() => setAttendanceClass(cls)} className="p-2.5 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors duration-200" title="Attendance" aria-label="View attendance">
+                                                            <UserCheck className="h-5 w-5" />
+                                                        </button>
+                                                        {cls.status !== 'completed' && (
+                                                            <button onClick={() => handleEndClass(cls._id)} className="p-2.5 text-orange-600 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-900/20 rounded-lg transition-colors duration-200" title="End Class" aria-label="End class">
+                                                                <Ban className="h-5 w-5" />
+                                                            </button>
+                                                        )}
+                                                        <button onClick={() => handleDeleteClass(cls._id)} className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200" title="Delete Class" aria-label="Delete class">
+                                                            <Trash2 className="h-5 w-5" />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {clsHasMore && (
+                                <div className="flex justify-center mt-6 pb-4">
+                                    <button onClick={() => fetchTab('classes', clsPage + 1, true)} disabled={clsLoading} className="px-6 py-2.5 bg-white dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold rounded-xl border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors shadow-sm disabled:opacity-50">
+                                        {clsLoading ? 'Loading...' : 'Load More'}
                                     </button>
                                 </div>
                             )}

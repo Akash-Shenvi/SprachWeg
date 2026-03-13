@@ -12,7 +12,11 @@ import {
     deleteClass,
     joinClass,
     endClass,
-    updateAttendance
+    updateAttendance,
+    getBatchAnnouncements,
+    getBatchMaterials,
+    getBatchStudents,
+    getBatchClasses
 } from '../controllers/language.trainer.controller';
 import { upload } from '../middlewares/upload.middleware';
 
@@ -37,5 +41,11 @@ router.get('/student/batches', getStudentBatches);
 // Shared Routes (Student & Trainer)
 router.get('/batch/:batchId', getBatchDetails);
 router.post('/classes/:classId/join', joinClass);
+
+// Paginated tab routes (Student & Trainer)
+router.get('/batch/:batchId/announcements', getBatchAnnouncements);
+router.get('/batch/:batchId/materials', getBatchMaterials);
+router.get('/batch/:batchId/students', getBatchStudents);
+router.get('/batch/:batchId/classes', getBatchClasses);
 
 export default router;

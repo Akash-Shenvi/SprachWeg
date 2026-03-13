@@ -433,3 +433,134 @@ export const joinClass = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ message: 'Error joining class', error });
     }
 };
+
+// ─── Paginated Tab Endpoints ──────────────────────────────────────────────────
+
+const verifyBatchAccess = async (batchId: string, userId: string) => {
+    const batch = await LanguageBatch.findById(batchId);
+    if (!batch) return null;
+    const isTrainer = batch.trainerId?.toString() === userId;
+    const isStudent = batch.students.some((s: any) => s.toString() === userId);
+    if (!isTrainer && !isStudent) return null;
+    return batch;
+};
+
+// GET /batch/:batchId/announcements?page=1&limit=10
+export const getBatchAnnouncements = async (req: AuthRequest, res: Response) => {
+    try {
+        const { batchId } = req.params;
+        const page = Math.max(1, parseInt(req.query.page as string) || 1);
+        const limit = Math.min(50, parseInt(req.query.limit as string) || 10);
+        const skip = (page - 1) * limit;
+        const userId = req.user?._id?.toString();
+
+        const batch = await verifyBatchAccess(batchId, userId!);
+        if (!batch) return res.status(403).json({ message: 'Not authorized' });
+
+        const total = await LanguageAnnouncement.countDocuments({ batchId });
+        const data = await LanguageAnnouncement.find({ batchId })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        res.json({ data, total, page, pages: Math.ceil(total / limit), hasMore: skip + data.length < total });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching announcements', error });
+    }
+};
+
+// GET /batch/:batchId/materials?page=1&limit=10
+export const getBatchMaterials = async (req: AuthRequest, res: Response) => {
+    try {
+        const { batchId } = req.params;
+        const page = Math.max(1, parseInt(req.query.page as string) || 1);
+        const limit = Math.min(50, parseInt(req.query.limit as string) || 10);
+        const skip = (page - 1) * limit;
+        const userId = req.user?._id?.toString();
+
+        const batch = await verifyBatchAccess(batchId, userId!);
+        if (!batch) return res.status(403).json({ message: 'Not authorized' });
+
+        const total = await LanguageMaterial.countDocuments({ batchId });
+        const data = await LanguageMaterial.find({ batchId })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        res.json({ data, total, page, pages: Math.ceil(total / limit), hasMore: skip + data.length < total });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching materials', error });
+    }
+};
+
+// GET /batch/:batchId/students?page=1&limit=10
+export const getBatchStudents = async (req: AuthRequest, res: Response) => {
+    try {
+        const { batchId } = req.params;
+        const page = Math.max(1, parseInt(req.query.page as string) || 1);
+        const limit = Math.min(50, parseInt(req.query.limit as string) || 10);
+        const skip = (page - 1) * limit;
+        const userId = req.user?._id?.toString();
+
+        const batch = await LanguageBatch.findById(batchId)
+            .populate({
+                path: 'students',
+                select: 'name email phoneNumber avatar germanLevel guardianName guardianPhone qualification dateOfBirth',
+                options: { skip, limit }
+            });
+        if (!batch) return res.status(404).json({ message: 'Batch not found' });
+
+        const isTrainer = batch.trainerId?.toString() === userId;
+        const isStudent = (batch.students as any[]).some(s => s._id?.toString() === userId) ||
+            (await LanguageBatch.findOne({ _id: batchId, students: userId })) !== null;
+        if (!isTrainer && !isStudent) return res.status(403).json({ message: 'Not authorized' });
+
+        const total = batch.students.length + skip; // approximate — use raw count below
+        const totalCount = await LanguageBatch.aggregate([
+            { $match: { _id: batch._id } },
+            { $project: { count: { $size: '$students' } } }
+        ]);
+        const trueTotal = totalCount[0]?.count || 0;
+        const data = (batch.students as any[]).map(s => ({
+            _id: s._id,
+            name: s.name,
+            email: s.email,
+            phoneNumber: s.phoneNumber,
+            avatar: s.avatar,
+            germanLevel: s.germanLevel,
+            guardianName: s.guardianName,
+            guardianPhone: s.guardianPhone,
+            qualification: s.qualification,
+            dateOfBirth: s.dateOfBirth,
+        }));
+
+        res.json({ data, total: trueTotal, page, pages: Math.ceil(trueTotal / limit), hasMore: skip + data.length < trueTotal });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching students', error });
+    }
+};
+
+// GET /batch/:batchId/classes?page=1&limit=10
+export const getBatchClasses = async (req: AuthRequest, res: Response) => {
+    try {
+        const { batchId } = req.params;
+        const page = Math.max(1, parseInt(req.query.page as string) || 1);
+        const limit = Math.min(50, parseInt(req.query.limit as string) || 10);
+        const skip = (page - 1) * limit;
+        const userId = req.user?._id?.toString();
+
+        const batch = await verifyBatchAccess(batchId, userId!);
+        if (!batch) return res.status(403).json({ message: 'Not authorized' });
+
+        const total = await LanguageClass.countDocuments({ batchId });
+        const data = await LanguageClass.find({ batchId })
+            .sort({ startTime: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        res.json({ data, total, page, pages: Math.ceil(total / limit), hasMore: skip + data.length < total });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching classes', error });
+    }
+};
+
