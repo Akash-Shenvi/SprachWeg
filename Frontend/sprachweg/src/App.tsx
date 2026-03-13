@@ -81,7 +81,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   if (user) {
-    if (user.role === 'admin') return <Navigate to="/admin" replace />;
+    if (user.role === 'admin') return <Navigate to="/admin-dashboard" replace />;
     if (user.role === 'trainer') return <Navigate to="/trainer-dashboard" replace />;
     return <Navigate to="/student-dashboard" replace />;
   }
