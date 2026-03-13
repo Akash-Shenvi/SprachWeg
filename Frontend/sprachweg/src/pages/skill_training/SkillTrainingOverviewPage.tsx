@@ -109,7 +109,7 @@ const courses = [
         fees: '₹7,200+',
         icon: Zap,
         route: '/skill-training/scada',
-        image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        image: 'https://sovirtechnologies.in/api/uploads/tariningwebsite/landing/plc.png',
         bgColor: 'bg-white dark:bg-blue-950/30',
         borderColor: 'border-blue-200 dark:border-blue-800'
     },
@@ -122,7 +122,7 @@ const courses = [
         fees: '₹9,200+',
         icon: Cpu,
         route: '/skill-training/plc',
-        image: 'https://images.unsplash.com/photo-1537462715879-360eeb61a0ad?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        image: 'https://sovirtechnologies.in/api/uploads/tariningwebsite/landing/plc.png',
         bgColor: 'bg-white dark:bg-purple-950/30',
         borderColor: 'border-purple-200 dark:border-purple-800'
     },
@@ -135,7 +135,7 @@ const courses = [
         fees: '₹10,200+',
         icon: Gauge,
         route: '/skill-training/drives',
-        image: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        image: 'https://sovirtechnologies.in/api/uploads/tariningwebsite/landing/industrial.png',
         bgColor: 'bg-white dark:bg-green-950/30',
         borderColor: 'border-green-200 dark:border-green-800'
     },
@@ -148,7 +148,7 @@ const courses = [
         fees: '₹28,000',
         icon: Factory,
         route: '/skill-training/industry4',
-        image: 'https://images.unsplash.com/photo-1542831371-d531d36971e6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        image: 'https://sovirtechnologies.in/api/uploads/tariningwebsite/landing/advancedautomation.png',
         bgColor: 'bg-white dark:bg-orange-950/30',
         borderColor: 'border-orange-200 dark:border-orange-800'
     },
@@ -161,7 +161,7 @@ const courses = [
         fees: '₹28,000',
         icon: Settings,
         route: '/skill-training/corporate',
-        image: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        image: 'https://sovirtechnologies.in/api/uploads/tariningwebsite/landing/customizedcorporate.png',
         bgColor: 'bg-white dark:bg-pink-950/30',
         borderColor: 'border-pink-200 dark:border-pink-800'
     }
