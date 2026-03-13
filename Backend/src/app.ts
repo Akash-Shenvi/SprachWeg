@@ -53,4 +53,7 @@ app.use('/api/contact', contactRoutes);
 import trialRoutes from './routes/trialRequest.routes';
 app.use('/api', trialRoutes);
 
+import feedbackRoutes from './routes/feedback.routes';
+app.use('/api/feedback', feedbackRoutes);
+
 export default app;
