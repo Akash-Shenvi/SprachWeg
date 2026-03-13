@@ -44,15 +44,6 @@ const Footer: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Column 2: Language Training */}
-                    <div>
-                        <h3 className="font-bold text-white mb-6 text-base">Language Training</h3>
-                        <ul className="space-y-3 text-sm text-gray-400">
-                            <li><Link to="/training/german" className="hover:text-[#d6b161] transition-colors block">German Training</Link></li>
-                            <li><Link to="/training/english" className="hover:text-[#d6b161] transition-colors block">English Training</Link></li>
-                            <li><Link to="/training/japanese" className="hover:text-[#d6b161] transition-colors block">Japanese Training</Link></li>
-                        </ul>
-                    </div>
 
                     {/* Column 3: Career Abroad (previously Column 2) */}
                     <div>
