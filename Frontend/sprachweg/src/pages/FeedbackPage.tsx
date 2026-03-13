@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, X, Loader2, Send, MessageSquareHeart } from 'lucide-react';
+import { Upload, X, Loader2, Send, MessageSquareHeart, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const FeedbackPage: React.FC = () => {
@@ -12,6 +12,7 @@ const FeedbackPage: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -80,6 +81,8 @@ const FeedbackPage: React.FC = () => {
                 // Reset form
                 setFormData({ name: '', email: '', problem: '' });
                 removeFile();
+                setIsSuccess(true);
+                setTimeout(() => setIsSuccess(false), 3000);
             } else {
                 toast.error(data.message || 'Failed to submit feedback.');
             }
@@ -208,7 +211,7 @@ const FeedbackPage: React.FC = () => {
                                                 </label>
                                                 <p className="pl-1">or drag and drop</p>
                                             </div>
-                                            <p className="text-xs text-gray-500 dark:text-gray-500">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
                                                 PNG, JPG, JPEG up to 5MB
                                             </p>
                                         </div>
@@ -238,13 +241,22 @@ const FeedbackPage: React.FC = () => {
                             <div className="pt-4">
                                 <button
                                     type="submit"
-                                    disabled={isLoading}
-                                    className="w-full sm:w-auto flex justify-center items-center gap-2 px-8 py-3.5 border border-transparent text-base font-semibold rounded-lg text-[#0a192f] bg-[#d6b161] hover:bg-[#c4a055] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d6b161] disabled:opacity-70 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
+                                    disabled={isLoading || isSuccess}
+                                    className={`w-full sm:w-auto flex justify-center items-center gap-2 px-8 py-3.5 border border-transparent text-base font-semibold rounded-lg transition-all shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed ${
+                                        isSuccess 
+                                            ? 'bg-green-500 hover:bg-green-600 text-white focus:ring-green-500' 
+                                            : 'bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] focus:ring-[#d6b161]'
+                                    }`}
                                 >
                                     {isLoading ? (
                                         <>
                                             <Loader2 className="w-5 h-5 animate-spin" />
                                             Submitting...
+                                        </>
+                                    ) : isSuccess ? (
+                                        <>
+                                            <CheckCircle className="w-5 h-5" />
+                                            Success!
                                         </>
                                     ) : (
                                         <>
