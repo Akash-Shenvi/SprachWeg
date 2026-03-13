@@ -19,7 +19,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         { path: '/admin/language-enrollment-details', icon: BookOpen, label: 'Class Enrollments' },
         { path: '/admin/language-batches', icon: Users, label: 'Active Classes' },
         { path: '/admin/languages', icon: BookOpen, label: 'Language Courses' },
-        { path: '/admin/skills', icon: BookOpen, label: 'Skill Courses' },
+        // { path: '/admin/skills', icon: BookOpen, label: 'Skill Courses' },
         { path: '/admin/skills-details', icon: Edit, label: 'Skill Details' },
     ];
 
