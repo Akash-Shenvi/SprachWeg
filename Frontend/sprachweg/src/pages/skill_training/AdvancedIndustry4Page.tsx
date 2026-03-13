@@ -73,7 +73,8 @@ const AdvancedIndustry4Page: React.FC = () => {
         duration: '50 hours (6 weeks)',
         deliveryMode: 'Online / Offline / Hybrid',
         classTimings: 'Tue, Thu, Sat - 6 PM to 9 PM',
-        fees: '₹28,000'
+        fees: '₹28,000',
+        origin: 'industry-4.0'
     });
 
     React.useEffect(() => {
@@ -88,7 +89,8 @@ const AdvancedIndustry4Page: React.FC = () => {
                         duration: course.duration || '50 hours (6 weeks)',
                         deliveryMode: 'Online / Offline / Hybrid',
                         classTimings: 'Tue, Thu, Sat - 6 PM to 9 PM',
-                        fees: '₹28,000'
+                        fees: '₹28,000',
+                        origin: 'industry-4.0'
                     };
 
                     try {
@@ -97,6 +99,7 @@ const AdvancedIndustry4Page: React.FC = () => {
                             details.deliveryMode = flexibleDetails.deliveryMode || details.deliveryMode;
                             details.classTimings = flexibleDetails.classTimings || details.classTimings;
                             details.fees = flexibleDetails.fees || details.fees;
+                            details.origin = flexibleDetails.origin || details.origin;
                         }
                     } catch (err) {
                         console.error("Error fetching flexible details", err);
@@ -381,7 +384,7 @@ const AdvancedIndustry4Page: React.FC = () => {
             <EnrollmentModal
                 isOpen={isEnrollModalOpen}
                 onClose={() => setIsEnrollModalOpen(false)}
-                origin="industry-4.0"
+                origin={courseDetails.origin}
                 originPath="/skill-training/industry4"
             />
         </div>

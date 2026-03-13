@@ -21,6 +21,7 @@ interface FormData {
     deliveryMode: string;
     classTimings: string;
     fees: string;
+    origin: string;
 }
 
 // ============= Constants =============
@@ -30,6 +31,7 @@ const INITIAL_FORM_STATE: FormData = {
     deliveryMode: '',
     classTimings: '',
     fees: '',
+    origin: '',
 };
 
 const SkillDashboard1: React.FC = () => {
@@ -76,10 +78,11 @@ const SkillDashboard1: React.FC = () => {
     const handleOpenForm = async (course: SkillCourse) => {
         setEditingId(course._id || null);
 
-        let details = {
+        let details: { deliveryMode: string; classTimings: string; fees: string; origin: string } = {
             deliveryMode: 'Online / Offline / Hybrid',
             classTimings: 'Mon, Wed, Fri - 6 PM to 9 PM',
-            fees: '₹7200 to ₹13800'
+            fees: '₹7200 to ₹13800',
+            origin: ''
         };
 
         // Fetch existing flexible details if editing
@@ -90,7 +93,8 @@ const SkillDashboard1: React.FC = () => {
                     details = {
                         deliveryMode: apiDetails.deliveryMode || details.deliveryMode,
                         classTimings: apiDetails.classTimings || details.classTimings,
-                        fees: apiDetails.fees || details.fees
+                        fees: apiDetails.fees || details.fees,
+                        origin: apiDetails.origin || ''
                     };
                 }
             } catch (error) {
@@ -148,7 +152,8 @@ const SkillDashboard1: React.FC = () => {
                 skillCourseId: editingId,
                 deliveryMode: formData.deliveryMode,
                 classTimings: formData.classTimings,
-                fees: formData.fees
+                fees: formData.fees,
+                origin: formData.origin
             });
 
             addToast(`Details for "${formData.title}" updated successfully!`, 'success');
@@ -300,6 +305,23 @@ const SkillDashboard1: React.FC = () => {
                                         className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0a192f] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#d6b161]"
                                         placeholder="e.g. ₹7200 to ₹13800"
                                     />
+                                </div>
+
+                                {/* Origin */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Enrollment Origin
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.origin}
+                                        onChange={e => handleInputChange('origin', e.target.value)}
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0a192f] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#d6b161]"
+                                        placeholder="e.g. scada-hmi"
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        Identifier used for enrollment tracking (e.g. scada-hmi, plc-automation)
+                                    </p>
                                 </div>
 
                                 <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-800">

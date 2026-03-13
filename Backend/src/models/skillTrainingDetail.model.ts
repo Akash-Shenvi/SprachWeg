@@ -5,6 +5,7 @@ export interface ISkillTrainingDetail extends Document {
     deliveryMode: string;
     classTimings: string;
     fees: string;
+    origin?: string;
 }
 
 const SkillTrainingDetailSchema: Schema = new Schema(
@@ -13,6 +14,7 @@ const SkillTrainingDetailSchema: Schema = new Schema(
         deliveryMode: { type: String, default: 'On-site / Online / Hybrid' },
         classTimings: { type: String, default: 'Customized Schedule' },
         fees: { type: String, default: '₹28,000' },
+        origin: { type: String, default: '' },
     },
     { timestamps: true }
 );

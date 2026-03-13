@@ -13,7 +13,7 @@ import api from '../../lib/api';
 interface EnrollmentModalProps {
     isOpen: boolean;
     onClose: () => void;
-    origin: 'english' | 'german' | 'japanese' | 'scada-hmi' | 'plc-automation' | 'industrial-drives' | 'industry-4.0' | 'corporate-training';
+    origin: string;
     originPath?: string;
     selectedLevel?: string;
 }

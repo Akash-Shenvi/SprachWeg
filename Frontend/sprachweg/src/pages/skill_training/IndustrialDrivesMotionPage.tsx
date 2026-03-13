@@ -73,7 +73,8 @@ const IndustrialDrivesMotionPage: React.FC = () => {
         duration: '45 hours (5 weeks)',
         deliveryMode: 'Online / Offline / Hybrid',
         classTimings: 'Mon, Wed, Fri - 6 PM to 9 PM',
-        fees: '₹10200 to ₹18800'
+        fees: '₹10200 to ₹18800',
+        origin: 'industrial-drives'
     });
 
     React.useEffect(() => {
@@ -88,7 +89,8 @@ const IndustrialDrivesMotionPage: React.FC = () => {
                         duration: course.duration || '45 hours (5 weeks)',
                         deliveryMode: 'Online / Offline / Hybrid',
                         classTimings: 'Mon, Wed, Fri - 6 PM to 9 PM',
-                        fees: '₹10200 to ₹18800'
+                        fees: '₹10200 to ₹18800',
+                        origin: 'industrial-drives'
                     };
 
                     try {
@@ -97,6 +99,7 @@ const IndustrialDrivesMotionPage: React.FC = () => {
                             details.deliveryMode = flexibleDetails.deliveryMode || details.deliveryMode;
                             details.classTimings = flexibleDetails.classTimings || details.classTimings;
                             details.fees = flexibleDetails.fees || details.fees;
+                            details.origin = flexibleDetails.origin || details.origin;
                         }
                     } catch (err) {
                         console.error("Error fetching flexible details", err);
@@ -381,7 +384,7 @@ const IndustrialDrivesMotionPage: React.FC = () => {
             <EnrollmentModal
                 isOpen={isEnrollModalOpen}
                 onClose={() => setIsEnrollModalOpen(false)}
-                origin="industrial-drives"
+                origin={courseDetails.origin}
                 originPath="/skill-training/drives"
             />
         </div>

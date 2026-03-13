@@ -5,7 +5,7 @@ import SkillCourse from '../models/skillCourse.model';
 // Create or Update Details for a specific course
 export const createOrUpdateDetail = async (req: Request, res: Response) => {
     try {
-        const { skillCourseId, deliveryMode, classTimings, fees } = req.body;
+        const { skillCourseId, deliveryMode, classTimings, fees, origin } = req.body;
 
         if (!skillCourseId) {
             return res.status(400).json({ message: 'skillCourseId is required' });
@@ -20,7 +20,7 @@ export const createOrUpdateDetail = async (req: Request, res: Response) => {
         // Upsert: update if exists, insert if not
         const detail = await SkillTrainingDetail.findOneAndUpdate(
             { skillCourseId },
-            { deliveryMode, classTimings, fees },
+            { deliveryMode, classTimings, fees, origin },
             { new: true, upsert: true, setDefaultsOnInsert: true }
         );
 
@@ -43,7 +43,8 @@ export const getDetailByCourseId = async (req: Request, res: Response) => {
                 skillCourseId: courseId,
                 deliveryMode: 'On-site / Online / Hybrid',
                 classTimings: 'Customized Schedule',
-                fees: '₹28,000'
+                fees: '₹28,000',
+                origin: ''
             });
         }
 

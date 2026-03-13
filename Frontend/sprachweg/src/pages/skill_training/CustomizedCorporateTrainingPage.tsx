@@ -73,7 +73,8 @@ const CustomizedCorporateTrainingPage: React.FC = () => {
         duration: 'Flexible (Client-based)',
         deliveryMode: 'On-site / Online / Hybrid',
         classTimings: 'Customized Schedule',
-        fees: '₹28,000'
+        fees: '₹28,000',
+        origin: 'corporate-training'
     });
 
     React.useEffect(() => {
@@ -88,7 +89,8 @@ const CustomizedCorporateTrainingPage: React.FC = () => {
                         duration: course.duration || 'Flexible (Client-based)',
                         deliveryMode: 'On-site / Online / Hybrid',
                         classTimings: 'Customized Schedule',
-                        fees: '₹28,000'
+                        fees: '₹28,000',
+                        origin: 'corporate-training'
                     };
 
                     try {
@@ -97,6 +99,7 @@ const CustomizedCorporateTrainingPage: React.FC = () => {
                             details.deliveryMode = flexibleDetails.deliveryMode || details.deliveryMode;
                             details.classTimings = flexibleDetails.classTimings || details.classTimings;
                             details.fees = flexibleDetails.fees || details.fees;
+                            details.origin = flexibleDetails.origin || details.origin;
                         }
                     } catch (err) {
                         console.error("Error fetching flexible details", err);
@@ -381,7 +384,7 @@ const CustomizedCorporateTrainingPage: React.FC = () => {
             <EnrollmentModal
                 isOpen={isEnrollModalOpen}
                 onClose={() => setIsEnrollModalOpen(false)}
-                origin="corporate-training"
+                origin={courseDetails.origin}
                 originPath="/skill-training/corporate"
             />
         </div>

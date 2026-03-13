@@ -73,7 +73,8 @@ const SCADAAndHMIPage: React.FC = () => {
         duration: '40 hours (5 weeks)',
         deliveryMode: 'Online / Offline / Hybrid',
         classTimings: 'Mon, Wed, Fri - 6 PM to 9 PM',
-        fees: '₹7200 to ₹13800'
+        fees: '₹7200 to ₹13800',
+        origin: 'scada-hmi'
     });
 
     React.useEffect(() => {
@@ -88,7 +89,8 @@ const SCADAAndHMIPage: React.FC = () => {
                         duration: course.duration || '40 hours (5 weeks)',
                         deliveryMode: 'Online / Offline / Hybrid',
                         classTimings: 'Mon, Wed, Fri - 6 PM to 9 PM',
-                        fees: '₹7200 to ₹13800'
+                        fees: '₹7200 to ₹13800',
+                        origin: 'scada-hmi'
                     };
 
                     try {
@@ -97,6 +99,7 @@ const SCADAAndHMIPage: React.FC = () => {
                             details.deliveryMode = flexibleDetails.deliveryMode || details.deliveryMode;
                             details.classTimings = flexibleDetails.classTimings || details.classTimings;
                             details.fees = flexibleDetails.fees || details.fees;
+                            details.origin = flexibleDetails.origin || details.origin;
                         }
                     } catch (err) {
                         console.error("Error fetching flexible details", err);
@@ -381,7 +384,7 @@ const SCADAAndHMIPage: React.FC = () => {
             <EnrollmentModal
                 isOpen={isEnrollModalOpen}
                 onClose={() => setIsEnrollModalOpen(false)}
-                origin="scada-hmi"
+                origin={courseDetails.origin}
                 originPath="/skill-training/scada"
             />
         </div>
