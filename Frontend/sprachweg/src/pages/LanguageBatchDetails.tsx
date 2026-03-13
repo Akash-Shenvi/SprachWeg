@@ -19,6 +19,7 @@ import {
     Calendar,
     GraduationCap,
     User as UserIcon,
+    Eye
 
 } from 'lucide-react';
 import Header from '../components/layout/Header';
@@ -104,6 +105,9 @@ const LanguageBatchDetails: React.FC = () => {
 
     // View Student Profile State
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+
+    // Pagination State
+    const [visibleStudentsCount, setVisibleStudentsCount] = useState(15);
 
     const isTrainer = user?.role === 'trainer' || user?._id === batch?.trainerId;
 
@@ -602,26 +606,29 @@ const LanguageBatchDetails: React.FC = () => {
 
                                     <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                                    {isTrainer && (
-                                        <button
-                                            onClick={() => handleDeleteMaterial(item._id)}
-                                            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 hover:text-red-600 dark:text-red-400 shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
-                                            title="Delete material"
-                                            aria-label="Delete material"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    )}
-
-                                    <div className="relative z-10">
-                                        <div className="mb-4 flex items-center justify-between">
-                                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-green-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 transition-transform group-hover:scale-110 duration-300">
-                                                {getFileIcon(item.fileUrl)}
+                                    <div className="relative z-10 flex flex-col h-full">
+                                        {/* Header Row: Icon, Date, Delete Button */}
+                                        <div className="mb-4 flex items-start justify-between">
+                                            <div className="flex gap-3 items-center">
+                                                <div className="flex flex-shrink-0 h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-green-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 transition-transform group-hover:scale-110 duration-300">
+                                                    {getFileIcon(item.fileUrl)}
+                                                </div>
+                                                {item.createdAt && (
+                                                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 px-2 py-1 rounded-lg">
+                                                        {new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                    </span>
+                                                )}
                                             </div>
-                                            {item.createdAt && (
-                                                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 px-2 py-1 rounded-lg">
-                                                    {new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                                </span>
+                                            
+                                            {isTrainer && (
+                                                <button
+                                                    onClick={() => handleDeleteMaterial(item._id)}
+                                                    className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 ml-2 rounded-lg bg-white/80 dark:bg-gray-800/80 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 hover:text-red-600 dark:text-red-400 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
+                                                    title="Delete material"
+                                                    aria-label="Delete material"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
                                             )}
                                         </div>
 
@@ -638,17 +645,31 @@ const LanguageBatchDetails: React.FC = () => {
                                         </div>
 
                                         {item.fileUrl ? (
-                                            <a
-                                                href={getAssetUrl(item.fileUrl)}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="mt-auto inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500/10 to-green-500/10 hover:from-emerald-500 hover:to-green-500 py-2.5 text-sm font-semibold text-emerald-600 hover:text-white dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:text-white transition-all duration-300 border border-emerald-200 dark:border-emerald-700/50 hover:border-emerald-500 dark:hover:border-emerald-400"
-                                                role="button"
-                                                aria-label={`Download ${item.title}`}
-                                            >
-                                                <Download className="h-4 w-4" />
-                                                Download
-                                            </a>
+                                            <div className="mt-auto flex items-center gap-2 pt-4 border-t border-gray-100 dark:border-gray-700/50">
+                                                <a
+                                                    href={getAssetUrl(item.fileUrl)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 transition-all duration-300 border border-gray-200 dark:border-gray-700"
+                                                    title="View in new tab"
+                                                    aria-label={`View ${item.title}`}
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                    View
+                                                </a>
+                                                <a
+                                                    href={getAssetUrl(item.fileUrl)}
+                                                    download={item.title}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500/10 to-green-500/10 hover:from-emerald-500 hover:to-green-500 py-2.5 text-sm font-semibold text-emerald-600 hover:text-white dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:text-white transition-all duration-300 border border-emerald-200 dark:border-emerald-700/50 hover:border-emerald-500 dark:hover:border-emerald-400"
+                                                    title="Download file directly"
+                                                    aria-label={`Download ${item.title}`}
+                                                >
+                                                    <Download className="h-4 w-4" />
+                                                    Download
+                                                </a>
+                                            </div>
                                         ) : (
                                             <div className="mt-auto w-full py-2.5 text-center text-sm font-medium text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                                                 No file
@@ -667,7 +688,7 @@ const LanguageBatchDetails: React.FC = () => {
                                 </div>
                             )}
 
-                            {(batch.students || []).map((student, idx) => (
+                            {(batch.students || []).slice(0, visibleStudentsCount).map((student, idx) => (
                                 <div
                                     key={student._id}
                                     className="group relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-800/50 backdrop-blur-xl p-5 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-left duration-500"
@@ -703,6 +724,16 @@ const LanguageBatchDetails: React.FC = () => {
                                     </div>
                                 </div>
                             ))}
+                            {(batch.students || []).length > visibleStudentsCount && (
+                                <div className="flex justify-center mt-8 pb-4">
+                                    <button
+                                        onClick={() => setVisibleStudentsCount((prev) => prev + 15)}
+                                        className="px-6 py-2.5 bg-white dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold rounded-lg border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b161]/50 shadow-sm"
+                                    >
+                                        Load More ({batch.students.length - visibleStudentsCount} remaining)
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

@@ -42,6 +42,9 @@ const LanguageBatches: React.FC = () => {
     const [promoteEmail, setPromoteEmail] = useState("");
     const [promoting, setPromoting] = useState(false);
 
+    // Pagination State
+    const [visibleCount, setVisibleCount] = useState(15);
+
     const fetchData = async () => {
         try {
             const [batchesRes, trainersRes] = await Promise.all([
@@ -200,7 +203,10 @@ const LanguageBatches: React.FC = () => {
                             type="text"
                             placeholder="Search students or batches..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setVisibleCount(15); // Reset pagination on search
+                            }}
                             className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0a192f] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#d6b161] focus:border-transparent outline-none transition-all"
                         />
                     </div>
@@ -209,7 +215,10 @@ const LanguageBatches: React.FC = () => {
                         <Filter className="text-gray-500 dark:text-gray-400 w-5 h-5" />
                         <select
                             value={filterCourse}
-                            onChange={(e) => setFilterCourse(e.target.value)}
+                            onChange={(e) => {
+                                setFilterCourse(e.target.value);
+                                setVisibleCount(15); // Reset pagination on filter
+                            }}
                             className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0a192f] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#d6b161] outline-none cursor-pointer"
                         >
                             {uniqueCourses.map(course => (
@@ -243,7 +252,7 @@ const LanguageBatches: React.FC = () => {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {filteredBatches.map((batch) => {
+                        {filteredBatches.slice(0, visibleCount).map((batch) => {
                             const visibleStudents = getVisibleStudents(batch);
                             const shouldExpand = expandedBatch === batch._id || (searchTerm.length > 0 && visibleStudents.length > 0);
                             const assignedTrainer = trainers.find(t => t._id === batch.trainerId);
@@ -371,6 +380,17 @@ const LanguageBatches: React.FC = () => {
                                 </div>
                             );
                         })}
+                        
+                        {visibleCount < filteredBatches.length && (
+                            <div className="flex justify-center mt-8 pb-4">
+                                <button
+                                    onClick={() => setVisibleCount((prev) => prev + 15)}
+                                    className="px-6 py-2.5 bg-white dark:bg-[#112240] text-gray-700 dark:text-gray-300 font-semibold rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-[#0a192f]/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b161]/50 shadow-sm"
+                                >
+                                    Load More ({filteredBatches.length - visibleCount} remaining)
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
