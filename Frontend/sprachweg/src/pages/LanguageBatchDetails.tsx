@@ -105,6 +105,7 @@ const LanguageBatchDetails: React.FC = () => {
 
     // View Student Profile State
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+    const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
 
     // Pagination State — per tab
     const PAGE_LIMIT = 10;
@@ -1111,7 +1112,13 @@ const LanguageBatchDetails: React.FC = () => {
                             <div className="flex flex-col sm:flex-row items-center gap-6 mb-8">
                                 <div className="w-24 h-24 rounded-full bg-[#d6b161] text-[#0a192f] text-4xl font-bold flex items-center justify-center shadow-lg shrink-0">
                                     {selectedStudent.avatar ? (
-                                        <img src={selectedStudent.avatar} alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                                        <img 
+                                            src={getAssetUrl(selectedStudent.avatar)} 
+                                            alt="Avatar" 
+                                            className="w-full h-full rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity" 
+                                            onClick={() => setIsAvatarFullScreen(true)}
+                                            title="Click to view full screen"
+                                        />
                                     ) : (
                                         selectedStudent.name.charAt(0).toUpperCase()
                                     )}
@@ -1194,6 +1201,27 @@ const LanguageBatchDetails: React.FC = () => {
                             </div>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Full Screen Avatar Modal */}
+            {isAvatarFullScreen && selectedStudent?.avatar && (
+                <div 
+                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4 animate-in fade-in duration-300 backdrop-blur-sm"
+                    onClick={() => setIsAvatarFullScreen(false)}
+                >
+                    <button 
+                        className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors p-2"
+                        onClick={() => setIsAvatarFullScreen(false)}
+                    >
+                        <X className="w-8 h-8" />
+                    </button>
+                    <img 
+                        src={getAssetUrl(selectedStudent.avatar)} 
+                        alt="Full Screen Avatar" 
+                        className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    />
                 </div>
             )}
 

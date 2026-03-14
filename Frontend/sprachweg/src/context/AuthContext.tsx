@@ -26,7 +26,7 @@ interface AuthContextType {
     resendOtp: (email: string) => Promise<void>;
     logout: () => void;
     refreshUser: () => Promise<void>;
-    updateProfile: (data: Partial<User>) => Promise<void>;
+    updateProfile: (data: Partial<User> | FormData) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -109,8 +109,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(userData);
     };
 
-    const updateProfile = async (data: Partial<User>) => {
-        const response = await api.put('/auth/profile/complete', data);
+    const updateProfile = async (data: Partial<User> | FormData) => {
+        const isFormData = data instanceof FormData;
+        const config = isFormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+        const response = await api.put('/auth/profile/complete', data, config);
         const updatedUser = response.data;
 
         // Merge with existing token if needed, but usually we just update user data

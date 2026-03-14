@@ -18,6 +18,10 @@ export const updateProfile = async (req: Request, res: Response) => {
         if (qualification) user.qualification = qualification;
         if (dateOfBirth) user.dateOfBirth = new Date(dateOfBirth);
 
+        if (req.file) {
+            user.avatar = `/uploads/courses/${req.file.filename}`;
+        }
+
         await user.save();
 
         res.status(200).json({
@@ -30,7 +34,8 @@ export const updateProfile = async (req: Request, res: Response) => {
             guardianName: user.guardianName,
             guardianPhone: user.guardianPhone,
             qualification: user.qualification,
-            dateOfBirth: user.dateOfBirth
+            dateOfBirth: user.dateOfBirth,
+            avatar: user.avatar
         });
     } catch (error) {
         res.status(500).json({ message: (error as Error).message });

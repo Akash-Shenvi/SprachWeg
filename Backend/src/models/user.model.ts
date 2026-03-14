@@ -46,7 +46,7 @@ const UserSchema: Schema = new Schema({
 
 // Virtual property to check if profile is complete
 UserSchema.virtual('isProfileComplete').get(function (this: IUser) {
-    return !!(this.phoneNumber && this.guardianName && this.guardianPhone && this.qualification);
+    return !!(this.phoneNumber && this.guardianName && this.guardianPhone && this.qualification && this.avatar);
 });
 
 export default mongoose.model<IUser>('User', UserSchema);

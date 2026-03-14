@@ -18,6 +18,7 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
         dateOfBirth: '',
         qualification: 'High School',
     });
+    const [avatar, setAvatar] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -43,8 +44,22 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
         setError(null);
         setLoading(true);
 
+        if (!avatar) {
+            setError('Profile picture is required.');
+            setLoading(false);
+            return;
+        }
+
         try {
-            await updateProfile(formData);
+            const submitData = new FormData();
+            submitData.append('phoneNumber', formData.phoneNumber);
+            submitData.append('guardianName', formData.guardianName);
+            submitData.append('guardianPhone', formData.guardianPhone);
+            submitData.append('dateOfBirth', formData.dateOfBirth);
+            submitData.append('qualification', formData.qualification);
+            submitData.append('avatar', avatar);
+
+            await updateProfile(submitData);
             if (onClose) {
                 onClose();
             }
@@ -87,6 +102,17 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
                     )}
 
                     <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Profile Picture <span className="text-red-500">*</span></label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                required
+                                onChange={(e) => setAvatar(e.target.files ? e.target.files[0] : null)}
+                                className="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[#d6b161] file:text-[#0a192f] hover:file:bg-[#c4a055] file:cursor-pointer cursor-pointer"
+                            />
+                        </div>
+
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
                             <input

@@ -3,6 +3,7 @@ import { register, verifyOtp, resendOtp, login, googleLogin, getMe, forgotPasswo
 import { connectGoogle, googleCallback } from '../controllers/auth.google.controller';
 import { updateProfile } from '../controllers/user.controller';
 import { protect } from '../middlewares/auth.middleware';
+import { upload } from '../config/multer';
 
 const router = express.Router();
 
@@ -16,6 +17,6 @@ router.get('/google/url', protect, connectGoogle);
 router.post('/google', googleLogin);
 router.post('/google/callback', protect, googleCallback);
 router.get('/me', protect, getMe);
-router.put('/profile/complete', protect, updateProfile);
+router.put('/profile/complete', protect, upload.single('avatar'), updateProfile);
 
 export default router;
