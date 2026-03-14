@@ -14,6 +14,7 @@ const startServer = async () => {
     const httpServer = http.createServer(app);
 
     const io = new SocketIOServer(httpServer, {
+        path: '/api/socket.io',   // must match nginx /api/* proxy rule
         cors: {
             origin: [
                 'https://training.sovirtechnologies.in'

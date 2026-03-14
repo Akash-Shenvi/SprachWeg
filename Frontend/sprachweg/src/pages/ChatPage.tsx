@@ -124,10 +124,12 @@ const ChatPage: React.FC = () => {
             return;
         }
 
-        // Use both websocket and polling so it works through nginx proxies
+        // Use polling-first so it always works through nginx proxies.
+        // It will automatically upgrade to WebSocket if nginx allows it.
         const socket = io(API_BASE_URL, {
             auth: { token },
-            transports: ['websocket', 'polling'],
+            path: '/api/socket.io',
+            transports: ['polling', 'websocket'],
         });
 
         socketRef.current = socket;
