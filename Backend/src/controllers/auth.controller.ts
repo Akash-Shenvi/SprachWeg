@@ -99,7 +99,8 @@ export const verifyOtp = async (req: Request, res: Response) => {
                 guardianName: (user as any).guardianName,
                 guardianPhone: (user as any).guardianPhone,
                 qualification: (user as any).qualification,
-                dateOfBirth: (user as any).dateOfBirth
+                dateOfBirth: (user as any).dateOfBirth,
+                avatar: (user as any).avatar
             }
         });
     } catch (error) {
@@ -228,7 +229,8 @@ export const login = async (req: Request, res: Response) => {
                 guardianName: (user as any).guardianName,
                 guardianPhone: (user as any).guardianPhone,
                 qualification: (user as any).qualification,
-                dateOfBirth: (user as any).dateOfBirth
+                dateOfBirth: (user as any).dateOfBirth,
+                avatar: (user as any).avatar
             }
         });
     } catch (error) {
@@ -287,7 +289,8 @@ export const googleLogin = async (req: Request, res: Response) => {
                 guardianName: (user as any).guardianName,
                 guardianPhone: (user as any).guardianPhone,
                 qualification: (user as any).qualification,
-                dateOfBirth: (user as any).dateOfBirth
+                dateOfBirth: (user as any).dateOfBirth,
+                avatar: (user as any).avatar
             }
         });
     } catch (error) {
@@ -315,6 +318,7 @@ export const getMe = async (req: Request, res: Response) => {
             guardianPhone: user.guardianPhone,
             qualification: user.qualification,
             dateOfBirth: user.dateOfBirth,
+            avatar: user.avatar,
             googleRefreshToken: !!user.googleRefreshToken // Return boolean status
         });
     } catch (error) {
