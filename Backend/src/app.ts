@@ -56,4 +56,7 @@ app.use('/api', trialRoutes);
 import feedbackRoutes from './routes/feedback.routes';
 app.use('/api/feedback', feedbackRoutes);
 
+import fileLinkRoutes from './routes/fileLink.routes';
+app.use('/api/admin/files', fileLinkRoutes);
+
 export default app;

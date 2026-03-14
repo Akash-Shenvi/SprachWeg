@@ -42,6 +42,7 @@ import AdminBookingRequests from './pages/Admin/AdminBookingRequests';
 import ManageTrainers from './pages/Admin/ManageTrainers';
 import FeedbackPage from './pages/FeedbackPage';
 import AdminFeedback from './pages/Admin/AdminFeedback';
+import AdminFileLinks from './pages/Admin/AdminFileLinks';
 
 
 
@@ -290,6 +291,14 @@ const AppContent = () => {
           element={
             <AdminRoute>
               <AdminFeedback />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/file-links"
+          element={
+            <AdminRoute>
+              <AdminFileLinks />
             </AdminRoute>
           }
         />

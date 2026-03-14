@@ -1,0 +1,22 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const language_enrolment_controller_1 = require("../controllers/language.enrolment.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const router = express_1.default.Router();
+router.post("/enroll", auth_middleware_1.isAuth, language_enrolment_controller_1.applyEnrollment);
+router.get("/my-enrollments", auth_middleware_1.isAuth, language_enrolment_controller_1.getMyEnrollments);
+router.get("/admin/enrollments", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.getEnrollments);
+router.post("/admin/enroll/:id/approve", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.approveEnrollment);
+router.post("/admin/enroll/:id/reject", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.rejectEnrollment);
+router.get("/admin/batches", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.getBatches);
+router.get("/admin/trainers", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.getTrainers);
+router.put("/admin/batches/:batchId/assign-trainer", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.assignTrainer);
+router.post("/admin/promote-trainer", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.promoteToTrainer);
+router.delete("/admin/trainers/:id", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.demoteTrainer);
+router.delete("/admin/batches/:batchId/students/:studentId", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.removeStudentFromBatch);
+router.delete("/admin/batches/:id", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.deleteBatch);
+exports.default = router;
