@@ -34,31 +34,16 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const UserSchema = new mongoose_1.Schema({
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String }, // Optional for Google Auth users
-    googleId: { type: String, unique: true, sparse: true },
-    avatar: { type: String },
-    phoneNumber: { type: String },
-    germanLevel: { type: String },
-    guardianName: { type: String },
-    guardianPhone: { type: String },
-    qualification: { type: String },
-    dateOfBirth: { type: Date },
-    role: { type: String, default: 'student' },
-    isVerified: { type: Boolean, default: false },
-    otp: { type: String }, // Hashed
-    otpExpires: { type: Date },
-    lastOtpSent: { type: Date },
-    googleRefreshToken: { type: String, select: false } // Store securely, don't return by default
-}, {
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true }
-});
-// Virtual property to check if profile is complete
-UserSchema.virtual('isProfileComplete').get(function () {
-    return !!(this.phoneNumber && this.guardianName && this.guardianPhone && this.qualification && this.avatar);
-});
-exports.default = mongoose_1.default.model('User', UserSchema);
+const ChatMessageSchema = new mongoose_1.Schema({
+    studentId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    trainerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    senderId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'User', required: true },
+    content: { type: String, required: true, trim: true, maxlength: 2000 },
+    createdAt: { type: Date, default: Date.now }
+}, { timestamps: false });
+// TTL index: MongoDB will automatically delete messages after 7 days
+ChatMessageSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 });
+// Compound index for efficient room-based queries
+ChatMessageSchema.index({ studentId: 1, trainerId: 1, createdAt: -1 });
+const ChatMessage = mongoose_1.default.model('ChatMessage', ChatMessageSchema);
+exports.default = ChatMessage;

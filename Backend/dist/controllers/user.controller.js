@@ -17,11 +17,13 @@ const user_model_1 = __importDefault(require("../models/user.model"));
 const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = req.user._id;
-        const { phoneNumber, guardianName, guardianPhone, qualification, dateOfBirth } = req.body;
+        const { name, phoneNumber, guardianName, guardianPhone, qualification, dateOfBirth } = req.body;
         const user = yield user_model_1.default.findById(userId);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
+        if (name)
+            user.name = name;
         if (phoneNumber)
             user.phoneNumber = phoneNumber;
         if (guardianName)
@@ -32,6 +34,9 @@ const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             user.qualification = qualification;
         if (dateOfBirth)
             user.dateOfBirth = new Date(dateOfBirth);
+        if (req.file) {
+            user.avatar = `/uploads/courses/${req.file.filename}`;
+        }
         yield user.save();
         res.status(200).json({
             id: user._id,
@@ -43,7 +48,8 @@ const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             guardianName: user.guardianName,
             guardianPhone: user.guardianPhone,
             qualification: user.qualification,
-            dateOfBirth: user.dateOfBirth
+            dateOfBirth: user.dateOfBirth,
+            avatar: user.avatar
         });
     }
     catch (error) {

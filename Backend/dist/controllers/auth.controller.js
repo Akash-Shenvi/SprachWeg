@@ -106,7 +106,8 @@ const verifyOtp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 guardianName: user.guardianName,
                 guardianPhone: user.guardianPhone,
                 qualification: user.qualification,
-                dateOfBirth: user.dateOfBirth
+                dateOfBirth: user.dateOfBirth,
+                avatar: user.avatar
             }
         });
     }
@@ -229,7 +230,8 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 guardianName: user.guardianName,
                 guardianPhone: user.guardianPhone,
                 qualification: user.qualification,
-                dateOfBirth: user.dateOfBirth
+                dateOfBirth: user.dateOfBirth,
+                avatar: user.avatar
             }
         });
     }
@@ -284,7 +286,8 @@ const googleLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 guardianName: user.guardianName,
                 guardianPhone: user.guardianPhone,
                 qualification: user.qualification,
-                dateOfBirth: user.dateOfBirth
+                dateOfBirth: user.dateOfBirth,
+                avatar: user.avatar
             }
         });
     }
@@ -311,6 +314,7 @@ const getMe = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             guardianPhone: user.guardianPhone,
             qualification: user.qualification,
             dateOfBirth: user.dateOfBirth,
+            avatar: user.avatar,
             googleRefreshToken: !!user.googleRefreshToken // Return boolean status
         });
     }

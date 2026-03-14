@@ -48,4 +48,8 @@ const feedback_routes_1 = __importDefault(require("./routes/feedback.routes"));
 app.use('/api/feedback', feedback_routes_1.default);
 const fileLink_routes_1 = __importDefault(require("./routes/fileLink.routes"));
 app.use('/api/admin/files', fileLink_routes_1.default);
+const student_routes_1 = __importDefault(require("./routes/student.routes"));
+app.use('/api/admin', student_routes_1.default);
+const chat_routes_1 = __importDefault(require("./routes/chat.routes"));
+app.use('/api/chat', chat_routes_1.default);
 exports.default = app;

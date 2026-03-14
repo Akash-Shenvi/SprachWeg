@@ -136,19 +136,32 @@ const getBatchDetails = (req, res) => __awaiter(void 0, void 0, void 0, function
         }
         // Explicitly map response to ensure all fields are sent
         const batchObj = batch.toObject();
-        batchObj.students = batch.students.map((s) => ({
-            _id: s._id,
-            name: s.name,
-            email: s.email,
-            phoneNumber: s.phoneNumber,
-            avatar: s.avatar,
-            germanLevel: s.germanLevel,
-            guardianName: s.guardianName,
-            guardianPhone: s.guardianPhone,
-            qualification: s.qualification,
-            dateOfBirth: s.dateOfBirth,
-            isProfileComplete: !!(s.phoneNumber && s.guardianName && s.guardianPhone && s.qualification)
-        }));
+        // Trainers get full student data; students only see name + avatar
+        batchObj.students = batch.students.map((s) => {
+            if (isTrainer) {
+                return {
+                    _id: s._id,
+                    name: s.name,
+                    email: s.email,
+                    phoneNumber: s.phoneNumber,
+                    avatar: s.avatar,
+                    germanLevel: s.germanLevel,
+                    guardianName: s.guardianName,
+                    guardianPhone: s.guardianPhone,
+                    qualification: s.qualification,
+                    dateOfBirth: s.dateOfBirth,
+                    isProfileComplete: !!(s.phoneNumber && s.guardianName && s.guardianPhone && s.qualification)
+                };
+            }
+            else {
+                // Student viewers: only name and avatar
+                return {
+                    _id: s._id,
+                    name: s.name,
+                    avatar: s.avatar,
+                };
+            }
+        });
         res.json(batchObj);
     }
     catch (error) {
@@ -503,18 +516,30 @@ const getBatchStudents = (req, res) => __awaiter(void 0, void 0, void 0, functio
             { $project: { count: { $size: '$students' } } }
         ]);
         const trueTotal = ((_d = totalCount[0]) === null || _d === void 0 ? void 0 : _d.count) || 0;
-        const data = batch.students.map(s => ({
-            _id: s._id,
-            name: s.name,
-            email: s.email,
-            phoneNumber: s.phoneNumber,
-            avatar: s.avatar,
-            germanLevel: s.germanLevel,
-            guardianName: s.guardianName,
-            guardianPhone: s.guardianPhone,
-            qualification: s.qualification,
-            dateOfBirth: s.dateOfBirth,
-        }));
+        // Trainers see full data; students viewing classmates only see name + avatar
+        const data = batch.students.map(s => {
+            if (isTrainer) {
+                return {
+                    _id: s._id,
+                    name: s.name,
+                    email: s.email,
+                    phoneNumber: s.phoneNumber,
+                    avatar: s.avatar,
+                    germanLevel: s.germanLevel,
+                    guardianName: s.guardianName,
+                    guardianPhone: s.guardianPhone,
+                    qualification: s.qualification,
+                    dateOfBirth: s.dateOfBirth,
+                };
+            }
+            else {
+                return {
+                    _id: s._id,
+                    name: s.name,
+                    avatar: s.avatar,
+                };
+            }
+        });
         res.json({ data, total: trueTotal, page, pages: Math.ceil(trueTotal / limit), hasMore: skip + data.length < trueTotal });
     }
     catch (error) {
