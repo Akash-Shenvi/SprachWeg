@@ -25,6 +25,7 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     yield (0, database_1.connectDB)();
     const httpServer = http_1.default.createServer(app_1.default);
     const io = new socket_io_1.Server(httpServer, {
+        path: '/api/socket.io', // must match nginx /api/* proxy rule
         cors: {
             origin: [
                 'https://training.sovirtechnologies.in'
@@ -54,13 +55,15 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         const userRole = socket.userRole;
         // Client joins their private 1-on-1 room
         socket.on('joinRoom', (_a) => __awaiter(void 0, [_a], void 0, function* ({ studentId, trainerId }) {
-            const isStudent = userRole === 'student' && userId === studentId;
-            const isTrainer = (userRole === 'trainer' || userRole === 'admin') && userId === trainerId;
+            const sId = String(studentId);
+            const tId = String(trainerId);
+            const isStudent = userRole === 'student' && userId === sId;
+            const isTrainer = (userRole === 'trainer' || userRole === 'admin') && userId === tId;
             if (!isStudent && !isTrainer) {
                 socket.emit('error', { message: 'Not authorized for this chat room' });
                 return;
             }
-            const room = `chat_${studentId}_${trainerId}`;
+            const room = `chat_${sId}_${tId}`;
             socket.join(room);
             console.log(`[Socket] User ${userId} (${userRole}) joined room: ${room}`);
         }));
@@ -68,15 +71,17 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         socket.on('sendMessage', (_a) => __awaiter(void 0, [_a], void 0, function* ({ studentId, trainerId, content }) {
             if (!(content === null || content === void 0 ? void 0 : content.trim()))
                 return;
-            const isStudent = userRole === 'student' && userId === studentId;
-            const isTrainer = (userRole === 'trainer' || userRole === 'admin') && userId === trainerId;
+            const sId = String(studentId);
+            const tId = String(trainerId);
+            const isStudent = userRole === 'student' && userId === sId;
+            const isTrainer = (userRole === 'trainer' || userRole === 'admin') && userId === tId;
             if (!isStudent && !isTrainer) {
                 socket.emit('error', { message: 'Not authorized to send messages in this chat' });
                 return;
             }
             // For student: verify trainer is actually assigned to their batch
             if (isStudent) {
-                const batch = yield language_batch_model_1.default.findOne({ students: studentId, trainerId });
+                const batch = yield language_batch_model_1.default.findOne({ students: sId, trainerId: tId });
                 if (!batch) {
                     socket.emit('error', { message: 'No batch found linking you to this trainer' });
                     return;
@@ -84,14 +89,14 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
             }
             try {
                 const message = yield chat_message_model_1.default.create({
-                    studentId,
-                    trainerId,
+                    studentId: sId,
+                    trainerId: tId,
                     senderId: userId,
                     content: content.trim(),
                     createdAt: new Date()
                 });
                 const populated = yield message.populate('senderId', 'name avatar _id');
-                const room = `chat_${studentId}_${trainerId}`;
+                const room = `chat_${sId}_${tId}`;
                 io.to(room).emit('newMessage', populated);
                 console.log(`[Socket] Message sent in room: ${room}`);
             }

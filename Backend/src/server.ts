@@ -44,13 +44,15 @@ const startServer = async () => {
 
         // Client joins their private 1-on-1 room
         socket.on('joinRoom', async ({ studentId, trainerId }: { studentId: string; trainerId: string }) => {
-            const isStudent = userRole === 'student' && userId === studentId;
-            const isTrainer = (userRole === 'trainer' || userRole === 'admin') && userId === trainerId;
+            const sId = String(studentId);
+            const tId = String(trainerId);
+            const isStudent = userRole === 'student' && userId === sId;
+            const isTrainer = (userRole === 'trainer' || userRole === 'admin') && userId === tId;
             if (!isStudent && !isTrainer) {
                 socket.emit('error', { message: 'Not authorized for this chat room' });
                 return;
             }
-            const room = `chat_${studentId}_${trainerId}`;
+            const room = `chat_${sId}_${tId}`;
             socket.join(room);
             console.log(`[Socket] User ${userId} (${userRole}) joined room: ${room}`);
         });
@@ -59,8 +61,10 @@ const startServer = async () => {
         socket.on('sendMessage', async ({ studentId, trainerId, content }: { studentId: string; trainerId: string; content: string }) => {
             if (!content?.trim()) return;
 
-            const isStudent = userRole === 'student' && userId === studentId;
-            const isTrainer = (userRole === 'trainer' || userRole === 'admin') && userId === trainerId;
+            const sId = String(studentId);
+            const tId = String(trainerId);
+            const isStudent = userRole === 'student' && userId === sId;
+            const isTrainer = (userRole === 'trainer' || userRole === 'admin') && userId === tId;
 
             if (!isStudent && !isTrainer) {
                 socket.emit('error', { message: 'Not authorized to send messages in this chat' });
@@ -69,7 +73,7 @@ const startServer = async () => {
 
             // For student: verify trainer is actually assigned to their batch
             if (isStudent) {
-                const batch = await LanguageBatch.findOne({ students: studentId, trainerId });
+                const batch = await LanguageBatch.findOne({ students: sId, trainerId: tId });
                 if (!batch) {
                     socket.emit('error', { message: 'No batch found linking you to this trainer' });
                     return;
@@ -78,8 +82,8 @@ const startServer = async () => {
 
             try {
                 const message = await ChatMessage.create({
-                    studentId,
-                    trainerId,
+                    studentId: sId,
+                    trainerId: tId,
                     senderId: userId,
                     content: content.trim(),
                     createdAt: new Date()
@@ -87,7 +91,7 @@ const startServer = async () => {
 
                 const populated = await message.populate('senderId', 'name avatar _id');
 
-                const room = `chat_${studentId}_${trainerId}`;
+                const room = `chat_${sId}_${tId}`;
                 io.to(room).emit('newMessage', populated);
                 console.log(`[Socket] Message sent in room: ${room}`);
             } catch (err) {
