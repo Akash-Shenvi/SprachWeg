@@ -135,19 +135,31 @@ export const getBatchDetails = async (req: AuthRequest, res: Response) => {
         const batchObj: any = batch.toObject();
 
 
-        batchObj.students = batch.students.map((s: any) => ({
-            _id: s._id,
-            name: s.name,
-            email: s.email,
-            phoneNumber: s.phoneNumber,
-            avatar: s.avatar,
-            germanLevel: s.germanLevel,
-            guardianName: s.guardianName,
-            guardianPhone: s.guardianPhone,
-            qualification: s.qualification,
-            dateOfBirth: s.dateOfBirth,
-            isProfileComplete: !!(s.phoneNumber && s.guardianName && s.guardianPhone && s.qualification)
-        }));
+        // Trainers get full student data; students only see name + avatar
+        batchObj.students = batch.students.map((s: any) => {
+            if (isTrainer) {
+                return {
+                    _id: s._id,
+                    name: s.name,
+                    email: s.email,
+                    phoneNumber: s.phoneNumber,
+                    avatar: s.avatar,
+                    germanLevel: s.germanLevel,
+                    guardianName: s.guardianName,
+                    guardianPhone: s.guardianPhone,
+                    qualification: s.qualification,
+                    dateOfBirth: s.dateOfBirth,
+                    isProfileComplete: !!(s.phoneNumber && s.guardianName && s.guardianPhone && s.qualification)
+                };
+            } else {
+                // Student viewers: only name and avatar
+                return {
+                    _id: s._id,
+                    name: s.name,
+                    avatar: s.avatar,
+                };
+            }
+        });
 
         res.json(batchObj);
     } catch (error) {
@@ -521,18 +533,30 @@ export const getBatchStudents = async (req: AuthRequest, res: Response) => {
             { $project: { count: { $size: '$students' } } }
         ]);
         const trueTotal = totalCount[0]?.count || 0;
-        const data = (batch.students as any[]).map(s => ({
-            _id: s._id,
-            name: s.name,
-            email: s.email,
-            phoneNumber: s.phoneNumber,
-            avatar: s.avatar,
-            germanLevel: s.germanLevel,
-            guardianName: s.guardianName,
-            guardianPhone: s.guardianPhone,
-            qualification: s.qualification,
-            dateOfBirth: s.dateOfBirth,
-        }));
+
+        // Trainers see full data; students viewing classmates only see name + avatar
+        const data = (batch.students as any[]).map(s => {
+            if (isTrainer) {
+                return {
+                    _id: s._id,
+                    name: s.name,
+                    email: s.email,
+                    phoneNumber: s.phoneNumber,
+                    avatar: s.avatar,
+                    germanLevel: s.germanLevel,
+                    guardianName: s.guardianName,
+                    guardianPhone: s.guardianPhone,
+                    qualification: s.qualification,
+                    dateOfBirth: s.dateOfBirth,
+                };
+            } else {
+                return {
+                    _id: s._id,
+                    name: s.name,
+                    avatar: s.avatar,
+                };
+            }
+        });
 
         res.json({ data, total: trueTotal, page, pages: Math.ceil(trueTotal / limit), hasMore: skip + data.length < trueTotal });
     } catch (error) {
