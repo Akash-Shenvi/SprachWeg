@@ -62,4 +62,7 @@ app.use('/api/admin/files', fileLinkRoutes);
 import studentRoutes from './routes/student.routes';
 app.use('/api/admin', studentRoutes);
 
+import chatRoutes from './routes/chat.routes';
+app.use('/api/chat', chatRoutes);
+
 export default app;

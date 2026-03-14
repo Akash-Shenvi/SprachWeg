@@ -10,7 +10,8 @@ import {
     Mail,
     Phone,
     GraduationCap,
-    CalendarDays
+    CalendarDays,
+    MessageCircle
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -24,6 +25,8 @@ import ProfileCompletionModal from '../components/auth/ProfileCompletionModal';
 
 const CourseCard: React.FC<{ course: any }> = ({ course }) => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const myId = user?._id || (user as any)?.id;
 
     const handleCardClick = () => {
         navigate(`/language-batch/${course._id}`);
@@ -45,9 +48,21 @@ const CourseCard: React.FC<{ course: any }> = ({ course }) => {
             </div>
 
             <div className="flex gap-3 mt-4">
-                <button className="w-full text-center text-[#d6b161] font-semibold hover:underline">
+                <button className="flex-1 text-center text-[#d6b161] font-semibold hover:underline">
                     View Course Content & Materials
                 </button>
+                {course.trainerId && (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/chat/${myId}`);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#d6b161]/10 text-[#d6b161] hover:bg-[#d6b161]/20 text-sm font-medium transition-colors"
+                    >
+                        <MessageCircle className="w-4 h-4" />
+                        Chat
+                    </button>
+                )}
             </div>
         </motion.div>
     );

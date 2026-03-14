@@ -44,6 +44,7 @@ import FeedbackPage from './pages/FeedbackPage';
 import AdminFeedback from './pages/Admin/AdminFeedback';
 import AdminFileLinks from './pages/Admin/AdminFileLinks';
 import ManageStudents from './pages/Admin/ManageStudents';
+import ChatPage from './pages/ChatPage';
 
 
 
@@ -309,6 +310,15 @@ const AppContent = () => {
             <AdminRoute>
               <AdminFileLinks />
             </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/chat/:studentId"
+          element={
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
           }
         />
 

@@ -19,7 +19,8 @@ import {
     Calendar,
     GraduationCap,
     User as UserIcon,
-    Eye
+    Eye,
+    MessageCircle
 
 } from 'lucide-react';
 import Header from '../components/layout/Header';
@@ -723,10 +724,20 @@ const LanguageBatchDetails: React.FC = () => {
                                             </div>
                                         </div>
                                         {isTrainer && (
-                                            <button onClick={() => setSelectedStudent(student)} className="flex-shrink-0 text-sm font-semibold text-gray-400 hover:text-[#d6b161] transition-colors duration-300 rounded px-3 py-2" aria-label={`View ${student.name}'s profile`}>
-                                                <span className="hidden sm:inline">View Profile</span>
-                                                <span className="sm:hidden">→</span>
-                                            </button>
+                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                                <button
+                                                    onClick={() => navigate(`/chat/${student._id}`)}
+                                                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#d6b161]/10 text-[#d6b161] hover:bg-[#d6b161]/20 text-sm font-semibold transition-colors duration-200"
+                                                    aria-label={`Chat with ${student.name}`}
+                                                >
+                                                    <MessageCircle className="h-4 w-4" />
+                                                    <span className="hidden sm:inline">Chat</span>
+                                                </button>
+                                                <button onClick={() => setSelectedStudent(student)} className="flex-shrink-0 text-sm font-semibold text-gray-400 hover:text-[#d6b161] transition-colors duration-300 rounded px-3 py-2" aria-label={`View ${student.name}'s profile`}>
+                                                    <span className="hidden sm:inline">View Profile</span>
+                                                    <span className="sm:hidden">→</span>
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
