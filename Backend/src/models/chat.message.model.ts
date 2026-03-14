@@ -1,18 +1,18 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IChatMessage extends Document {
-    studentId: mongoose.Types.ObjectId;
-    trainerId: mongoose.Types.ObjectId;
-    senderId: mongoose.Types.ObjectId;
+    studentId: string;
+    trainerId: string;
+    senderId: string;
     content: string;
     createdAt: Date;
 }
 
 const ChatMessageSchema = new Schema<IChatMessage>(
     {
-        studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-        trainerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-        senderId:  { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        studentId: { type: String, ref: 'User', required: true, index: true },
+        trainerId: { type: String, ref: 'User', required: true, index: true },
+        senderId:  { type: String, ref: 'User', required: true },
         content:   { type: String, required: true, trim: true, maxlength: 2000 },
         createdAt: { type: Date, default: Date.now }
     },

@@ -35,9 +35,9 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const ChatMessageSchema = new mongoose_1.Schema({
-    studentId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    trainerId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    senderId: { type: mongoose_1.default.Schema.Types.ObjectId, ref: 'User', required: true },
+    studentId: { type: String, ref: 'User', required: true, index: true },
+    trainerId: { type: String, ref: 'User', required: true, index: true },
+    senderId: { type: String, ref: 'User', required: true },
     content: { type: String, required: true, trim: true, maxlength: 2000 },
     createdAt: { type: Date, default: Date.now }
 }, { timestamps: false });
