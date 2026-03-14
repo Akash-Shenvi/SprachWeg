@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../ui/Button';
+import { getAssetUrl } from '../../lib/api';
 
 interface ProfileCompletionModalProps {
     isOpen: boolean;
@@ -12,6 +13,7 @@ interface ProfileCompletionModalProps {
 const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen, onClose }) => {
     const { user, updateProfile } = useAuth();
     const [formData, setFormData] = useState({
+        name: '',
         phoneNumber: '',
         guardianName: '',
         guardianPhone: '',
@@ -26,6 +28,7 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
         if (user) {
             setFormData(prev => ({
                 ...prev,
+                name: user.name || '',
                 phoneNumber: user.phoneNumber || '',
                 guardianName: user.guardianName || '',
                 guardianPhone: user.guardianPhone || '',
@@ -44,7 +47,7 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
         setError(null);
         setLoading(true);
 
-        if (!avatar) {
+        if (!avatar && !user?.avatar) {
             setError('Profile picture is required.');
             setLoading(false);
             return;
@@ -52,12 +55,15 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
 
         try {
             const submitData = new FormData();
+            submitData.append('name', formData.name);
             submitData.append('phoneNumber', formData.phoneNumber);
             submitData.append('guardianName', formData.guardianName);
             submitData.append('guardianPhone', formData.guardianPhone);
             submitData.append('dateOfBirth', formData.dateOfBirth);
             submitData.append('qualification', formData.qualification);
-            submitData.append('avatar', avatar);
+            if (avatar) {
+                submitData.append('avatar', avatar);
+            }
 
             await updateProfile(submitData);
             if (onClose) {
@@ -104,22 +110,41 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
                     <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Profile Picture <span className="text-red-500">*</span></label>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                required
-                                onChange={(e) => setAvatar(e.target.files ? e.target.files[0] : null)}
-                                className="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[#d6b161] file:text-[#0a192f] hover:file:bg-[#c4a055] file:cursor-pointer cursor-pointer"
-                            />
+                            
+                            <div className="mt-2 mb-3 flex items-center gap-4">
+                                <div className="h-16 w-16 overflow-hidden rounded-full border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800 flex-shrink-0">
+                                    {avatar ? (
+                                        <img src={URL.createObjectURL(avatar)} alt="Preview" className="h-full w-full object-cover" />
+                                    ) : user?.avatar ? (
+                                        <img src={getAssetUrl(user.avatar)} alt="Current Avatar" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <div className="flex h-full w-full items-center justify-center bg-[#d6b161]/20 text-xl font-bold text-[#d6b161]">
+                                            {user?.name?.charAt(0).toUpperCase() || 'U'}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        required={!user?.avatar}
+                                        onChange={(e) => setAvatar(e.target.files ? e.target.files[0] : null)}
+                                        className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[#d6b161] file:text-[#0a192f] hover:file:bg-[#c4a055] file:cursor-pointer cursor-pointer"
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
+                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name <span className="text-red-500">*</span></label>
                             <input
                                 type="text"
-                                value={user?.name || ''}
-                                disabled
-                                className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-500 shadow-sm sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                                name="name"
+                                id="name"
+                                required
+                                value={formData.name}
+                                onChange={handleChange}
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#d6b161] focus:outline-none focus:ring-[#d6b161] sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                             />
                         </div>
 

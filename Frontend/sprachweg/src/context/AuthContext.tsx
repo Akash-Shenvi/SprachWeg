@@ -10,6 +10,7 @@ interface User {
     role: string;
     isEmailVerified: boolean;
     isProfileComplete?: boolean;
+    avatar?: string;
     guardianName?: string;
     guardianPhone?: string;
     qualification?: string;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import api from '../lib/api';
+import { getAssetUrl } from '../lib/api';
 import {
     BookOpen,
     User,
@@ -191,6 +192,18 @@ const StudentDashboard: React.FC = () => {
                                         Logout
                                     </div>
                                 </button>
+                            </div>
+
+                            <div className="flex flex-col items-center mb-6 pt-2 pb-4 border-b border-gray-100 dark:border-gray-700">
+                                <div className="h-28 w-28 rounded-full bg-[#d6b161]/20 flex items-center justify-center overflow-hidden border-4 border-[#d6b161]/30 text-[#d6b161] font-bold text-4xl mb-4 shadow-sm">
+                                    {user?.avatar ? (
+                                        <img src={getAssetUrl(user.avatar)} alt={user.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        user?.name?.charAt(0).toUpperCase() || 'U'
+                                    )}
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{user?.name}</h3>
+                                <p className="text-sm font-medium text-[#d6b161] uppercase tracking-wider">{user?.role}</p>
                             </div>
 
                             <div className="space-y-4">
