@@ -16,6 +16,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
     const menuItems = [
         { path: '/admin-dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { path: '/admin/students', icon: Users, label: 'Students' },
         { path: '/admin/language-enrollment-details', icon: BookOpen, label: 'Class Enrollments' },
         { path: '/admin/language-batches', icon: Users, label: 'Active Classes' },
         { path: '/admin/languages', icon: BookOpen, label: 'Language Courses' },

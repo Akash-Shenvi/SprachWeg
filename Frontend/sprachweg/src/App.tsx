@@ -43,6 +43,7 @@ import ManageTrainers from './pages/Admin/ManageTrainers';
 import FeedbackPage from './pages/FeedbackPage';
 import AdminFeedback from './pages/Admin/AdminFeedback';
 import AdminFileLinks from './pages/Admin/AdminFileLinks';
+import ManageStudents from './pages/Admin/ManageStudents';
 
 
 
@@ -283,6 +284,14 @@ const AppContent = () => {
           element={
             <AdminRoute>
               <ManageTrainers />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/students"
+          element={
+            <AdminRoute>
+              <ManageStudents />
             </AdminRoute>
           }
         />

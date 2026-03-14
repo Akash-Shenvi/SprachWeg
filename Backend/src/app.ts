@@ -59,4 +59,7 @@ app.use('/api/feedback', feedbackRoutes);
 import fileLinkRoutes from './routes/fileLink.routes';
 app.use('/api/admin/files', fileLinkRoutes);
 
+import studentRoutes from './routes/student.routes';
+app.use('/api/admin', studentRoutes);
+
 export default app;
