@@ -94,6 +94,38 @@ const internships: Internship[] = [
         tags: ['IT Support', 'Networking', 'Systems'],
         icon: '🛠️',
     },
+    {
+        title: 'PLC Automation Engineer',
+        description: 'Learn to design and program Programmable Logic Controllers (PLC) for industrial automation systems and processes.',
+        duration: '3–6 Months',
+        location: 'Remote / Hybrid / Onsite',
+        tags: ['PLC', 'Automation', 'Industrial'],
+        icon: '🤖',
+    },
+    {
+        title: 'Controls & Automation Engineer',
+        description: 'Gain experience in control systems engineering, implementing automated workflows for manufacturing and industrial applications.',
+        duration: '3–6 Months',
+        location: 'Remote / Hybrid / Onsite',
+        tags: ['Controls', 'Automation', 'Engineering'],
+        icon: '⚙️',
+    },
+    {
+        title: 'PLC Programmer (Automation)',
+        description: 'Focus on developing and troubleshooting PLC logic and HMI interfaces for complex industrial machinery.',
+        duration: '3–6 Months',
+        location: 'Remote / Hybrid / Onsite',
+        tags: ['PLC', 'Programming', 'Automation'],
+        icon: '💻',
+    },
+    {
+        title: 'Industrial Automation Engineer',
+        description: 'Explore the full lifecycle of industrial automation projects, from system design to testing and deployment onsite.',
+        duration: '3–6 Months',
+        location: 'Remote / Hybrid / Onsite',
+        tags: ['Industrial', 'Automation', 'IIoT'],
+        icon: '🏭',
+    },
 ];
 
 const CareersPage: React.FC = () => {

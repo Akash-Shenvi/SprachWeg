@@ -208,7 +208,11 @@ const Header: React.FC = () => {
                                                 "Cloud Computing Intern",
                                                 "Cyber Security Intern",
                                                 "AI & Machine Learning Intern",
-                                                "IT Support & Systems Intern"
+                                                "IT Support & Systems Intern",
+                                                "PLC Automation Engineer",
+                                                "Controls & Automation Engineer",
+                                                "PLC Programmer (Automation)",
+                                                "Industrial Automation Engineer"
                                             ].map((item, idx) => (
                                                 <Link key={idx} to="/careers" className="block text-sm text-gray-600 dark:text-gray-400 hover:text-[#d6b161] dark:hover:text-[#d6b161] py-1 transition-colors">
                                                     {item}
@@ -502,7 +506,11 @@ const Header: React.FC = () => {
                                             "Cloud Computing Intern",
                                             "Cyber Security Intern",
                                             "AI & Machine Learning Intern",
-                                            "IT Support & Systems Intern"
+                                            "IT Support & Systems Intern",
+                                            "PLC Automation Engineer",
+                                            "Controls & Automation Engineer",
+                                            "PLC Programmer (Automation)",
+                                            "Industrial Automation Engineer"
                                         ].map((item, idx) => (
                                             <Link key={idx} to="/careers" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>
                                                 {item}
