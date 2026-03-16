@@ -103,6 +103,15 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
         });
 
         if (existingApplication) {
+            if (existingApplication.status !== 'rejected') {
+                removeStoredResume(applicationData.resumeUrl);
+
+                return res.status(409).json({
+                    message: 'You have already applied for this internship.',
+                    application: existingApplication,
+                });
+            }
+
             const previousResumeUrl = existingApplication.resumeUrl;
 
             existingApplication.set({

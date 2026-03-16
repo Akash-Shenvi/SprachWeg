@@ -27,7 +27,7 @@ export interface IInternshipApplication extends Document {
 }
 
 const generateReferenceCode = () =>
-    `INT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    `SOV-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
 const InternshipApplicationSchema = new Schema<IInternshipApplication>({
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },

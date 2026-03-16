@@ -96,6 +96,14 @@ interface FormData {
 }
 
 type UploadState = 'idle' | 'uploading' | 'done';
+type ApplicationStatus = 'submitted' | 'accepted' | 'rejected' | 'reviewed' | 'shortlisted';
+
+interface ExistingApplication {
+  _id: string;
+  internshipTitle: string;
+  status: ApplicationStatus;
+  referenceCode: string;
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -130,7 +138,22 @@ function formatBytes(bytes: number): string {
 }
 
 function generateRef(): string {
-  return 'SV-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+  return 'SOV-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+}
+
+function getStatusText(status: ApplicationStatus): string {
+  switch (status) {
+    case 'accepted':
+      return 'Accepted';
+    case 'reviewed':
+      return 'Under Review';
+    case 'shortlisted':
+      return 'Shortlisted';
+    case 'submitted':
+      return 'Submitted';
+    default:
+      return 'Rejected';
+  }
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -192,6 +215,8 @@ const InternshipApplicationPage: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [refCode, setRefCode] = useState<string>(generateRef());
   const [submitError, setSubmitError] = useState<string>('');
+  const [checkingExistingApplication, setCheckingExistingApplication] = useState<boolean>(true);
+  const [existingApplication, setExistingApplication] = useState<ExistingApplication | null>(null);
   const internshipTitle = searchParams.get('internship')?.trim() || 'General Internship';
 
   const [form, setForm] = useState<FormData>({
@@ -226,6 +251,49 @@ const InternshipApplicationPage: React.FC = () => {
       whatsapp: current.whatsapp || user.phoneNumber || '',
     }));
   }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setExistingApplication(null);
+      setCheckingExistingApplication(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const checkExistingApplication = async () => {
+      setCheckingExistingApplication(true);
+
+      try {
+        const response = await internshipApplicationAPI.getMine();
+        const matchedApplication = (response.applications || []).find((application: ExistingApplication) =>
+          application.internshipTitle?.trim().toLowerCase() === internshipTitle.toLowerCase() &&
+          application.status !== 'rejected'
+        ) || null;
+
+        if (!isMounted) return;
+
+        setExistingApplication(matchedApplication);
+        if (matchedApplication?.referenceCode) {
+          setRefCode(matchedApplication.referenceCode);
+        }
+      } catch (err) {
+        console.error('Failed to check existing internship applications:', err);
+        if (!isMounted) return;
+        setExistingApplication(null);
+      } finally {
+        if (isMounted) {
+          setCheckingExistingApplication(false);
+        }
+      }
+    };
+
+    checkExistingApplication();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [internshipTitle, user]);
 
   useEffect(() => {
     return () => {
@@ -333,6 +401,10 @@ const InternshipApplicationPage: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!validateStep(2)) return;
+    if (existingApplication) {
+      setSubmitError('You have already applied for this internship.');
+      return;
+    }
     if (!resume) {
       setErrors(e => ({ ...e, resume: 'Please upload your resume to continue' }));
       return;
@@ -379,6 +451,73 @@ const InternshipApplicationPage: React.FC = () => {
   const stepsActive = [step === 0, step === 1, step === 2];
 
   // ─── Success Screen ─────────────────────────────────────────────────────────
+  if (checkingExistingApplication) {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gray-50 px-4 py-16 text-gray-900 transition-colors duration-300 dark:bg-[#0a192f] dark:text-gray-100">
+        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+          <div className="absolute -left-36 -top-48 h-[600px] w-[600px] rounded-full bg-gradient-to-br from-[#d6b161]/25 to-[#c4a055]/10 opacity-[0.22] blur-[100px] animate-[float1_18s_ease-in-out_infinite]" />
+          <div className="absolute -bottom-36 -right-24 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-[#112240]/25 to-[#0a192f]/5 opacity-[0.2] blur-[100px] animate-[float2_22s_ease-in-out_infinite]" />
+        </div>
+
+        <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white/95 p-10 text-center shadow-[0_20px_60px_rgba(10,25,47,0.12)] backdrop-blur-sm dark:border-white/10 dark:bg-[#112240]/95 dark:shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+          <div className="mx-auto mb-5 h-12 w-12 rounded-full border-4 border-[#d6b161]/30 border-t-[#d6b161] animate-spin" />
+          <h2 className="text-2xl font-bold text-[#0a192f] dark:text-white">Checking your application</h2>
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
+            We&apos;re verifying whether you have already applied for this internship.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (existingApplication) {
+    return (
+      <div className="relative flex min-h-screen items-start justify-center overflow-hidden bg-gray-50 px-4 py-16 text-gray-900 transition-colors duration-300 dark:bg-[#0a192f] dark:text-gray-100">
+        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+          <div className="absolute -left-36 -top-48 h-[600px] w-[600px] rounded-full bg-gradient-to-br from-[#d6b161]/25 to-[#c4a055]/10 opacity-[0.22] blur-[100px] animate-[float1_18s_ease-in-out_infinite]" />
+          <div className="absolute -bottom-36 -right-24 h-[500px] w-[500px] rounded-full bg-gradient-to-br from-[#112240]/25 to-[#0a192f]/5 opacity-[0.2] blur-[100px] animate-[float2_22s_ease-in-out_infinite]" />
+        </div>
+
+        <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white/95 shadow-[0_20px_60px_rgba(10,25,47,0.12)] backdrop-blur-sm dark:border-white/10 dark:bg-[#112240]/95 dark:shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+          <div className="h-[3px] bg-gradient-to-r from-[#0a192f] via-[#d6b161] to-[#c4a055] dark:from-[#d6b161] dark:via-[#c4a055] dark:to-[#f1d18a]" />
+          <div className="p-10 text-center">
+            <div className="mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#d6b161]/15 text-[#d6b161] shadow-[0_0_0_12px_rgba(214,177,97,0.12)]">
+              <FileText />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-[#0a192f] dark:text-white">
+              You have already applied
+            </h1>
+            <p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+              Your application for <span className="font-semibold text-[#0a192f] dark:text-white">{internshipTitle}</span> is already on record.
+              You can apply again only if this application gets rejected.
+            </p>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-left dark:border-white/10 dark:bg-[#0f223f]">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">Reference ID</p>
+                <p className="mt-2 font-mono text-sm font-bold text-[#0a192f] dark:text-white">{existingApplication.referenceCode}</p>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-left dark:border-white/10 dark:bg-[#0f223f]">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">Current Status</p>
+                <p className="mt-2 text-sm font-bold text-[#0a192f] dark:text-white">{getStatusText(existingApplication.status)}</p>
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-center">
+              <a
+                href="/careers"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0a192f] px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#112240] dark:bg-[#d6b161] dark:text-[#0a192f] dark:hover:bg-[#c4a055]"
+              >
+                <ArrowLeft />
+                Back to Careers
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (submitted) {
     return (
       <div className="relative flex min-h-screen items-start justify-center overflow-hidden bg-gray-50 px-4 py-16 text-gray-900 transition-colors duration-300 dark:bg-[#0a192f] dark:text-gray-100">
