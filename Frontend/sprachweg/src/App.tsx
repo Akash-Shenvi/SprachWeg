@@ -46,6 +46,7 @@ import AdminFileLinks from './pages/Admin/AdminFileLinks';
 import ManageStudents from './pages/Admin/ManageStudents';
 import ChatPage from './pages/ChatPage';
 import VerificationPage from './pages/VerificationPage';
+import CareersPage from './pages/CareersPage';
 
 
 
@@ -145,6 +146,7 @@ const AppContent = () => {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/feedback" element={<FeedbackPage />} />
         <Route path="/verify" element={<VerificationPage />} />
+        <Route path="/careers" element={<CareersPage />} />
 
 
         {/* Skill Training Routes */}

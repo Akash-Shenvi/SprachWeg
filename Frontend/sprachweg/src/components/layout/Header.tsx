@@ -172,14 +172,15 @@ const Header: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Career Abroad Mega Menu */}
+                        {/* Career Mega Menu */}
                         <div className="relative group">
                             <div className="flex items-center gap-1">
-                                <button
+                                <Link
+                                    to="/careers"
                                     className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-2 py-2"
                                 >
                                     Career
-                                </button>
+                                </Link>
                                 <button
                                     onClick={(e) => {
                                         e.preventDefault();
@@ -190,84 +191,8 @@ const Header: React.FC = () => {
                                     <ChevronDown className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${openDropdown === 'career-desktop' ? 'rotate-180' : ''}`} />
                                 </button>
                             </div>
-                            <div className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[850px] max-w-[90vw] bg-white/95 dark:bg-[#0a192f]/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl transition-all duration-200 z-50 ${openDropdown === 'career-desktop' ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'}`}>
-                                <div className="grid grid-cols-4 gap-6 p-6">
-                                    {/* DESTINATIONS Column */}
-                                    <div>
-                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Career Abroad</h3>
-                                        <div className="space-y-3">
-                                            <Link to="/404" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
-                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">🇨🇦</span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Work in Canada</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Job opportunities in Canada</p>
-                                                </div>
-                                            </Link>
-                                            <Link to="#" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
-                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">🇩🇪</span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Career in Germany</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">German work programs</p>
-                                                </div>
-                                            </Link>
-                                            <Link to="/404" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
-                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">🇦🇺</span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Jobs in Australia</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Australian job placement</p>
-                                                </div>
-                                            </Link>
-                                            <Link to="/404" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
-                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">🇬🇧</span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">UK Employment</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Work permits & jobs in UK</p>
-                                                </div>
-                                            </Link>
-                                        </div>
-                                    </div>
-
-                                    {/* SERVICES Column */}
-                                    <div>
-                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Services</h3>
-                                        <div className="space-y-3">
-                                            <Link to="/404" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
-                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">📄</span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Visa Assistance</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Complete visa support</p>
-                                                </div>
-                                            </Link>
-                                            <Link to="/404" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
-                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">💼</span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Job Placement</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Direct employment</p>
-                                                </div>
-                                            </Link>
-                                            <Link to="/404" className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/item">
-                                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#d6b161]/10 flex items-center justify-center text-[#d6b161]">
-                                                    <span className="text-lg">🎤</span>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover/item:text-[#d6b161]">Interview Prep</p>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400">Career preparation</p>
-                                                </div>
-                                            </Link>
-                                        </div>
-                                    </div>
+                            <div className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[300px] max-w-[90vw] bg-white/95 dark:bg-[#0a192f]/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xl transition-all duration-200 z-50 ${openDropdown === 'career-desktop' ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'}`}>
+                                <div className="p-6">
 
                                     {/* INTERNSHIP Column */}
                                     <div>
@@ -285,30 +210,47 @@ const Header: React.FC = () => {
                                                 "AI & Machine Learning Intern",
                                                 "IT Support & Systems Intern"
                                             ].map((item, idx) => (
-                                                <Link key={idx} to="/404" className="block text-sm text-gray-600 dark:text-gray-400 hover:text-[#d6b161] dark:hover:text-[#d6b161] py-1 transition-colors">
+                                                <Link key={idx} to="/careers" className="block text-sm text-gray-600 dark:text-gray-400 hover:text-[#d6b161] dark:hover:text-[#d6b161] py-1 transition-colors">
                                                     {item}
                                                 </Link>
                                             ))}
                                         </div>
                                     </div>
 
-                                    {/* FULL TIME Column */}
+                                    {/* CAREER ABROAD Column — commented out for future use
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Career Abroad</h3>
+                                        <div className="space-y-3">
+                                            Work in Canada — /404
+                                            Career in Germany — #
+                                            Jobs in Australia — /404
+                                            UK Employment — /404
+                                        </div>
+                                    </div>
+                                    */}
+
+                                    {/* SERVICES Column — commented out for future use
+                                    <div>
+                                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Services</h3>
+                                        <div className="space-y-3">
+                                            Visa Assistance — /404
+                                            Job Placement — /404
+                                            Interview Prep — /404
+                                        </div>
+                                    </div>
+                                    */}
+
+                                    {/* FULL TIME Column — commented out for future use
                                     <div>
                                         <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Full Time</h3>
                                         <div className="space-y-1">
-                                            {[
-                                                "PLC Automation Engineer",
-                                                "Controls & Automation Engineer",
-                                                "PLC Programmer (Automation)",
-                                                "Industrial Automation Engineer"
-                                            ].map((item, idx) => (
-                                                <Link key={idx} to="/404" className="block text-sm text-gray-600 dark:text-gray-400 hover:text-[#d6b161] dark:hover:text-[#d6b161] py-1 transition-colors">
-                                                    {item}
-                                                </Link>
-                                            ))}
+                                            PLC Automation Engineer
+                                            Controls & Automation Engineer
+                                            PLC Programmer (Automation)
+                                            Industrial Automation Engineer
                                         </div>
                                     </div>
-
+                                    */}
 
                                 </div>
                             </div>
@@ -530,28 +472,25 @@ const Header: React.FC = () => {
                                 </div>
                             )}
 
-                            <button
-                                onClick={() => toggleDropdown('career')}
-                                className="w-full text-left text-gray-700 dark:text-gray-300 font-medium py-2 text-sm flex items-center justify-between"
-                            >
-                                Career
-                                <ChevronDown className={`w-5 h-5 transition-transform ${openDropdown === 'career' ? 'rotate-180' : ''}`} />
-                            </button>
+                            <div className="flex items-center justify-between w-full">
+                                <Link
+                                    to="/careers"
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="text-gray-700 dark:text-gray-300 font-medium py-2 text-sm flex-1"
+                                >
+                                    Career
+                                </Link>
+                                <button
+                                    onClick={() => toggleDropdown('career')}
+                                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10"
+                                >
+                                    <ChevronDown className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${openDropdown === 'career' ? 'rotate-180' : ''}`} />
+                                </button>
+                            </div>
                             {openDropdown === 'career' && (
                                 <div className="bg-gray-50 dark:bg-white/5 rounded pl-4 pr-2 py-2 space-y-3">
+                                    {/* INTERNSHIP Section */}
                                     <div className="space-y-1">
-                                        <h4 className="text-xs font-bold uppercase text-[#d6b161] mb-2">Career Abroad</h4>
-                                        <Link to="/404" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Work in Canada</Link>
-                                        <Link to="#" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Career in Germany</Link>
-                                        <Link to="/404" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Jobs in Australia</Link>
-                                        <Link to="/404" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>UK Employment</Link>
-                                    </div>
-                                    <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-2">
-                                        <h4 className="text-xs font-bold uppercase text-[#d6b161] mb-2">Services</h4>
-                                        <Link to="/404" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Visa Assistance</Link>
-                                        <Link to="/404" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>Job Placement</Link>
-                                    </div>
-                                    <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-2">
                                         <h4 className="text-xs font-bold uppercase text-[#d6b161] mb-2">Internship</h4>
                                         {[
                                             "Software Development Intern",
@@ -565,24 +504,35 @@ const Header: React.FC = () => {
                                             "AI & Machine Learning Intern",
                                             "IT Support & Systems Intern"
                                         ].map((item, idx) => (
-                                            <Link key={idx} to="/404" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>
+                                            <Link key={idx} to="/careers" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>
                                                 {item}
                                             </Link>
                                         ))}
                                     </div>
+
+                                    {/* CAREER ABROAD Section — commented out for future use
                                     <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-2">
-                                        <h4 className="text-xs font-bold uppercase text-[#d6b161] mb-2">Full Time</h4>
-                                        {[
-                                            "PLC Automation Engineer",
-                                            "Controls & Automation Engineer",
-                                            "PLC Programmer (Automation)",
-                                            "Industrial Automation Engineer"
-                                        ].map((item, idx) => (
-                                            <Link key={idx} to="/404" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>
-                                                {item}
-                                            </Link>
-                                        ))}
+                                        <h4>Career Abroad</h4>
+                                        Work in Canada, Career in Germany, Jobs in Australia, UK Employment
                                     </div>
+                                    */}
+
+                                    {/* SERVICES Section — commented out for future use
+                                    <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-2">
+                                        <h4>Services</h4>
+                                        Visa Assistance, Job Placement, Interview Prep
+                                    </div>
+                                    */}
+
+                                    {/* FULL TIME Section — commented out for future use
+                                    <div className="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-2">
+                                        <h4>Full Time</h4>
+                                        PLC Automation Engineer
+                                        Controls & Automation Engineer
+                                        PLC Programmer (Automation)
+                                        Industrial Automation Engineer
+                                    </div>
+                                    */}
                                 </div>
                             )}
 
