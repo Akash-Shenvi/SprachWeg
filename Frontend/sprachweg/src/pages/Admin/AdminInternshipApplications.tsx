@@ -5,6 +5,8 @@ import {
     Briefcase,
     Building,
     Calendar,
+    ChevronLeft,
+    ChevronRight,
     Download,
     Eye,
     FileText,
@@ -101,6 +103,7 @@ const getStatusMeta = (status: DisplayStatus) => {
 };
 
 const AdminInternshipApplications: React.FC = () => {
+    const APPLICATIONS_PER_PAGE = 10;
     const [applications, setApplications] = useState<InternshipApplication[]>([]);
     const [selectedApplication, setSelectedApplication] = useState<InternshipApplication | null>(null);
     const [loading, setLoading] = useState(true);
@@ -108,10 +111,15 @@ const AdminInternshipApplications: React.FC = () => {
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | DisplayStatus>('submitted');
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         fetchApplications();
     }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, statusFilter]);
 
     const fetchApplications = async () => {
         try {
@@ -199,6 +207,18 @@ const AdminInternshipApplications: React.FC = () => {
         accepted: applications.filter((application) => normalizeStatus(application.status) === 'accepted').length,
         rejected: applications.filter((application) => normalizeStatus(application.status) === 'rejected').length,
     };
+
+    const totalPages = Math.max(1, Math.ceil(filteredApplications.length / APPLICATIONS_PER_PAGE));
+    const paginatedApplications = filteredApplications.slice(
+        (currentPage - 1) * APPLICATIONS_PER_PAGE,
+        currentPage * APPLICATIONS_PER_PAGE
+    );
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
 
     return (
         <AdminLayout>
@@ -295,7 +315,7 @@ const AdminInternshipApplications: React.FC = () => {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {filteredApplications.map((application) => {
+                        {paginatedApplications.map((application) => {
                             const normalizedStatus = normalizeStatus(application.status);
                             const statusMeta = getStatusMeta(normalizedStatus);
                             const isPending = normalizedStatus === 'submitted';
@@ -403,6 +423,47 @@ const AdminInternshipApplications: React.FC = () => {
                                 </div>
                             );
                         })}
+
+                        <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white px-5 py-4 dark:border-gray-800 dark:bg-[#112240] sm:flex-row sm:items-center sm:justify-between">
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Showing{' '}
+                                <span className="font-semibold text-gray-900 dark:text-white">
+                                    {Math.min((currentPage - 1) * APPLICATIONS_PER_PAGE + 1, filteredApplications.length)}
+                                </span>{' '}
+                                to{' '}
+                                <span className="font-semibold text-gray-900 dark:text-white">
+                                    {Math.min(currentPage * APPLICATIONS_PER_PAGE, filteredApplications.length)}
+                                </span>{' '}
+                                of{' '}
+                                <span className="font-semibold text-gray-900 dark:text-white">{filteredApplications.length}</span>{' '}
+                                applications
+                            </p>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                                    disabled={currentPage === 1}
+                                    className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-[#0a192f] dark:text-gray-300 dark:hover:bg-gray-800"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                    Previous
+                                </button>
+
+                                <span className="px-3 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                    Page <span className="text-gray-900 dark:text-white">{currentPage}</span> of{' '}
+                                    <span className="text-gray-900 dark:text-white">{totalPages}</span>
+                                </span>
+
+                                <button
+                                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-[#0a192f] dark:text-gray-300 dark:hover:bg-gray-800"
+                                >
+                                    Next
+                                    <ChevronRight className="h-4 w-4" />
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
