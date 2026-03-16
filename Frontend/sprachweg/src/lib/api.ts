@@ -174,6 +174,14 @@ export const internshipApplicationAPI = {
         const response = await api.get('/internship-applications/me');
         return response.data;
     },
+    async getAllAdmin() {
+        const response = await api.get('/internship-applications/admin');
+        return response.data;
+    },
+    async updateStatus(applicationId: string, status: 'accepted' | 'rejected') {
+        const response = await api.patch(`/internship-applications/admin/${applicationId}/status`, { status });
+        return response.data;
+    },
 };
 
 export default api;

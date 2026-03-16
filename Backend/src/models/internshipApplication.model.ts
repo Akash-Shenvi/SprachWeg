@@ -20,7 +20,7 @@ export interface IInternshipApplication extends Document {
     source: string;
     resumeUrl: string;
     resumeOriginalName: string;
-    status: 'submitted' | 'reviewed' | 'shortlisted' | 'rejected';
+    status: 'submitted' | 'accepted' | 'rejected' | 'reviewed' | 'shortlisted';
     referenceCode: string;
     createdAt: Date;
     updatedAt: Date;
@@ -51,7 +51,7 @@ const InternshipApplicationSchema = new Schema<IInternshipApplication>({
     resumeOriginalName: { type: String, required: true, trim: true },
     status: {
         type: String,
-        enum: ['submitted', 'reviewed', 'shortlisted', 'rejected'],
+        enum: ['submitted', 'accepted', 'rejected', 'reviewed', 'shortlisted'],
         default: 'submitted',
     },
     referenceCode: {

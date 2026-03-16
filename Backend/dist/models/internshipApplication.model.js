@@ -57,7 +57,7 @@ const InternshipApplicationSchema = new mongoose_1.Schema({
     resumeOriginalName: { type: String, required: true, trim: true },
     status: {
         type: String,
-        enum: ['submitted', 'reviewed', 'shortlisted', 'rejected'],
+        enum: ['submitted', 'accepted', 'rejected', 'reviewed', 'shortlisted'],
         default: 'submitted',
     },
     referenceCode: {

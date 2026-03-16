@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import {
+    Briefcase,
     Users,
     BookOpen,
     TrendingUp,
@@ -28,6 +29,11 @@ interface Batch {
     name: string;
     trainerId?: string;
     students: any[];
+}
+
+interface InternshipApplicationSummary {
+    _id: string;
+    status: string;
 }
 
 
@@ -119,7 +125,8 @@ const AdminDashboard: React.FC = () => {
     const [stats, setStats] = useState({
         activeTrainers: 0,
         activeClasses: 0,
-        totalStudents: 0
+        totalStudents: 0,
+        pendingInternshipRequests: 0,
     });
 
 
@@ -136,13 +143,15 @@ const AdminDashboard: React.FC = () => {
 
     const fetchData = async () => {
         try {
-            const [batchesRes, trainersRes] = await Promise.all([
+            const [batchesRes, trainersRes, internshipApplicationsRes] = await Promise.all([
                 api.get('/language-training/admin/batches'),
-                api.get('/language-training/admin/trainers')
+                api.get('/language-training/admin/trainers'),
+                api.get('/internship-applications/admin'),
             ]);
 
             const fetchedBatches: Batch[] = batchesRes.data;
             const fetchedTrainers: Trainer[] = trainersRes.data;
+            const fetchedInternshipApplications: InternshipApplicationSummary[] = internshipApplicationsRes.data.applications || [];
 
 
             setBatches(fetchedBatches);
@@ -150,11 +159,15 @@ const AdminDashboard: React.FC = () => {
 
             // Calculate Stats
             const totalStudents = fetchedBatches.reduce((acc, batch) => acc + (batch.students?.length || 0), 0);
+            const pendingInternshipRequests = fetchedInternshipApplications.filter(
+                (application) => !['accepted', 'rejected'].includes(application.status)
+            ).length;
 
             setStats({
                 activeTrainers: fetchedTrainers.length,
                 activeClasses: fetchedBatches.length,
-                totalStudents: totalStudents
+                totalStudents: totalStudents,
+                pendingInternshipRequests,
             });
             setLoading(false);
         } catch (error) {
@@ -186,7 +199,7 @@ const AdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Stats Overview */}
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
                     <StatCard
                         icon={<Users className="h-6 w-6 text-[#d6b161]" />}
                         label="Active Trainers"
@@ -203,6 +216,13 @@ const AdminDashboard: React.FC = () => {
                         label="Total Students"
                         value={loading ? "..." : stats.totalStudents}
                         color="bg-blue-500"
+                    />
+                    <StatCard
+                        icon={<Briefcase className="h-6 w-6 text-amber-500" />}
+                        label="Internship Requests"
+                        value={loading ? "..." : stats.pendingInternshipRequests}
+                        subtext="Pending admin review"
+                        color="bg-amber-500"
                     />
                 </div>
 
@@ -241,6 +261,28 @@ const AdminDashboard: React.FC = () => {
                                     </div>
                                     <h3 className="text-lg font-bold text-[#0a192f] dark:text-white mb-1">Booking Requests</h3>
                                     <p className="text-sm text-gray-600 dark:text-gray-400">View language/skill requests</p>
+                                </div>
+                                <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-[#d6b161] group-hover:translate-x-1 transition-all" />
+                            </div>
+                        </motion.div>
+                    </Link>
+
+                    <Link to="/admin/internship-applications" className="group">
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.15 }}
+                            className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-[#112240] hover:border-[#d6b161] dark:hover:border-[#d6b161] transition-all hover:shadow-lg"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <div className="mb-3 inline-flex rounded-lg bg-[#d6b161]/10 p-3 text-[#d6b161]">
+                                        <Briefcase className="h-6 w-6" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-[#0a192f] dark:text-white mb-1">Internship Requests</h3>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        {loading ? 'Loading requests...' : `${stats.pendingInternshipRequests} pending applications`}
+                                    </p>
                                 </div>
                                 <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-[#d6b161] group-hover:translate-x-1 transition-all" />
                             </div>

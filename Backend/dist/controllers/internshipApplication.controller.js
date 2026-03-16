@@ -12,11 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllInternshipApplications = exports.getMyInternshipApplications = exports.submitInternshipApplication = void 0;
+exports.updateInternshipApplicationStatus = exports.getAllInternshipApplications = exports.getMyInternshipApplications = exports.submitInternshipApplication = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const internshipApplication_model_1 = __importDefault(require("../models/internshipApplication.model"));
 const fileServeRoot = '/home/sovirtraining/file_serve';
+const adminDecisionStatuses = ['accepted', 'rejected'];
 const toStoredResumeUrl = (filename) => `/uploads/internship_resumes/${filename}`;
 const removeStoredResume = (resumeUrl) => {
     if (!resumeUrl)
@@ -134,7 +135,7 @@ exports.getMyInternshipApplications = getMyInternshipApplications;
 const getAllInternshipApplications = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const applications = yield internshipApplication_model_1.default.find()
-            .populate('userId', 'name email phoneNumber role')
+            .populate('userId', 'name email phoneNumber role avatar')
             .sort({ createdAt: -1 });
         return res.status(200).json({ applications });
     }
@@ -144,3 +145,28 @@ const getAllInternshipApplications = (req, res) => __awaiter(void 0, void 0, voi
     }
 });
 exports.getAllInternshipApplications = getAllInternshipApplications;
+const updateInternshipApplicationStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const { id } = req.params;
+        const requestedStatus = String((_a = req.body.status) !== null && _a !== void 0 ? _a : '').trim().toLowerCase();
+        if (!adminDecisionStatuses.includes(requestedStatus)) {
+            return res.status(400).json({ message: 'Status must be accepted or rejected.' });
+        }
+        const application = yield internshipApplication_model_1.default.findById(id).populate('userId', 'name email phoneNumber role avatar');
+        if (!application) {
+            return res.status(404).json({ message: 'Internship application not found.' });
+        }
+        application.status = requestedStatus;
+        yield application.save();
+        return res.status(200).json({
+            message: `Internship application ${requestedStatus} successfully.`,
+            application,
+        });
+    }
+    catch (error) {
+        console.error('Updating internship application status failed:', error);
+        return res.status(500).json({ message: 'Failed to update internship application status.' });
+    }
+});
+exports.updateInternshipApplicationStatus = updateInternshipApplicationStatus;

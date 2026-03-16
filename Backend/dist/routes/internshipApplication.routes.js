@@ -25,4 +25,5 @@ const handleResumeUpload = (req, res, next) => {
 router.post('/', auth_middleware_1.protect, handleResumeUpload, internshipApplication_controller_1.submitInternshipApplication);
 router.get('/me', auth_middleware_1.protect, internshipApplication_controller_1.getMyInternshipApplications);
 router.get('/admin', auth_middleware_1.protect, auth_middleware_1.isAdmin, internshipApplication_controller_1.getAllInternshipApplications);
+router.patch('/admin/:id/status', auth_middleware_1.protect, auth_middleware_1.isAdmin, internshipApplication_controller_1.updateInternshipApplicationStatus);
 exports.default = router;

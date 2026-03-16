@@ -4,6 +4,7 @@ import { Request, Response } from 'express';
 import InternshipApplication from '../models/internshipApplication.model';
 
 const fileServeRoot = '/home/sovirtraining/file_serve';
+const adminDecisionStatuses = ['accepted', 'rejected'] as const;
 
 const toStoredResumeUrl = (filename: string) => `/uploads/internship_resumes/${filename}`;
 
@@ -158,12 +159,40 @@ export const getMyInternshipApplications = async (req: Request, res: Response) =
 export const getAllInternshipApplications = async (req: Request, res: Response) => {
     try {
         const applications = await InternshipApplication.find()
-            .populate('userId', 'name email phoneNumber role')
+            .populate('userId', 'name email phoneNumber role avatar')
             .sort({ createdAt: -1 });
 
         return res.status(200).json({ applications });
     } catch (error) {
         console.error('Fetching all internship applications failed:', error);
         return res.status(500).json({ message: 'Failed to fetch internship applications.' });
+    }
+};
+
+export const updateInternshipApplicationStatus = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const requestedStatus = String(req.body.status ?? '').trim().toLowerCase();
+
+        if (!adminDecisionStatuses.includes(requestedStatus as (typeof adminDecisionStatuses)[number])) {
+            return res.status(400).json({ message: 'Status must be accepted or rejected.' });
+        }
+
+        const application = await InternshipApplication.findById(id).populate('userId', 'name email phoneNumber role avatar');
+
+        if (!application) {
+            return res.status(404).json({ message: 'Internship application not found.' });
+        }
+
+        application.status = requestedStatus as (typeof adminDecisionStatuses)[number];
+        await application.save();
+
+        return res.status(200).json({
+            message: `Internship application ${requestedStatus} successfully.`,
+            application,
+        });
+    } catch (error) {
+        console.error('Updating internship application status failed:', error);
+        return res.status(500).json({ message: 'Failed to update internship application status.' });
     }
 };

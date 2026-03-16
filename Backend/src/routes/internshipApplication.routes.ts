@@ -4,6 +4,7 @@ import {
     getAllInternshipApplications,
     getMyInternshipApplications,
     submitInternshipApplication,
+    updateInternshipApplicationStatus,
 } from '../controllers/internshipApplication.controller';
 import { protect, isAdmin } from '../middlewares/auth.middleware';
 import { uploadInternshipResume } from '../middlewares/uploadInternshipResume.middleware';
@@ -29,5 +30,6 @@ const handleResumeUpload: express.RequestHandler = (req, res, next) => {
 router.post('/', protect, handleResumeUpload, submitInternshipApplication);
 router.get('/me', protect, getMyInternshipApplications);
 router.get('/admin', protect, isAdmin, getAllInternshipApplications);
+router.patch('/admin/:id/status', protect, isAdmin, updateInternshipApplicationStatus);
 
 export default router;
