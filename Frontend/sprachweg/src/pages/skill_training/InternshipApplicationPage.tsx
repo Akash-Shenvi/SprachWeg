@@ -413,18 +413,18 @@ const InternshipApplicationPage: React.FC = () => {
                 <div className="flex flex-col items-center gap-1">
                   <div
                     className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-[11px] font-bold font-mono transition-all duration-300 relative z-[2] ${stepsActive[i]
-                        ? 'border-[#1f4fa3] bg-[#1f4fa3] text-white shadow-[0_0_0_4px_rgba(31,79,163,0.15)]'
-                        : stepsDone[i]
-                          ? 'border-teal-500 bg-teal-500 text-white'
-                          : 'border-[#e0e7f5] dark:border-[#1f2d4a] bg-white dark:bg-[#111827] text-[#9aa3b8]'
+                      ? 'border-[#1f4fa3] bg-[#1f4fa3] text-white shadow-[0_0_0_4px_rgba(31,79,163,0.15)]'
+                      : stepsDone[i]
+                        ? 'border-teal-500 bg-teal-500 text-white'
+                        : 'border-[#e0e7f5] dark:border-[#1f2d4a] bg-white dark:bg-[#111827] text-[#9aa3b8]'
                       }`}
                   >
                     {stepsDone[i] ? <CheckSmall /> : i + 1}
                   </div>
                   <span
                     className={`text-[10px] font-medium tracking-[0.05em] uppercase whitespace-nowrap ${stepsActive[i]
-                        ? 'text-[#1f4fa3]'
-                        : 'text-[#9aa3b8] dark:text-[#4a5878]'
+                      ? 'text-[#1f4fa3]'
+                      : 'text-[#9aa3b8] dark:text-[#4a5878]'
                       }`}
                   >
                     {label}
@@ -451,7 +451,7 @@ const InternshipApplicationPage: React.FC = () => {
                 <Field label="First Name" required error={errors.firstName}>
                   <input
                     type="text"
-                    placeholder="Aarav"
+                    placeholder="Joylan"
                     value={form.firstName}
                     onChange={e => set('firstName', e.target.value)}
                     className={inputCls}
@@ -461,7 +461,7 @@ const InternshipApplicationPage: React.FC = () => {
                 <Field label="Last Name" required error={errors.lastName}>
                   <input
                     type="text"
-                    placeholder="Sharma"
+                    placeholder="Dsouza"
                     value={form.lastName}
                     onChange={e => set('lastName', e.target.value)}
                     className={inputCls}
@@ -668,8 +668,8 @@ const InternshipApplicationPage: React.FC = () => {
                   onDragLeave={() => setDragOver(false)}
                   onDrop={handleDrop}
                   className={`relative border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all duration-250 bg-[#f8faff] dark:bg-[#0d1629] ${dragOver
-                      ? 'border-[#1f4fa3] bg-[#dbe8ff] dark:bg-[#1a2d5a] scale-[1.01]'
-                      : 'border-[#e0e7f5] dark:border-[#1f2d4a] hover:border-[#1f4fa3] hover:bg-[#dbe8ff] dark:hover:bg-[#1a2d5a]'
+                    ? 'border-[#1f4fa3] bg-[#dbe8ff] dark:bg-[#1a2d5a] scale-[1.01]'
+                    : 'border-[#e0e7f5] dark:border-[#1f2d4a] hover:border-[#1f4fa3] hover:bg-[#dbe8ff] dark:hover:bg-[#1a2d5a]'
                     }`}
                 >
                   <input
@@ -765,8 +765,8 @@ const InternshipApplicationPage: React.FC = () => {
                   onClick={handleSubmit}
                   disabled={loading}
                   className={`w-full flex items-center justify-center gap-2 py-4 px-6 rounded-xl text-[15px] font-semibold text-white transition-all duration-200 shadow-[0_4px_15px_rgba(31,79,163,0.3)] ${loading
-                      ? 'bg-[#1f4fa3]/70 cursor-not-allowed'
-                      : 'bg-[#1f4fa3] hover:bg-[#173c7d] hover:shadow-[0_8px_25px_rgba(31,79,163,0.4)] hover:-translate-y-0.5 active:translate-y-0'
+                    ? 'bg-[#1f4fa3]/70 cursor-not-allowed'
+                    : 'bg-[#1f4fa3] hover:bg-[#173c7d] hover:shadow-[0_8px_25px_rgba(31,79,163,0.4)] hover:-translate-y-0.5 active:translate-y-0'
                     }`}
                 >
                   {loading ? (
