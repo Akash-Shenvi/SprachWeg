@@ -31,6 +31,7 @@ import PLCIndustrialAutomationPage from './pages/skill_training/PLCIndustrialAut
 import IndustrialDrivesMotionPage from './pages/skill_training/IndustrialDrivesMotionPage';
 import AdvancedIndustry4Page from './pages/skill_training/AdvancedIndustry4Page';
 import CustomizedCorporateTrainingPage from './pages/skill_training/CustomizedCorporateTrainingPage';
+import InternshipApplicationPage from './pages/skill_training/InternshipApplicationPage';
 import NotFound404 from './pages/NotFound404';
 import AboutPage from './pages/About';
 import GoogleCallback from './pages/GoogleCallback';
@@ -157,7 +158,7 @@ const AppContent = () => {
         <Route path="/skill-training/industry4" element={<AdvancedIndustry4Page />} />
         <Route path="/skill-training/industry4" element={<AdvancedIndustry4Page />} />
         <Route path="/skill-training/corporate" element={<CustomizedCorporateTrainingPage />} />
-
+        <Route path="/internship-application" element={<InternshipApplicationPage />} />
 
         <Route
           path="/login"
