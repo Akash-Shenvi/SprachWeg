@@ -45,6 +45,7 @@ import AdminFeedback from './pages/Admin/AdminFeedback';
 import AdminFileLinks from './pages/Admin/AdminFileLinks';
 import ManageStudents from './pages/Admin/ManageStudents';
 import ChatPage from './pages/ChatPage';
+import VerificationPage from './pages/VerificationPage';
 
 
 
@@ -143,6 +144,7 @@ const AppContent = () => {
         <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/feedback" element={<FeedbackPage />} />
+        <Route path="/verify" element={<VerificationPage />} />
 
 
         {/* Skill Training Routes */}
