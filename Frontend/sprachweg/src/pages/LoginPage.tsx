@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Button from '../components/ui/Button';
@@ -9,6 +9,7 @@ import { Header } from '../components/layout';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login, googleLogin } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -18,12 +19,20 @@ const LoginPage: React.FC = () => {
         password: '',
     });
 
+    const redirectTargetFromState = (location.state as { from?: { pathname?: string; search?: string; hash?: string } } | null)?.from;
+    const redirectTargetFromQuery = new URLSearchParams(location.search).get('redirect');
+    const redirectTarget = redirectTargetFromState?.pathname
+        ? `${redirectTargetFromState.pathname}${redirectTargetFromState.search || ''}${redirectTargetFromState.hash || ''}`
+        : (redirectTargetFromQuery && redirectTargetFromQuery.startsWith('/')
+            ? redirectTargetFromQuery
+            : '/student-dashboard');
+
     const handleGoogleLogin = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
             try {
                 setLoading(true);
                 await googleLogin(tokenResponse.access_token);
-                navigate('/student-dashboard');
+                navigate(redirectTarget);
             } catch (err: any) {
                 setError(err.response?.data?.message || 'Google Login failed');
             } finally {
@@ -42,7 +51,7 @@ const LoginPage: React.FC = () => {
 
         try {
             await login(formData.email, formData.password);
-            navigate('/student-dashboard');
+            navigate(redirectTarget);
         } catch (err: any) {
             setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
         } finally {

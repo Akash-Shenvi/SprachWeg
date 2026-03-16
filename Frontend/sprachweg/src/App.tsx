@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -54,6 +54,7 @@ import CareersPage from './pages/CareersPage';
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -67,7 +68,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    const redirectTo = `${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectTo)}`} replace state={{ from: location }} />;
   }
 
   return <>{children}</>;
@@ -76,6 +78,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 // Public Route Component (redirect if already logged in)
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -89,6 +92,10 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   if (user) {
+    const redirectTarget = new URLSearchParams(location.search).get('redirect');
+    if (redirectTarget && redirectTarget.startsWith('/')) {
+      return <Navigate to={redirectTarget} replace />;
+    }
     if (user.role === 'admin') return <Navigate to="/admin-dashboard" replace />;
     if (user.role === 'trainer') return <Navigate to="/trainer-dashboard" replace />;
     return <Navigate to="/student-dashboard" replace />;
@@ -158,7 +165,14 @@ const AppContent = () => {
         <Route path="/skill-training/industry4" element={<AdvancedIndustry4Page />} />
         <Route path="/skill-training/industry4" element={<AdvancedIndustry4Page />} />
         <Route path="/skill-training/corporate" element={<CustomizedCorporateTrainingPage />} />
-        <Route path="/internship-application" element={<InternshipApplicationPage />} />
+        <Route
+          path="/internship-application"
+          element={
+            <ProtectedRoute>
+              <InternshipApplicationPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/login"

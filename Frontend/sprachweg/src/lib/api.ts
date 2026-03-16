@@ -161,5 +161,20 @@ export const skillTrainingDetailAPI = {
     }
 };
 
+export const internshipApplicationAPI = {
+    async submit(data: FormData) {
+        const response = await api.post('/internship-applications', data, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    },
+    async getMine() {
+        const response = await api.get('/internship-applications/me');
+        return response.data;
+    },
+};
+
 export default api;
 

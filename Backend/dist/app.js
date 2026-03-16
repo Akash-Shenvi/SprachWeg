@@ -52,4 +52,6 @@ const student_routes_1 = __importDefault(require("./routes/student.routes"));
 app.use('/api/admin', student_routes_1.default);
 const chat_routes_1 = __importDefault(require("./routes/chat.routes"));
 app.use('/api/chat', chat_routes_1.default);
+const internshipApplication_routes_1 = __importDefault(require("./routes/internshipApplication.routes"));
+app.use('/api/internship-applications', internshipApplication_routes_1.default);
 exports.default = app;

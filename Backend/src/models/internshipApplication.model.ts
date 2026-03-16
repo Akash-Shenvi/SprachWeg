@@ -1,0 +1,69 @@
+import mongoose, { Document, Schema } from 'mongoose';
+
+export interface IInternshipApplication extends Document {
+    userId: mongoose.Types.ObjectId;
+    accountName: string;
+    accountEmail: string;
+    accountPhoneNumber?: string;
+    internshipTitle: string;
+    firstName: string;
+    lastName: string;
+    dateOfBirth: Date;
+    email: string;
+    whatsapp: string;
+    college: string;
+    registration: string;
+    department: string;
+    semester: string;
+    passingYear: string;
+    address: string;
+    source: string;
+    resumeUrl: string;
+    resumeOriginalName: string;
+    status: 'submitted' | 'reviewed' | 'shortlisted' | 'rejected';
+    referenceCode: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const generateReferenceCode = () =>
+    `INT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+
+const InternshipApplicationSchema = new Schema<IInternshipApplication>({
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    accountName: { type: String, required: true, trim: true },
+    accountEmail: { type: String, required: true, trim: true, lowercase: true },
+    accountPhoneNumber: { type: String, trim: true },
+    internshipTitle: { type: String, required: true, trim: true },
+    firstName: { type: String, required: true, trim: true },
+    lastName: { type: String, required: true, trim: true },
+    dateOfBirth: { type: Date, required: true },
+    email: { type: String, required: true, trim: true, lowercase: true },
+    whatsapp: { type: String, required: true, trim: true },
+    college: { type: String, required: true, trim: true },
+    registration: { type: String, required: true, trim: true },
+    department: { type: String, required: true, trim: true },
+    semester: { type: String, required: true, trim: true },
+    passingYear: { type: String, required: true, trim: true },
+    address: { type: String, required: true, trim: true },
+    source: { type: String, required: true, trim: true },
+    resumeUrl: { type: String, required: true, trim: true },
+    resumeOriginalName: { type: String, required: true, trim: true },
+    status: {
+        type: String,
+        enum: ['submitted', 'reviewed', 'shortlisted', 'rejected'],
+        default: 'submitted',
+    },
+    referenceCode: {
+        type: String,
+        required: true,
+        unique: true,
+        default: generateReferenceCode,
+    },
+}, {
+    timestamps: true,
+});
+
+InternshipApplicationSchema.index({ userId: 1, internshipTitle: 1 }, { unique: true });
+
+export default mongoose.model<IInternshipApplication>('InternshipApplication', InternshipApplicationSchema);

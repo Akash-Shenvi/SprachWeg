@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Briefcase, Clock, MapPin, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 
@@ -228,13 +229,13 @@ const CareersPage: React.FC = () => {
                                 </div>
 
                                 {/* Apply button */}
-                                <button
-                                    type="button"
+                                <Link
+                                    to={`/internship-application?internship=${encodeURIComponent(internship.title)}`}
                                     className="mt-auto w-full flex items-center justify-center gap-2 bg-[#d6b161] hover:bg-[#c4a055] active:scale-95 text-[#0a192f] font-semibold py-2.5 rounded-xl text-sm transition-all duration-200"
                                 >
                                     Apply Now
                                     <ChevronRight className="w-4 h-4" />
-                                </button>
+                                </Link>
                             </motion.div>
                         ))}
                     </div>
