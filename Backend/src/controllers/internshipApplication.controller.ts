@@ -165,6 +165,26 @@ export const getMyInternshipApplications = async (req: Request, res: Response) =
     }
 };
 
+export const getMyEnrolledInternships = async (req: Request, res: Response) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Please log in to view your enrolled internships.' });
+        }
+
+        const internships = await InternshipApplication.find({
+            userId: req.user._id,
+            status: 'accepted',
+        })
+            .select('internshipTitle referenceCode status createdAt')
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({ internships });
+    } catch (error) {
+        console.error('Fetching enrolled internships failed:', error);
+        return res.status(500).json({ message: 'Failed to fetch enrolled internships.' });
+    }
+};
+
 export const getAllInternshipApplications = async (req: Request, res: Response) => {
     try {
         const applications = await InternshipApplication.find()
@@ -203,5 +223,28 @@ export const updateInternshipApplicationStatus = async (req: Request, res: Respo
     } catch (error) {
         console.error('Updating internship application status failed:', error);
         return res.status(500).json({ message: 'Failed to update internship application status.' });
+    }
+};
+
+export const deleteRejectedInternshipApplication = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const application = await InternshipApplication.findById(id);
+
+        if (!application) {
+            return res.status(404).json({ message: 'Internship application not found.' });
+        }
+
+        if (application.status !== 'rejected') {
+            return res.status(400).json({ message: 'Only rejected internship applications can be deleted.' });
+        }
+
+        removeStoredResume(application.resumeUrl);
+        await application.deleteOne();
+
+        return res.status(200).json({ message: 'Rejected internship application deleted successfully.' });
+    } catch (error) {
+        console.error('Deleting rejected internship application failed:', error);
+        return res.status(500).json({ message: 'Failed to delete internship application.' });
     }
 };

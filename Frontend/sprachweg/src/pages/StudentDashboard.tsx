@@ -6,7 +6,6 @@ import { getAssetUrl, internshipApplicationAPI } from '../lib/api';
 import {
     BookOpen,
     Briefcase,
-    CheckCircle2,
     User,
     Edit,
     Mail,
@@ -25,18 +24,11 @@ import ProfileCompletionModal from '../components/auth/ProfileCompletionModal';
 // COMPONENTS
 // ============================================================================
 
-interface AcceptedInternship {
+interface EnrolledInternship {
     _id: string;
     internshipTitle: string;
     referenceCode: string;
     status: string;
-    email: string;
-    whatsapp: string;
-    college: string;
-    department: string;
-    semester: string;
-    passingYear: string;
-    source: string;
     createdAt: string;
 }
 
@@ -85,54 +77,28 @@ const CourseCard: React.FC<{ course: any }> = ({ course }) => {
     );
 };
 
-const AcceptedInternshipCard: React.FC<{ internship: AcceptedInternship }> = ({ internship }) => {
+const EnrolledInternshipCard: React.FC<{ internship: EnrolledInternship }> = ({ internship }) => {
     return (
         <motion.div
             whileHover={{ y: -4 }}
-            className="rounded-2xl border border-green-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-lg dark:border-green-900/40 dark:bg-gray-800"
+            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-lg dark:border-gray-700 dark:bg-gray-800"
         >
-            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h3 className="text-xl font-bold text-[#0a192f] dark:text-white">{internship.internshipTitle}</h3>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#d6b161]">Internship Name</p>
+                    <h3 className="mt-2 text-xl font-bold text-[#0a192f] dark:text-white">{internship.internshipTitle}</h3>
                     <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-400">
                         Reference ID: <span className="font-mono text-[#0a192f] dark:text-white">{internship.referenceCode}</span>
                     </p>
                 </div>
-                <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Accepted
-                </span>
-            </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-700/50">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">College</p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{internship.college}</p>
-                </div>
-                <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-700/50">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Department</p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{internship.department}</p>
-                </div>
-                <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-700/50">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Semester</p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{internship.semester}</p>
-                </div>
-                <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-700/50">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Passing Year</p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{internship.passingYear}</p>
-                </div>
-                <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-700/50">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Contact</p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{internship.email}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{internship.whatsapp}</p>
-                </div>
-                <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-700/50">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Applied On</p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
-                        {new Date(internship.createdAt).toLocaleDateString()}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{internship.source}</p>
-                </div>
+                <button
+                    type="button"
+                    disabled
+                    className="inline-flex items-center justify-center rounded-xl bg-[#0a192f] px-5 py-3 text-sm font-semibold text-white opacity-80 dark:bg-[#d6b161] dark:text-[#0a192f]"
+                >
+                    View Certificate
+                </button>
             </div>
         </motion.div>
     );
@@ -196,7 +162,7 @@ const StudentDashboard: React.FC = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [courses, setCourses] = useState<any[]>([]);
-    const [acceptedInternships, setAcceptedInternships] = useState<AcceptedInternship[]>([]);
+    const [enrolledInternships, setEnrolledInternships] = useState<EnrolledInternship[]>([]);
     const [coursesLoading, setCoursesLoading] = useState(true);
     const [internshipsLoading, setInternshipsLoading] = useState(true);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -204,17 +170,13 @@ const StudentDashboard: React.FC = () => {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [batchesResponse, internshipResponse] = await Promise.all([
+                const [batchesResponse, enrolledInternshipsResponse] = await Promise.all([
                     api.get('/language-trainer/student/batches'),
-                    internshipApplicationAPI.getMine(),
+                    internshipApplicationAPI.getMyEnrolled(),
                 ]);
 
                 setCourses(batchesResponse.data);
-                setAcceptedInternships(
-                    (internshipResponse.applications || []).filter(
-                        (application: AcceptedInternship) => application.status === 'accepted'
-                    )
-                );
+                setEnrolledInternships(enrolledInternshipsResponse.internships || []);
             } catch (error) {
                 console.error("Failed to fetch student dashboard data", error);
             } finally {
@@ -366,21 +328,21 @@ const StudentDashboard: React.FC = () => {
                     {/* Enrolled Courses Section - Takes 8 columns */}
                     <div className="lg:col-span-8">
                         <div className="space-y-8">
-                            {!internshipsLoading && acceptedInternships.length > 0 && (
+                            {!internshipsLoading && enrolledInternships.length > 0 && (
                                 <section>
                                     <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[#0a192f] dark:text-white">
                                         <Briefcase className="h-6 w-6 text-[#d6b161]" />
-                                        Accepted Internships
+                                        Internship Enrolled
                                     </h2>
                                     <div className="grid gap-6">
-                                        {acceptedInternships.map((internship, idx) => (
+                                        {enrolledInternships.map((internship, idx) => (
                                             <motion.div
                                                 key={internship._id}
                                                 initial={{ opacity: 0, y: 20 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: idx * 0.1 }}
                                             >
-                                                <AcceptedInternshipCard internship={internship} />
+                                                <EnrolledInternshipCard internship={internship} />
                                             </motion.div>
                                         ))}
                                     </div>

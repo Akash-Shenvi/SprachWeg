@@ -17,6 +17,7 @@ import {
     MapPin,
     Phone,
     Search,
+    Trash2,
     User,
     X,
 } from 'lucide-react';
@@ -162,6 +163,35 @@ const AdminInternshipApplications: React.FC = () => {
         } catch (err: any) {
             console.error(`Failed to ${nextStatus} internship application:`, err);
             window.alert(err.response?.data?.message || 'Failed to update internship application status.');
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    const handleDeleteRejectedApplication = async (application: InternshipApplication) => {
+        if (normalizeStatus(application.status) !== 'rejected') {
+            window.alert('Only rejected internship applications can be deleted.');
+            return;
+        }
+
+        if (!window.confirm('Delete this rejected internship application? The uploaded resume will also be deleted.')) {
+            return;
+        }
+
+        try {
+            setProcessingId(application._id);
+            await internshipApplicationAPI.deleteRejected(application._id);
+
+            setApplications((currentApplications) =>
+                currentApplications.filter((currentApplication) => currentApplication._id !== application._id)
+            );
+
+            setSelectedApplication((currentSelectedApplication) =>
+                currentSelectedApplication?._id === application._id ? null : currentSelectedApplication
+            );
+        } catch (err: any) {
+            console.error('Failed to delete rejected internship application:', err);
+            window.alert(err.response?.data?.message || 'Failed to delete internship application.');
         } finally {
             setProcessingId(null);
         }
@@ -319,6 +349,7 @@ const AdminInternshipApplications: React.FC = () => {
                             const normalizedStatus = normalizeStatus(application.status);
                             const statusMeta = getStatusMeta(normalizedStatus);
                             const isPending = normalizedStatus === 'submitted';
+                            const isRejected = normalizedStatus === 'rejected';
                             const isProcessing = processingId === application._id;
 
                             return (
@@ -413,6 +444,15 @@ const AdminInternshipApplications: React.FC = () => {
                                                         Reject
                                                     </button>
                                                 </>
+                                            ) : isRejected ? (
+                                                <button
+                                                    onClick={() => handleDeleteRejectedApplication(application)}
+                                                    disabled={isProcessing}
+                                                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors disabled:opacity-60 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30"
+                                                >
+                                                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                                    Delete
+                                                </button>
                                             ) : (
                                                 <div className={`inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium ${statusMeta.actionClass}`}>
                                                     {statusMeta.label}
@@ -678,6 +718,23 @@ const AdminInternshipApplications: React.FC = () => {
                                                 <X className="w-4 h-4" />
                                             )}
                                             Reject Application
+                                        </button>
+                                    </div>
+                                )}
+
+                                {normalizeStatus(selectedApplication.status) === 'rejected' && (
+                                    <div className="pt-2">
+                                        <button
+                                            onClick={() => handleDeleteRejectedApplication(selectedApplication)}
+                                            disabled={processingId === selectedApplication._id}
+                                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-700 hover:bg-red-100 transition-colors disabled:opacity-60 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30"
+                                        >
+                                            {processingId === selectedApplication._id ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <Trash2 className="w-4 h-4" />
+                                            )}
+                                            Delete Rejected Application
                                         </button>
                                     </div>
                                 )}

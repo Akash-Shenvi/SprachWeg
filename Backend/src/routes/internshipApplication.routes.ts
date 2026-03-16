@@ -1,7 +1,9 @@
 import express from 'express';
 import multer from 'multer';
 import {
+    deleteRejectedInternshipApplication,
     getAllInternshipApplications,
+    getMyEnrolledInternships,
     getMyInternshipApplications,
     submitInternshipApplication,
     updateInternshipApplicationStatus,
@@ -29,7 +31,9 @@ const handleResumeUpload: express.RequestHandler = (req, res, next) => {
 
 router.post('/', protect, handleResumeUpload, submitInternshipApplication);
 router.get('/me', protect, getMyInternshipApplications);
+router.get('/me/enrolled', protect, getMyEnrolledInternships);
 router.get('/admin', protect, isAdmin, getAllInternshipApplications);
 router.patch('/admin/:id/status', protect, isAdmin, updateInternshipApplicationStatus);
+router.delete('/admin/:id', protect, isAdmin, deleteRejectedInternshipApplication);
 
 export default router;
