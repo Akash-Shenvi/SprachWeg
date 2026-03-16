@@ -177,15 +177,15 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm sm:p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4">
                 <motion.div
-                    initial={{ opacity: 0, y: 40, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 40, scale: 0.98 }}
-                    className="w-full sm:max-w-md h-[100dvh] sm:h-auto sm:max-h-[90vh] flex flex-col rounded-t-2xl sm:rounded-2xl bg-white shadow-xl dark:bg-gray-800 relative"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="w-full max-w-[96vw] sm:max-w-md max-h-[90dvh] flex flex-col rounded-2xl bg-white shadow-xl dark:bg-gray-800"
                 >
-                    {/* Sticky header — always visible on scroll */}
-                    <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 px-4 pt-4 pb-2 sm:px-6 sm:pt-6 sm:pb-3 rounded-t-2xl sm:rounded-t-2xl border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+                    {/* Fixed header — always visible, never scrolls away */}
+                    <div className="flex-shrink-0 px-4 pt-4 pb-2 sm:px-6 sm:pt-5 sm:pb-3 border-b border-gray-100 dark:border-gray-700">
                         <div className="flex items-center justify-between mb-2">
                             <button
                                 type="button"
@@ -206,14 +206,14 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
                             )}
                         </div>
 
-                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Complete Your Profile</h2>
+                        <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Complete Your Profile</h2>
                         <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                             Please provide the following details to continue.
                         </p>
                     </div>
 
-                    {/* Scrollable body */}
-                    <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4 sm:px-6 sm:pb-6">
+                    {/* Scrollable body — all form content scrolls here */}
+                    <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-4 sm:px-6 sm:pb-6">
 
                     {error && (
                         <div className="mt-3 sm:mt-4 rounded-md bg-red-50 p-3 sm:p-4 text-xs sm:text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
