@@ -417,63 +417,56 @@ const LandingPage: React.FC = () => {
             <Header />
 
             {/* Hero Section */}
-            <section className="relative pt-24 pb-20 lg:pt-32 lg:pb-32 overflow-hidden">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid lg:grid-cols-2 gap-16 items-center">
-                        <motion.div
-                            initial={{ opacity: 0, x: -50 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.8 }}
-                        >
-                            <div className="inline-block px-4 py-2 bg-[#d6b161]/10 rounded-full mb-6 border border-[#d6b161]/20">
-                                <span className="text-[#d6b161] font-medium text-sm flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-[#d6b161]"></span>
-                                    New: Summer 2026 Batches Now Open
-                                </span>
-                            </div>
+            <section className="relative pt-28 pb-24 lg:pt-40 lg:pb-36 overflow-hidden">
+                {/* Subtle radial gradient background */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(214,177,97,0.12),transparent)] dark:bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(214,177,97,0.08),transparent)]" aria-hidden="true" />
 
-                            <h1 className="font-sans text-5xl lg:text-7xl font-medium text-gray-900 dark:text-white leading-tight mb-6">
-                                SoVir Skilling & <br />
-                                <span>Training Center</span> <br />
-                            </h1>
+                <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, ease: [0.0, 0.0, 0.2, 1] }}
+                        className="flex flex-col items-center text-center"
+                    >
+                        <div className="inline-block px-4 py-2 bg-[#d6b161]/10 rounded-full mb-8 border border-[#d6b161]/20">
+                            <span className="text-[#d6b161] font-medium text-sm flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-[#d6b161]"></span>
+                                New: Summer 2026 Batches Now Open
+                            </span>
+                        </div>
 
-                            <p className="text-xl font-semibold text-gray-600 dark:text-gray-300 mb-4">
-                                A Training & Career Services Division of SoVir Technologies LLP
-                            </p>
+                        <h1 className="font-sans text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium text-gray-900 dark:text-white leading-[1.1] tracking-tight mb-6">
+                            SoVir Skilling & <br className="hidden sm:block" />
+                            <span>Training Center</span>
+                        </h1>
 
-                            <p className="text-lg text-gray-600 dark:text-gray-400 mb-10 leading-relaxed max-w-xl">
-                                A professional training academy empowering individuals with industry-ready skills and global career opportunities through specialized skill development and abroad placement support.
-                            </p>
+                        <p className="text-lg sm:text-xl font-semibold text-gray-600 dark:text-gray-300 mb-4 max-w-2xl">
+                            A Training & Career Services Division of SoVir Technologies LLP
+                        </p>
 
-                            <div className="flex flex-col sm:flex-row gap-4">
-                                <Link to="/skill-training">
-                                    <Button
-                                        className="bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] font-semibold px-8 py-6 text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b161]"
-                                    >
-                                        Start Learning
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
-                                    </Button>
-                                </Link>
+                        <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 mb-12 leading-relaxed max-w-2xl">
+                            A professional training academy empowering individuals with industry-ready skills and global career opportunities through specialized skill development and abroad placement support.
+                        </p>
+
+                        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center">
+                            <Link to="/skill-training">
                                 <Button
-                                    onClick={() => setIsBookingFormOpen(true)}
-                                    variant="outline"
-                                    className="border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 px-8 py-6 text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b161]"
+                                    className="bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] font-semibold px-8 py-6 text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b161] transition-all duration-300 hover:shadow-lg hover:shadow-[#d6b161]/25"
                                 >
-                                    <Play className="w-5 h-5" />
-                                    Book Free Consultation
+                                    Start Learning
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                                 </Button>
-                            </div>
-                        </motion.div>
-
-                        <motion.div
-                            initial={{ opacity: 0, x: 50 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.8 }}
-                            className="relative h-[500px] lg:h-[600px]"
-                        >
-                            <RotatingImageStack />
-                        </motion.div>
-                    </div>
+                            </Link>
+                            <Button
+                                onClick={() => setIsBookingFormOpen(true)}
+                                variant="outline"
+                                className="border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 px-8 py-6 text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b161] transition-all duration-300 hover:shadow-lg"
+                            >
+                                <Play className="w-5 h-5" />
+                                Book Free Consultation
+                            </Button>
+                        </div>
+                    </motion.div>
                 </div>
             </section>
 
