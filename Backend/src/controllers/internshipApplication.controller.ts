@@ -2,9 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import { Request, Response } from 'express';
 import InternshipApplication from '../models/internshipApplication.model';
+import { EmailService } from '../utils/email.service';
 
 const fileServeRoot = '/home/sovirtraining/file_serve';
 const adminDecisionStatuses = ['accepted', 'rejected'] as const;
+const emailService = new EmailService();
 
 const toStoredResumeUrl = (filename: string) => `/uploads/internship_resumes/${filename}`;
 
@@ -125,6 +127,13 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
                 removeStoredResume(previousResumeUrl);
             }
 
+            await emailService.sendInternshipApplicationEmail(
+                existingApplication.email,
+                `${existingApplication.firstName} ${existingApplication.lastName}`.trim(),
+                existingApplication.internshipTitle,
+                existingApplication.referenceCode
+            );
+
             return res.status(200).json({
                 message: 'Internship application updated successfully.',
                 application: existingApplication,
@@ -132,6 +141,13 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
         }
 
         const application = await InternshipApplication.create(applicationData);
+
+        await emailService.sendInternshipApplicationEmail(
+            application.email,
+            `${application.firstName} ${application.lastName}`.trim(),
+            application.internshipTitle,
+            application.referenceCode
+        );
 
         return res.status(201).json({
             message: 'Internship application submitted successfully.',
@@ -215,6 +231,14 @@ export const updateInternshipApplicationStatus = async (req: Request, res: Respo
 
         application.status = requestedStatus as (typeof adminDecisionStatuses)[number];
         await application.save();
+
+        await emailService.sendInternshipStatusEmail(
+            application.email,
+            `${application.firstName} ${application.lastName}`.trim(),
+            application.internshipTitle,
+            application.referenceCode,
+            requestedStatus as 'accepted' | 'rejected'
+        );
 
         return res.status(200).json({
             message: `Internship application ${requestedStatus} successfully.`,
