@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef, Suspense, lazy, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 
 import { MessageCircle } from 'lucide-react';
 
-// Lazy-load heavy route chrome (Header/Footer)
-const Header = lazy(() => import('../components/layout/Header'));
-const Footer = lazy(() => import('../components/layout/Footer'));
+import Header from '../components/layout/Header';
+import Footer from '../components/layout/Footer';
 
 // --- Premium Animation Variants ---
 const fadeInUp = {
@@ -352,9 +351,7 @@ const ContactPage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col font-sans">
-            <Suspense fallback={<div className="h-16 w-full bg-transparent" aria-hidden="true" />}>
-                <Header />
-            </Suspense>
+            <Header />
 
             {/* Hero Section */}
             {/* Hero Section */}
@@ -752,9 +749,7 @@ const ContactPage: React.FC = () => {
                 </div>
             </section>
 
-            <Suspense fallback={<div className="h-24 w-full bg-transparent" aria-hidden="true" />}>
-                <Footer />
-            </Suspense>
+            <Footer />
 
             {/* Reduced Motion Support Styles */}
             <style>{`
