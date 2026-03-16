@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import api from '../lib/api';
-import { getAssetUrl } from '../lib/api';
+import { getAssetUrl, internshipApplicationAPI } from '../lib/api';
 import {
     BookOpen,
+    Briefcase,
+    CheckCircle2,
     User,
     Edit,
     Mail,
@@ -22,6 +24,21 @@ import ProfileCompletionModal from '../components/auth/ProfileCompletionModal';
 // ============================================================================
 // COMPONENTS
 // ============================================================================
+
+interface AcceptedInternship {
+    _id: string;
+    internshipTitle: string;
+    referenceCode: string;
+    status: string;
+    email: string;
+    whatsapp: string;
+    college: string;
+    department: string;
+    semester: string;
+    passingYear: string;
+    source: string;
+    createdAt: string;
+}
 
 const CourseCard: React.FC<{ course: any }> = ({ course }) => {
     const navigate = useNavigate();
@@ -63,6 +80,59 @@ const CourseCard: React.FC<{ course: any }> = ({ course }) => {
                         Chat
                     </button>
                 )}
+            </div>
+        </motion.div>
+    );
+};
+
+const AcceptedInternshipCard: React.FC<{ internship: AcceptedInternship }> = ({ internship }) => {
+    return (
+        <motion.div
+            whileHover={{ y: -4 }}
+            className="rounded-2xl border border-green-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-lg dark:border-green-900/40 dark:bg-gray-800"
+        >
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h3 className="text-xl font-bold text-[#0a192f] dark:text-white">{internship.internshipTitle}</h3>
+                    <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Reference ID: <span className="font-mono text-[#0a192f] dark:text-white">{internship.referenceCode}</span>
+                    </p>
+                </div>
+                <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Accepted
+                </span>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-700/50">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">College</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{internship.college}</p>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-700/50">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Department</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{internship.department}</p>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-700/50">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Semester</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{internship.semester}</p>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-700/50">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Passing Year</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{internship.passingYear}</p>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-700/50">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Contact</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{internship.email}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{internship.whatsapp}</p>
+                </div>
+                <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-700/50">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Applied On</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
+                        {new Date(internship.createdAt).toLocaleDateString()}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{internship.source}</p>
+                </div>
             </div>
         </motion.div>
     );
@@ -126,22 +196,34 @@ const StudentDashboard: React.FC = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [courses, setCourses] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [acceptedInternships, setAcceptedInternships] = useState<AcceptedInternship[]>([]);
+    const [coursesLoading, setCoursesLoading] = useState(true);
+    const [internshipsLoading, setInternshipsLoading] = useState(true);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
     useEffect(() => {
-        const fetchBatches = async () => {
+        const fetchDashboardData = async () => {
             try {
-                const response = await api.get('/language-trainer/student/batches');
-                setCourses(response.data);
+                const [batchesResponse, internshipResponse] = await Promise.all([
+                    api.get('/language-trainer/student/batches'),
+                    internshipApplicationAPI.getMine(),
+                ]);
+
+                setCourses(batchesResponse.data);
+                setAcceptedInternships(
+                    (internshipResponse.applications || []).filter(
+                        (application: AcceptedInternship) => application.status === 'accepted'
+                    )
+                );
             } catch (error) {
-                console.error("Failed to fetch student batches", error);
+                console.error("Failed to fetch student dashboard data", error);
             } finally {
-                setLoading(false);
+                setCoursesLoading(false);
+                setInternshipsLoading(false);
             }
         };
         if (user) {
-            fetchBatches();
+            fetchDashboardData();
         }
     }, [user]);
 
@@ -283,34 +365,57 @@ const StudentDashboard: React.FC = () => {
 
                     {/* Enrolled Courses Section - Takes 8 columns */}
                     <div className="lg:col-span-8">
-                        <section>
-                            <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[#0a192f] dark:text-white">
-                                <BookOpen className="h-6 w-6 text-[#d6b161]" />
-                                Enrolled Courses
-                            </h2>
-                            {loading ? <p>Loading courses...</p> : (
-                                <>
-                                    {courses.length > 0 ? (
-                                        <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
-                                            {courses.map((course, idx) => (
-                                                <motion.div
-                                                    key={course._id}
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: idx * 0.1 }}
-                                                >
-                                                    <CourseCard course={course} />
-                                                </motion.div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-800">
-                                            <p className="text-gray-500 dark:text-gray-400">You are not enrolled in any courses yet.</p>
-                                        </div>
-                                    )}
-                                </>
+                        <div className="space-y-8">
+                            {!internshipsLoading && acceptedInternships.length > 0 && (
+                                <section>
+                                    <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[#0a192f] dark:text-white">
+                                        <Briefcase className="h-6 w-6 text-[#d6b161]" />
+                                        Accepted Internships
+                                    </h2>
+                                    <div className="grid gap-6">
+                                        {acceptedInternships.map((internship, idx) => (
+                                            <motion.div
+                                                key={internship._id}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: idx * 0.1 }}
+                                            >
+                                                <AcceptedInternshipCard internship={internship} />
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </section>
                             )}
-                        </section>
+
+                            <section>
+                                <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold text-[#0a192f] dark:text-white">
+                                    <BookOpen className="h-6 w-6 text-[#d6b161]" />
+                                    Enrolled Courses
+                                </h2>
+                                {coursesLoading ? <p>Loading courses...</p> : (
+                                    <>
+                                        {courses.length > 0 ? (
+                                            <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
+                                                {courses.map((course, idx) => (
+                                                    <motion.div
+                                                        key={course._id}
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: idx * 0.1 }}
+                                                    >
+                                                        <CourseCard course={course} />
+                                                    </motion.div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center dark:border-gray-700 dark:bg-gray-800">
+                                                <p className="text-gray-500 dark:text-gray-400">You are not enrolled in any courses yet.</p>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </section>
+                        </div>
                     </div>
                 </div>
             </main>
