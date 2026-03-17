@@ -14,6 +14,7 @@ import {
 import Button from '../components/ui/Button';
 import { Header, Footer } from '../components/layout';
 import UnifiedBookingForm from '../components/ui/UnifiedBookingForm';
+import heroBg from '../assets/hero-bg.png';
 
 // Animation variants
 const fadeInUp = {
@@ -207,34 +208,51 @@ const LandingPage: React.FC = () => {
             <Header />
 
             {/* Hero Section */}
-            <section className="relative pt-28 pb-24 lg:pt-40 lg:pb-36 overflow-hidden">
-                {/* Subtle radial gradient background */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(214,177,97,0.12),transparent)] dark:bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(214,177,97,0.08),transparent)]" aria-hidden="true" />
+            <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+                {/* Background Image */}
+                <div className="absolute inset-0">
+                    <img
+                        src={heroBg}
+                        alt=""
+                        className="w-full h-full object-cover object-center"
+                        aria-hidden="true"
+                    />
+                </div>
 
-                <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                {/* Dark Gradient Overlay — navy-dominant for text legibility */}
+                <div className="absolute inset-0 bg-gradient-to-b from-[#0a192f]/80 via-[#0a192f]/50 to-[#0a192f]/90" aria-hidden="true" />
+
+                {/* Subtle radial glow from center */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_40%,rgba(214,177,97,0.08),transparent)]" aria-hidden="true" />
+
+                {/* Bottom vignette for seamless transition to next section */}
+                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white dark:from-[#0a192f] to-transparent" aria-hidden="true" />
+
+                {/* Content */}
+                <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-24 lg:pt-40 lg:pb-36">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: [0.0, 0.0, 0.2, 1] }}
                         className="flex flex-col items-center text-center"
                     >
-                        <div className="inline-block px-4 py-2 bg-[#d6b161]/10 rounded-full mb-8 border border-[#d6b161]/20">
+                        <div className="inline-block px-4 py-2 bg-[#d6b161]/15 backdrop-blur-sm rounded-full mb-8 border border-[#d6b161]/30">
                             <span className="text-[#d6b161] font-medium text-sm flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-[#d6b161]"></span>
+                                <span className="w-2 h-2 rounded-full bg-[#d6b161] animate-pulse"></span>
                                 New: Summer 2026 Batches Now Open
                             </span>
                         </div>
 
-                        <h1 className="font-sans text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium text-gray-900 dark:text-white leading-[1.1] tracking-tight mb-6">
+                        <h1 className="font-sans text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium text-white leading-[1.1] tracking-tight mb-6 drop-shadow-lg">
                             SoVir Skilling & <br className="hidden sm:block" />
                             <span>Training Center</span>
                         </h1>
 
-                        <p className="text-lg sm:text-xl font-semibold text-gray-600 dark:text-gray-300 mb-4 max-w-2xl">
+                        <p className="text-lg sm:text-xl font-semibold text-gray-200 mb-4 max-w-2xl drop-shadow-md">
                             A Training & Career Services Division of SoVir Technologies LLP
                         </p>
 
-                        <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 mb-12 leading-relaxed max-w-2xl">
+                        <p className="text-base sm:text-lg text-gray-300 mb-12 leading-relaxed max-w-2xl drop-shadow-sm">
                             A professional training academy empowering individuals with industry-ready skills and global career opportunities through specialized skill development and abroad placement support.
                         </p>
 
@@ -250,7 +268,7 @@ const LandingPage: React.FC = () => {
                             <Button
                                 onClick={() => setIsBookingFormOpen(true)}
                                 variant="outline"
-                                className="border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 px-8 py-6 text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b161] transition-all duration-300 hover:shadow-lg"
+                                className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm px-8 py-6 text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b161] transition-all duration-300 hover:shadow-lg hover:border-white/50"
                             >
                                 <Play className="w-5 h-5" />
                                 Book Free Consultation
