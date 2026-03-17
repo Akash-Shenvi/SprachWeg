@@ -41,6 +41,7 @@ const InternshipApplicationSchema = new mongoose_1.Schema({
     accountEmail: { type: String, required: true, trim: true, lowercase: true },
     accountPhoneNumber: { type: String, trim: true },
     internshipTitle: { type: String, required: true, trim: true },
+    internshipMode: { type: String, enum: ['online', 'hybrid', 'onsite'], trim: true },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     dateOfBirth: { type: Date, required: true },

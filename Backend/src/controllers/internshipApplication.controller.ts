@@ -6,6 +6,7 @@ import { EmailService } from '../utils/email.service';
 
 const fileServeRoot = '/home/sovirtraining/file_serve';
 const adminDecisionStatuses = ['accepted', 'rejected'] as const;
+const internshipModes = ['online', 'hybrid', 'onsite'] as const;
 const emailService = new EmailService();
 
 const toStoredResumeUrl = (filename: string) => `/uploads/internship_resumes/${filename}`;
@@ -33,6 +34,7 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
 
         const {
             internshipTitle,
+            internshipMode,
             firstName,
             lastName,
             dob,
@@ -49,6 +51,7 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
 
         const requiredFields = {
             internshipTitle,
+            internshipMode,
             firstName,
             lastName,
             dob,
@@ -68,6 +71,11 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
             return res.status(400).json({ message: `${missingField[0]} is required.` });
         }
 
+        const normalizedMode = String(internshipMode).trim().toLowerCase();
+        if (!internshipModes.includes(normalizedMode as (typeof internshipModes)[number])) {
+            return res.status(400).json({ message: 'Internship mode must be online, hybrid, or onsite.' });
+        }
+
         if (!req.file) {
             return res.status(400).json({ message: 'Please upload your resume to continue.' });
         }
@@ -83,6 +91,7 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
             accountEmail: req.user.email,
             accountPhoneNumber: req.user.phoneNumber,
             internshipTitle: String(internshipTitle).trim(),
+            internshipMode: normalizedMode,
             firstName: String(firstName).trim(),
             lastName: String(lastName).trim(),
             dateOfBirth: parsedDate,
@@ -131,7 +140,8 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
                 existingApplication.email,
                 `${existingApplication.firstName} ${existingApplication.lastName}`.trim(),
                 existingApplication.internshipTitle,
-                existingApplication.referenceCode
+                existingApplication.referenceCode,
+                existingApplication.internshipMode
             );
 
             return res.status(200).json({
@@ -146,7 +156,8 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
             application.email,
             `${application.firstName} ${application.lastName}`.trim(),
             application.internshipTitle,
-            application.referenceCode
+            application.referenceCode,
+            application.internshipMode
         );
 
         return res.status(201).json({
@@ -191,7 +202,7 @@ export const getMyEnrolledInternships = async (req: Request, res: Response) => {
             userId: req.user._id,
             status: 'accepted',
         })
-            .select('internshipTitle referenceCode status createdAt')
+            .select('internshipTitle internshipMode referenceCode status createdAt')
             .sort({ createdAt: -1 });
 
         return res.status(200).json({ internships });
@@ -237,6 +248,7 @@ export const updateInternshipApplicationStatus = async (req: Request, res: Respo
             `${application.firstName} ${application.lastName}`.trim(),
             application.internshipTitle,
             application.referenceCode,
+            application.internshipMode,
             requestedStatus as 'accepted' | 'rejected'
         );
 
