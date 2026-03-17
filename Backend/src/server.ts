@@ -6,7 +6,7 @@ import app from './app';
 import { connectDB } from './config/database';
 import { env } from './config/env';
 import ChatMessage from './models/chat.message.model';
-import LanguageBatch from './models/language.batch.model';
+import { canAccessChatPair } from './utils/chat-access';
 
 const startServer = async () => {
     await connectDB();
@@ -46,12 +46,13 @@ const startServer = async () => {
         socket.on('joinRoom', async ({ studentId, trainerId }: { studentId: string; trainerId: string }) => {
             const sId = String(studentId);
             const tId = String(trainerId);
-            const isStudent = userRole === 'student' && userId === sId;
-            const isTrainer = (userRole === 'trainer' || userRole === 'admin') && userId === tId;
-            if (!isStudent && !isTrainer) {
+            const isAuthorized = await canAccessChatPair(userId, userRole, sId, tId);
+
+            if (!isAuthorized) {
                 socket.emit('error', { message: 'Not authorized for this chat room' });
                 return;
             }
+
             const room = `chat_${sId}_${tId}`;
             socket.join(room);
             console.log(`[Socket] User ${userId} (${userRole}) joined room: ${room}`);
@@ -63,21 +64,11 @@ const startServer = async () => {
 
             const sId = String(studentId);
             const tId = String(trainerId);
-            const isStudent = userRole === 'student' && userId === sId;
-            const isTrainer = (userRole === 'trainer' || userRole === 'admin') && userId === tId;
+            const isAuthorized = await canAccessChatPair(userId, userRole, sId, tId);
 
-            if (!isStudent && !isTrainer) {
+            if (!isAuthorized) {
                 socket.emit('error', { message: 'Not authorized to send messages in this chat' });
                 return;
-            }
-
-            // For student: verify trainer is actually assigned to their batch
-            if (isStudent) {
-                const batch = await LanguageBatch.findOne({ students: sId, trainerId: tId });
-                if (!batch) {
-                    socket.emit('error', { message: 'No batch found linking you to this trainer' });
-                    return;
-                }
             }
 
             try {

@@ -20,7 +20,7 @@ const app_1 = __importDefault(require("./app"));
 const database_1 = require("./config/database");
 const env_1 = require("./config/env");
 const chat_message_model_1 = __importDefault(require("./models/chat.message.model"));
-const language_batch_model_1 = __importDefault(require("./models/language.batch.model"));
+const chat_access_1 = require("./utils/chat-access");
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     yield (0, database_1.connectDB)();
     const httpServer = http_1.default.createServer(app_1.default);
@@ -57,9 +57,8 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         socket.on('joinRoom', (_a) => __awaiter(void 0, [_a], void 0, function* ({ studentId, trainerId }) {
             const sId = String(studentId);
             const tId = String(trainerId);
-            const isStudent = userRole === 'student' && userId === sId;
-            const isTrainer = (userRole === 'trainer' || userRole === 'admin') && userId === tId;
-            if (!isStudent && !isTrainer) {
+            const isAuthorized = yield (0, chat_access_1.canAccessChatPair)(userId, userRole, sId, tId);
+            if (!isAuthorized) {
                 socket.emit('error', { message: 'Not authorized for this chat room' });
                 return;
             }
@@ -73,19 +72,10 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
                 return;
             const sId = String(studentId);
             const tId = String(trainerId);
-            const isStudent = userRole === 'student' && userId === sId;
-            const isTrainer = (userRole === 'trainer' || userRole === 'admin') && userId === tId;
-            if (!isStudent && !isTrainer) {
+            const isAuthorized = yield (0, chat_access_1.canAccessChatPair)(userId, userRole, sId, tId);
+            if (!isAuthorized) {
                 socket.emit('error', { message: 'Not authorized to send messages in this chat' });
                 return;
-            }
-            // For student: verify trainer is actually assigned to their batch
-            if (isStudent) {
-                const batch = yield language_batch_model_1.default.findOne({ students: sId, trainerId: tId });
-                if (!batch) {
-                    socket.emit('error', { message: 'No batch found linking you to this trainer' });
-                    return;
-                }
             }
             try {
                 const message = yield chat_message_model_1.default.create({

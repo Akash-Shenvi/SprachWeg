@@ -14,8 +14,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getChatHistory = void 0;
 const chat_message_model_1 = __importDefault(require("../models/chat.message.model"));
-const language_batch_model_1 = __importDefault(require("../models/language.batch.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
+const chat_access_1 = require("../utils/chat-access");
 // GET /api/chat/:studentId  — load last 50 messages in a private conversation
 const getChatHistory = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
@@ -23,6 +23,7 @@ const getChatHistory = (req, res) => __awaiter(void 0, void 0, void 0, function*
         const { studentId } = req.params;
         const requesterId = (_b = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id) === null || _b === void 0 ? void 0 : _b.toString();
         const requesterRole = (_c = req.user) === null || _c === void 0 ? void 0 : _c.role;
+        const requestedTrainerId = typeof req.query.trainerId === 'string' ? req.query.trainerId : null;
         let trainerId;
         let trainerName = 'Trainer';
         let studentName = 'Student';
@@ -31,23 +32,20 @@ const getChatHistory = (req, res) => __awaiter(void 0, void 0, void 0, function*
             if (requesterId !== studentId) {
                 return res.status(403).json({ message: 'Not authorized to view this chat' });
             }
-            // Find the student's assigned trainer via batch
-            const batch = yield language_batch_model_1.default.findOne({ students: studentId, trainerId: { $exists: true, $ne: null } });
-            if (!batch || !batch.trainerId) {
-                return res.status(404).json({ message: 'No trainer assigned to this student yet' });
+            const trainerResolution = yield (0, chat_access_1.resolveTrainerIdForStudentChat)(studentId, requestedTrainerId);
+            if (!trainerResolution.trainerId) {
+                return res.status(trainerResolution.status).json({ message: trainerResolution.message });
             }
-            trainerId = batch.trainerId.toString();
+            trainerId = trainerResolution.trainerId;
             // Fetch trainer name for chat header
             const trainer = yield user_model_1.default.findById(trainerId).select('name');
             if (trainer)
                 trainerName = trainer.name;
         }
-        else if (requesterRole === 'trainer' || requesterRole === 'admin') {
-            if (requesterRole === 'trainer') {
-                const batch = yield language_batch_model_1.default.findOne({ students: studentId, trainerId: requesterId });
-                if (!batch) {
-                    return res.status(403).json({ message: 'Not authorized: this student is not in your batch' });
-                }
+        else if (requesterRole === 'trainer') {
+            const batch = yield (0, chat_access_1.findAssignedBatchForChat)(studentId, requesterId);
+            if (!batch) {
+                return res.status(403).json({ message: 'Not authorized: this student is not in your batch' });
             }
             trainerId = requesterId;
             // Fetch student name for chat header

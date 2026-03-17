@@ -30,6 +30,153 @@ class EmailService {
             }
         });
     }
+    getProgramEmailTemplate(options) {
+        var _a;
+        const infoSection = ((_a = options.infoRows) === null || _a === void 0 ? void 0 : _a.length)
+            ? `
+                <div class="info-card">
+                    ${options.infoRows
+                .map((row) => `
+                                <div class="info-row">
+                                    <span class="info-label">${row.label}</span>
+                                    <span class="info-value">${row.value}</span>
+                                </div>
+                            `)
+                .join('')}
+                </div>
+            `
+            : '';
+        const actionButton = options.actionButton
+            ? `
+                <div style="margin-top: 26px;">
+                    <a href="${options.actionButton.href}" class="action-button">${options.actionButton.label}</a>
+                </div>
+            `
+            : '';
+        return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    line-height: 1.6;
+                    color: #333333;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #f4f4f4;
+                }
+                .container {
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background-color: #ffffff;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                }
+                .header {
+                    background-color: #0a192f;
+                    color: #ffffff;
+                    padding: 30px;
+                    text-align: center;
+                }
+                .header h1 {
+                    margin: 0;
+                    font-size: 24px;
+                    color: #d6b161;
+                }
+                .content {
+                    padding: 40px 30px;
+                    background-color: #ffffff;
+                }
+                .welcome-text {
+                    font-size: 18px;
+                    color: #0a192f;
+                    font-weight: 600;
+                    margin-bottom: 20px;
+                }
+                .message-body {
+                    color: #555555;
+                    font-size: 16px;
+                }
+                .info-card {
+                    margin: 24px 0;
+                    padding: 18px 20px;
+                    border: 1px solid #e8edf3;
+                    border-radius: 8px;
+                    background-color: #f8fafc;
+                }
+                .info-row {
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 16px;
+                    padding: 8px 0;
+                    border-bottom: 1px solid #e8edf3;
+                }
+                .info-row:last-child {
+                    border-bottom: 0;
+                }
+                .info-label {
+                    color: #6b7280;
+                    font-size: 13px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.04em;
+                }
+                .info-value {
+                    color: #0a192f;
+                    font-size: 14px;
+                    font-weight: 700;
+                    text-align: right;
+                }
+                .action-button {
+                    display: inline-block;
+                    background-color: #d6b161;
+                    color: #0a192f !important;
+                    padding: 12px 24px;
+                    text-decoration: none;
+                    border-radius: 6px;
+                    font-weight: 700;
+                }
+                .footer {
+                    background-color: #f8f9fa;
+                    padding: 20px;
+                    text-align: center;
+                    font-size: 12px;
+                    color: #888888;
+                    border-top: 1px solid #eeeeee;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Sovir Technologies<br>Training & Skilling Program</h1>
+                </div>
+                <div class="content">
+                    <div class="welcome-text">Dear ${options.name},</div>
+                    <div class="message-body">
+                        <p><strong>${options.title}</strong></p>
+                        ${options.paragraphs.map((paragraph) => `<p>${paragraph}</p>`).join('')}
+                        ${infoSection}
+                        ${actionButton}
+                        <p style="margin-top: 32px; border-top: 1px solid #eee; padding-top: 20px;">
+                            Warm regards,<br>
+                            <strong>Sovir Technologies Team</strong>
+                        </p>
+                    </div>
+                </div>
+                <div class="footer">
+                    &copy; ${new Date().getFullYear()} Sovir Technologies LLP. All rights reserved.<br>
+                    <a href="https://sovirtechnologies.in" style="color: #666; text-decoration: none;">www.sovirtechnologies.in</a>
+                </div>
+            </div>
+        </body>
+        </html>
+        `;
+    }
     getOtpTemplate(name, otp, purpose) {
         return `
         <!DOCTYPE html>
@@ -487,6 +634,94 @@ class EmailService {
             }
             catch (error) {
                 console.error('Error sending trial email:', error);
+            }
+        });
+    }
+    sendInternshipApplicationEmail(to, name, internshipTitle, referenceCode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
+            const subject = `Internship Application Received - ${internshipTitle}`;
+            const html = this.getProgramEmailTemplate({
+                name,
+                title: 'Thank you for applying for an internship with Sovir Technologies.',
+                paragraphs: [
+                    `We have successfully received your application for the <strong>${internshipTitle}</strong> internship opportunity.`,
+                    'Our team will review your profile and reach out to you through your registered email if your application moves to the next stage.',
+                    'Please keep your reference ID safe for future communication and continue checking your email regularly for updates from our team.',
+                ],
+                infoRows: [
+                    { label: 'Internship', value: internshipTitle },
+                    { label: 'Reference ID', value: referenceCode },
+                    { label: 'Status', value: 'Application Received' },
+                ],
+                actionButton: {
+                    label: 'Open Student Dashboard',
+                    href: dashboardLink,
+                },
+            });
+            const mailOptions = {
+                from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                to,
+                subject,
+                html,
+                text: `Dear ${name},\n\nThank you for applying for the ${internshipTitle} internship at Sovir Technologies.\n\nWe have received your application successfully.\nReference ID: ${referenceCode}\nStatus: Application Received\n\nOur team will review your profile and update you through your registered email.\n\nWarm regards,\nSovir Technologies Team`,
+            };
+            try {
+                yield this.transporter.sendMail(mailOptions);
+            }
+            catch (error) {
+                console.error('Error sending internship application email:', error);
+            }
+        });
+    }
+    sendInternshipStatusEmail(to, name, internshipTitle, referenceCode, status) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const isAccepted = status === 'accepted';
+            const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
+            const careersLink = 'https://training.sovirtechnologies.in/careers';
+            const subject = isAccepted
+                ? `Internship Application Accepted - ${internshipTitle}`
+                : `Internship Application Update - ${internshipTitle}`;
+            const html = this.getProgramEmailTemplate({
+                name,
+                title: isAccepted
+                    ? 'Congratulations. Your internship application has been accepted.'
+                    : 'Your internship application has been reviewed.',
+                paragraphs: isAccepted
+                    ? [
+                        `We are pleased to inform you that your application for the <strong>${internshipTitle}</strong> internship has been accepted.`,
+                        'Our team will share the next instructions and onboarding details with you through your registered email. Please keep checking your inbox regularly.',
+                        'We look forward to having you as part of the Sovir Technologies learning and skilling journey.',
+                    ]
+                    : [
+                        `Thank you for applying for the <strong>${internshipTitle}</strong> internship at Sovir Technologies.`,
+                        'After careful review, we are unable to move forward with your application for this opportunity at this time.',
+                        'We appreciate your interest in our programs and encourage you to apply again for future opportunities that match your profile.',
+                    ],
+                infoRows: [
+                    { label: 'Internship', value: internshipTitle },
+                    { label: 'Reference ID', value: referenceCode },
+                    { label: 'Status', value: isAccepted ? 'Accepted' : 'Rejected' },
+                ],
+                actionButton: {
+                    label: isAccepted ? 'Open Student Dashboard' : 'View Careers Page',
+                    href: isAccepted ? dashboardLink : careersLink,
+                },
+            });
+            const mailOptions = {
+                from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                to,
+                subject,
+                html,
+                text: isAccepted
+                    ? `Dear ${name},\n\nCongratulations. Your application for the ${internshipTitle} internship has been accepted.\nReference ID: ${referenceCode}\n\nOur team will share the next steps with you soon.\n\nWarm regards,\nSovir Technologies Team`
+                    : `Dear ${name},\n\nThank you for applying for the ${internshipTitle} internship at Sovir Technologies.\nReference ID: ${referenceCode}\n\nAfter review, we are unable to move forward with your application for this opportunity at this time.\n\nWe appreciate your interest and encourage you to apply again in the future.\n\nWarm regards,\nSovir Technologies Team`,
+            };
+            try {
+                yield this.transporter.sendMail(mailOptions);
+            }
+            catch (error) {
+                console.error('Error sending internship status email:', error);
             }
         });
     }

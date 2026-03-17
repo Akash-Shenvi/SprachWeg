@@ -12,12 +12,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateInternshipApplicationStatus = exports.getAllInternshipApplications = exports.getMyInternshipApplications = exports.submitInternshipApplication = void 0;
+exports.deleteRejectedInternshipApplication = exports.updateInternshipApplicationStatus = exports.getAllInternshipApplications = exports.getMyEnrolledInternships = exports.getMyInternshipApplications = exports.submitInternshipApplication = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const internshipApplication_model_1 = __importDefault(require("../models/internshipApplication.model"));
+const email_service_1 = require("../utils/email.service");
 const fileServeRoot = '/home/sovirtraining/file_serve';
 const adminDecisionStatuses = ['accepted', 'rejected'];
+const emailService = new email_service_1.EmailService();
 const toStoredResumeUrl = (filename) => `/uploads/internship_resumes/${filename}`;
 const removeStoredResume = (resumeUrl) => {
     if (!resumeUrl)
@@ -89,18 +91,27 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
             internshipTitle: applicationData.internshipTitle,
         });
         if (existingApplication) {
+            if (existingApplication.status !== 'rejected') {
+                removeStoredResume(applicationData.resumeUrl);
+                return res.status(409).json({
+                    message: 'You have already applied for this internship.',
+                    application: existingApplication,
+                });
+            }
             const previousResumeUrl = existingApplication.resumeUrl;
             existingApplication.set(Object.assign(Object.assign({}, applicationData), { status: 'submitted' }));
             yield existingApplication.save();
             if (previousResumeUrl !== applicationData.resumeUrl) {
                 removeStoredResume(previousResumeUrl);
             }
+            yield emailService.sendInternshipApplicationEmail(existingApplication.email, `${existingApplication.firstName} ${existingApplication.lastName}`.trim(), existingApplication.internshipTitle, existingApplication.referenceCode);
             return res.status(200).json({
                 message: 'Internship application updated successfully.',
                 application: existingApplication,
             });
         }
         const application = yield internshipApplication_model_1.default.create(applicationData);
+        yield emailService.sendInternshipApplicationEmail(application.email, `${application.firstName} ${application.lastName}`.trim(), application.internshipTitle, application.referenceCode);
         return res.status(201).json({
             message: 'Internship application submitted successfully.',
             application,
@@ -132,6 +143,25 @@ const getMyInternshipApplications = (req, res) => __awaiter(void 0, void 0, void
     }
 });
 exports.getMyInternshipApplications = getMyInternshipApplications;
+const getMyEnrolledInternships = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Please log in to view your enrolled internships.' });
+        }
+        const internships = yield internshipApplication_model_1.default.find({
+            userId: req.user._id,
+            status: 'accepted',
+        })
+            .select('internshipTitle referenceCode status createdAt')
+            .sort({ createdAt: -1 });
+        return res.status(200).json({ internships });
+    }
+    catch (error) {
+        console.error('Fetching enrolled internships failed:', error);
+        return res.status(500).json({ message: 'Failed to fetch enrolled internships.' });
+    }
+});
+exports.getMyEnrolledInternships = getMyEnrolledInternships;
 const getAllInternshipApplications = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const applications = yield internshipApplication_model_1.default.find()
@@ -159,6 +189,7 @@ const updateInternshipApplicationStatus = (req, res) => __awaiter(void 0, void 0
         }
         application.status = requestedStatus;
         yield application.save();
+        yield emailService.sendInternshipStatusEmail(application.email, `${application.firstName} ${application.lastName}`.trim(), application.internshipTitle, application.referenceCode, requestedStatus);
         return res.status(200).json({
             message: `Internship application ${requestedStatus} successfully.`,
             application,
@@ -170,3 +201,23 @@ const updateInternshipApplicationStatus = (req, res) => __awaiter(void 0, void 0
     }
 });
 exports.updateInternshipApplicationStatus = updateInternshipApplicationStatus;
+const deleteRejectedInternshipApplication = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const application = yield internshipApplication_model_1.default.findById(id);
+        if (!application) {
+            return res.status(404).json({ message: 'Internship application not found.' });
+        }
+        if (application.status !== 'rejected') {
+            return res.status(400).json({ message: 'Only rejected internship applications can be deleted.' });
+        }
+        removeStoredResume(application.resumeUrl);
+        yield application.deleteOne();
+        return res.status(200).json({ message: 'Rejected internship application deleted successfully.' });
+    }
+    catch (error) {
+        console.error('Deleting rejected internship application failed:', error);
+        return res.status(500).json({ message: 'Failed to delete internship application.' });
+    }
+});
+exports.deleteRejectedInternshipApplication = deleteRejectedInternshipApplication;

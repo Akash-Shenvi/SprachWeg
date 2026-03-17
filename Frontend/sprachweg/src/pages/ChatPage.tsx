@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Send, ArrowLeft, MessageCircle, WifiOff } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
@@ -66,6 +66,7 @@ const Avatar: React.FC<{ user: { name: string; avatar?: string }; size?: string 
 
 const ChatPage: React.FC = () => {
     const { studentId } = useParams<{ studentId: string }>();
+    const [searchParams] = useSearchParams();
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -85,6 +86,7 @@ const ChatPage: React.FC = () => {
     // Support both id and _id from AuthContext
     const myId = (user as any)?._id || (user as any)?.id;
     const isStudent = user?.role === 'student';
+    const requestedTrainerId = searchParams.get('trainerId');
 
     // ── Load chat history ────────────────────────────────────────────────────
     useEffect(() => {
@@ -94,7 +96,9 @@ const ChatPage: React.FC = () => {
             try {
                 setLoading(true);
                 setError(null);
-                const res = await api.get(`/chat/${studentId}`);
+                const res = await api.get(`/chat/${studentId}`, {
+                    params: requestedTrainerId ? { trainerId: requestedTrainerId } : undefined
+                });
                 setMessages(res.data.messages || []);
                 setTrainerId(res.data.trainerId);
 
@@ -112,7 +116,7 @@ const ChatPage: React.FC = () => {
         };
 
         loadHistory();
-    }, [studentId]);
+    }, [studentId, isStudent, requestedTrainerId]);
 
     // ── Set up Socket.IO once trainerId is known ─────────────────────────────
     useEffect(() => {

@@ -36,6 +36,7 @@ const CourseCard: React.FC<{ course: any }> = ({ course }) => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const myId = user?._id || (user as any)?.id;
+    const trainerId = typeof course.trainerId === 'string' ? course.trainerId : course.trainerId?._id;
 
     const handleCardClick = () => {
         navigate(`/language-batch/${course._id}`);
@@ -64,7 +65,8 @@ const CourseCard: React.FC<{ course: any }> = ({ course }) => {
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/chat/${myId}`);
+                            if (!trainerId) return;
+                            navigate(`/chat/${myId}?trainerId=${encodeURIComponent(trainerId)}`);
                         }}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#d6b161]/10 text-[#d6b161] hover:bg-[#d6b161]/20 text-sm font-medium transition-colors"
                     >
