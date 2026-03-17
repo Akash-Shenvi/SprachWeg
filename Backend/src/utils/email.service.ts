@@ -653,9 +653,13 @@ export class EmailService {
         to: string,
         name: string,
         internshipTitle: string,
-        referenceCode: string
+        referenceCode: string,
+        internshipMode?: string
     ): Promise<void> {
         const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
+        const formattedMode = internshipMode
+            ? internshipMode.charAt(0).toUpperCase() + internshipMode.slice(1)
+            : 'Not specified';
         const subject = `Internship Application Received - ${internshipTitle}`;
         const html = this.getProgramEmailTemplate({
             name,
@@ -667,6 +671,7 @@ export class EmailService {
             ],
             infoRows: [
                 { label: 'Internship', value: internshipTitle },
+                { label: 'Mode', value: formattedMode },
                 { label: 'Reference ID', value: referenceCode },
                 { label: 'Status', value: 'Application Received' },
             ],
@@ -681,7 +686,7 @@ export class EmailService {
             to,
             subject,
             html,
-            text: `Dear ${name},\n\nThank you for applying for the ${internshipTitle} internship at Sovir Technologies.\n\nWe have received your application successfully.\nReference ID: ${referenceCode}\nStatus: Application Received\n\nOur team will review your profile and update you through your registered email.\n\nWarm regards,\nSovir Technologies Team`,
+            text: `Dear ${name},\n\nThank you for applying for the ${internshipTitle} internship at Sovir Technologies.\n\nWe have received your application successfully.\nMode: ${formattedMode}\nReference ID: ${referenceCode}\nStatus: Application Received\n\nOur team will review your profile and update you through your registered email.\n\nWarm regards,\nSovir Technologies Team`,
         };
 
         try {
@@ -696,11 +701,15 @@ export class EmailService {
         name: string,
         internshipTitle: string,
         referenceCode: string,
+        internshipMode: string | undefined,
         status: 'accepted' | 'rejected'
     ): Promise<void> {
         const isAccepted = status === 'accepted';
         const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
         const careersLink = 'https://training.sovirtechnologies.in/careers';
+        const formattedMode = internshipMode
+            ? internshipMode.charAt(0).toUpperCase() + internshipMode.slice(1)
+            : 'Not specified';
         const subject = isAccepted
             ? `Internship Application Accepted - ${internshipTitle}`
             : `Internship Application Update - ${internshipTitle}`;
@@ -720,9 +729,10 @@ export class EmailService {
                     `Thank you for applying for the <strong>${internshipTitle}</strong> internship at Sovir Technologies.`,
                     'After careful review, we are unable to move forward with your application for this opportunity at this time.',
                     'We appreciate your interest in our programs and encourage you to apply again for future opportunities that match your profile.',
-                ],
+            ],
             infoRows: [
                 { label: 'Internship', value: internshipTitle },
+                { label: 'Mode', value: formattedMode },
                 { label: 'Reference ID', value: referenceCode },
                 { label: 'Status', value: isAccepted ? 'Accepted' : 'Rejected' },
             ],
@@ -738,8 +748,8 @@ export class EmailService {
             subject,
             html,
             text: isAccepted
-                ? `Dear ${name},\n\nCongratulations. Your application for the ${internshipTitle} internship has been accepted.\nReference ID: ${referenceCode}\n\nOur team will share the next steps with you soon.\n\nWarm regards,\nSovir Technologies Team`
-                : `Dear ${name},\n\nThank you for applying for the ${internshipTitle} internship at Sovir Technologies.\nReference ID: ${referenceCode}\n\nAfter review, we are unable to move forward with your application for this opportunity at this time.\n\nWe appreciate your interest and encourage you to apply again in the future.\n\nWarm regards,\nSovir Technologies Team`,
+                ? `Dear ${name},\n\nCongratulations. Your application for the ${internshipTitle} internship has been accepted.\nMode: ${formattedMode}\nReference ID: ${referenceCode}\n\nOur team will share the next steps with you soon.\n\nWarm regards,\nSovir Technologies Team`
+                : `Dear ${name},\n\nThank you for applying for the ${internshipTitle} internship at Sovir Technologies.\nMode: ${formattedMode}\nReference ID: ${referenceCode}\n\nAfter review, we are unable to move forward with your application for this opportunity at this time.\n\nWe appreciate your interest and encourage you to apply again in the future.\n\nWarm regards,\nSovir Technologies Team`,
         };
 
         try {

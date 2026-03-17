@@ -27,10 +27,16 @@ import ProfileCompletionModal from '../components/auth/ProfileCompletionModal';
 interface EnrolledInternship {
     _id: string;
     internshipTitle: string;
+    internshipMode?: string;
     referenceCode: string;
     status: string;
     createdAt: string;
 }
+
+const formatInternshipMode = (mode?: string) => {
+    if (!mode) return 'Not specified';
+    return mode.charAt(0).toUpperCase() + mode.slice(1);
+};
 
 const CourseCard: React.FC<{ course: any }> = ({ course }) => {
     const navigate = useNavigate();
@@ -89,6 +95,9 @@ const EnrolledInternshipCard: React.FC<{ internship: EnrolledInternship }> = ({ 
                 <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#d6b161]">Internship Name</p>
                     <h3 className="mt-2 text-xl font-bold text-[#0a192f] dark:text-white">{internship.internshipTitle}</h3>
+                    <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Mode: <span className="text-[#0a192f] dark:text-white">{formatInternshipMode(internship.internshipMode)}</span>
+                    </p>
                     <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-400">
                         Reference ID: <span className="font-mono text-[#0a192f] dark:text-white">{internship.referenceCode}</span>
                     </p>

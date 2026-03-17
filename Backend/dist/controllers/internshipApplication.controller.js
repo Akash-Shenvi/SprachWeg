@@ -19,6 +19,7 @@ const internshipApplication_model_1 = __importDefault(require("../models/interns
 const email_service_1 = require("../utils/email.service");
 const fileServeRoot = '/home/sovirtraining/file_serve';
 const adminDecisionStatuses = ['accepted', 'rejected'];
+const internshipModes = ['online', 'hybrid', 'onsite'];
 const emailService = new email_service_1.EmailService();
 const toStoredResumeUrl = (filename) => `/uploads/internship_resumes/${filename}`;
 const removeStoredResume = (resumeUrl) => {
@@ -38,9 +39,10 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
         if (req.fileValidationError) {
             return res.status(400).json({ message: req.fileValidationError });
         }
-        const { internshipTitle, firstName, lastName, dob, email, whatsapp, college, registration, department, semester, passingYear, address, source, } = req.body;
+        const { internshipTitle, internshipMode, firstName, lastName, dob, email, whatsapp, college, registration, department, semester, passingYear, address, source, } = req.body;
         const requiredFields = {
             internshipTitle,
+            internshipMode,
             firstName,
             lastName,
             dob,
@@ -58,6 +60,10 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
         if (missingField) {
             return res.status(400).json({ message: `${missingField[0]} is required.` });
         }
+        const normalizedMode = String(internshipMode).trim().toLowerCase();
+        if (!internshipModes.includes(normalizedMode)) {
+            return res.status(400).json({ message: 'Internship mode must be online, hybrid, or onsite.' });
+        }
         if (!req.file) {
             return res.status(400).json({ message: 'Please upload your resume to continue.' });
         }
@@ -71,6 +77,7 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
             accountEmail: req.user.email,
             accountPhoneNumber: req.user.phoneNumber,
             internshipTitle: String(internshipTitle).trim(),
+            internshipMode: normalizedMode,
             firstName: String(firstName).trim(),
             lastName: String(lastName).trim(),
             dateOfBirth: parsedDate,
@@ -104,14 +111,14 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
             if (previousResumeUrl !== applicationData.resumeUrl) {
                 removeStoredResume(previousResumeUrl);
             }
-            yield emailService.sendInternshipApplicationEmail(existingApplication.email, `${existingApplication.firstName} ${existingApplication.lastName}`.trim(), existingApplication.internshipTitle, existingApplication.referenceCode);
+            yield emailService.sendInternshipApplicationEmail(existingApplication.email, `${existingApplication.firstName} ${existingApplication.lastName}`.trim(), existingApplication.internshipTitle, existingApplication.referenceCode, existingApplication.internshipMode);
             return res.status(200).json({
                 message: 'Internship application updated successfully.',
                 application: existingApplication,
             });
         }
         const application = yield internshipApplication_model_1.default.create(applicationData);
-        yield emailService.sendInternshipApplicationEmail(application.email, `${application.firstName} ${application.lastName}`.trim(), application.internshipTitle, application.referenceCode);
+        yield emailService.sendInternshipApplicationEmail(application.email, `${application.firstName} ${application.lastName}`.trim(), application.internshipTitle, application.referenceCode, application.internshipMode);
         return res.status(201).json({
             message: 'Internship application submitted successfully.',
             application,
@@ -152,7 +159,7 @@ const getMyEnrolledInternships = (req, res) => __awaiter(void 0, void 0, void 0,
             userId: req.user._id,
             status: 'accepted',
         })
-            .select('internshipTitle referenceCode status createdAt')
+            .select('internshipTitle internshipMode referenceCode status createdAt')
             .sort({ createdAt: -1 });
         return res.status(200).json({ internships });
     }
@@ -189,7 +196,7 @@ const updateInternshipApplicationStatus = (req, res) => __awaiter(void 0, void 0
         }
         application.status = requestedStatus;
         yield application.save();
-        yield emailService.sendInternshipStatusEmail(application.email, `${application.firstName} ${application.lastName}`.trim(), application.internshipTitle, application.referenceCode, requestedStatus);
+        yield emailService.sendInternshipStatusEmail(application.email, `${application.firstName} ${application.lastName}`.trim(), application.internshipTitle, application.referenceCode, application.internshipMode, requestedStatus);
         return res.status(200).json({
             message: `Internship application ${requestedStatus} successfully.`,
             application,

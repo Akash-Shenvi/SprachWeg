@@ -79,6 +79,7 @@ const AlertCircle = () => (
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface FormData {
+  internshipMode: string;
   firstName: string;
   lastName: string;
   dob: string;
@@ -97,10 +98,12 @@ interface FormData {
 
 type UploadState = 'idle' | 'uploading' | 'done';
 type ApplicationStatus = 'submitted' | 'accepted' | 'rejected' | 'reviewed' | 'shortlisted';
+type InternshipMode = 'online' | 'hybrid' | 'onsite';
 
 interface ExistingApplication {
   _id: string;
   internshipTitle: string;
+  internshipMode?: InternshipMode;
   status: ApplicationStatus;
   referenceCode: string;
 }
@@ -129,6 +132,12 @@ const SOURCES = [
   'Social Media', 'Internet Search', 'Other',
 ];
 
+const INTERNSHIP_MODES: { value: InternshipMode; label: string }[] = [
+  { value: 'online', label: 'Online' },
+  { value: 'hybrid', label: 'Hybrid' },
+  { value: 'onsite', label: 'Onsite' },
+];
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatBytes(bytes: number): string {
@@ -139,6 +148,11 @@ function formatBytes(bytes: number): string {
 
 function generateRef(): string {
   return 'SOV-' + Math.random().toString(36).substr(2, 8).toUpperCase();
+}
+
+function formatInternshipMode(mode?: string): string {
+  if (!mode) return 'Not specified';
+  return mode.charAt(0).toUpperCase() + mode.slice(1);
 }
 
 function getStatusText(status: ApplicationStatus): string {
@@ -218,8 +232,13 @@ const InternshipApplicationPage: React.FC = () => {
   const [checkingExistingApplication, setCheckingExistingApplication] = useState<boolean>(true);
   const [existingApplication, setExistingApplication] = useState<ExistingApplication | null>(null);
   const internshipTitle = searchParams.get('internship')?.trim() || 'General Internship';
+  const requestedMode = searchParams.get('mode')?.trim().toLowerCase();
+  const initialInternshipMode = INTERNSHIP_MODES.some(({ value }) => value === requestedMode)
+    ? requestedMode as InternshipMode
+    : '';
 
   const [form, setForm] = useState<FormData>({
+    internshipMode: initialInternshipMode,
     firstName: '', lastName: '', dob: '', email: '', whatsapp: '',
     college: '', registration: '', department: 'Computer Science',
     customDept: '', semester: '', passingYear: '', customYear: '',
@@ -311,6 +330,7 @@ const InternshipApplicationPage: React.FC = () => {
     const errs: Record<string, string> = {};
 
     if (s === 0) {
+      if (!form.internshipMode) errs.internshipMode = 'Please select your preferred internship mode';
       if (!form.firstName.trim()) errs.firstName = 'First name is required';
       if (!form.lastName.trim()) errs.lastName = 'Last name is required';
       if (!form.dob) errs.dob = 'Date of birth is required';
@@ -416,6 +436,7 @@ const InternshipApplicationPage: React.FC = () => {
     try {
       const payload = new FormData();
       payload.append('internshipTitle', internshipTitle);
+      payload.append('internshipMode', form.internshipMode);
       payload.append('firstName', form.firstName.trim());
       payload.append('lastName', form.lastName.trim());
       payload.append('dob', form.dob);
@@ -498,6 +519,10 @@ const InternshipApplicationPage: React.FC = () => {
                 <p className="mt-2 font-mono text-sm font-bold text-[#0a192f] dark:text-white">{existingApplication.referenceCode}</p>
               </div>
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-left dark:border-white/10 dark:bg-[#0f223f]">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">Internship Mode</p>
+                <p className="mt-2 text-sm font-bold text-[#0a192f] dark:text-white">{formatInternshipMode(existingApplication.internshipMode)}</p>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-left dark:border-white/10 dark:bg-[#0f223f]">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">Current Status</p>
                 <p className="mt-2 text-sm font-bold text-[#0a192f] dark:text-white">{getStatusText(existingApplication.status)}</p>
               </div>
@@ -539,7 +564,7 @@ const InternshipApplicationPage: React.FC = () => {
               Your application has been received. SoVir's team will reach out within 3–5 business days.
             </p>
             <div className="mt-4 inline-flex items-center justify-center rounded-full border border-[#d6b161]/30 bg-[#d6b161]/10 px-4 py-2 text-xs font-semibold text-[#b38f3f] dark:text-[#d6b161]">
-              Applying for: {internshipTitle}
+              Applying for: {internshipTitle} · {formatInternshipMode(form.internshipMode)}
             </div>
             <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#d6b161]/20 bg-[#0a192f]/5 px-4 py-2 font-mono text-sm font-medium text-[#0a192f] dark:bg-[#0a192f]/40 dark:text-[#d6b161]">
               <FileText />
@@ -604,7 +629,7 @@ const InternshipApplicationPage: React.FC = () => {
           </p>
 
           <div className="mt-4 inline-flex items-center justify-center rounded-full border border-[#d6b161]/30 bg-[#d6b161]/10 px-4 py-2 text-xs font-semibold text-[#b38f3f] dark:text-[#d6b161]">
-            Applying for: {internshipTitle}
+            Applying for: {internshipTitle} · {form.internshipMode ? formatInternshipMode(form.internshipMode) : 'Select mode below'}
           </div>
 
           {/* Step tracker */}
@@ -655,6 +680,21 @@ const InternshipApplicationPage: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <SelectField
+                    label="Internship Mode"
+                    required
+                    error={errors.internshipMode}
+                    value={form.internshipMode}
+                    onChange={e => set('internshipMode', e.target.value)}
+                  >
+                    <option value="" disabled>Select internship mode</option>
+                    {INTERNSHIP_MODES.map((mode) => (
+                      <option key={mode.value} value={mode.value}>{mode.label}</option>
+                    ))}
+                  </SelectField>
+                </div>
+
                 <Field label="First Name" required error={errors.firstName}>
                   <input
                     type="text"

@@ -1,11 +1,14 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export type InternshipMode = 'online' | 'hybrid' | 'onsite';
+
 export interface IInternshipApplication extends Document {
     userId: mongoose.Types.ObjectId;
     accountName: string;
     accountEmail: string;
     accountPhoneNumber?: string;
     internshipTitle: string;
+    internshipMode?: InternshipMode;
     firstName: string;
     lastName: string;
     dateOfBirth: Date;
@@ -35,6 +38,7 @@ const InternshipApplicationSchema = new Schema<IInternshipApplication>({
     accountEmail: { type: String, required: true, trim: true, lowercase: true },
     accountPhoneNumber: { type: String, trim: true },
     internshipTitle: { type: String, required: true, trim: true },
+    internshipMode: { type: String, enum: ['online', 'hybrid', 'onsite'], trim: true },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     dateOfBirth: { type: Date, required: true },

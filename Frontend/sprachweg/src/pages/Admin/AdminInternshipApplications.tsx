@@ -44,6 +44,7 @@ interface InternshipApplication {
     accountEmail: string;
     accountPhoneNumber?: string;
     internshipTitle: string;
+    internshipMode?: string;
     firstName: string;
     lastName: string;
     dateOfBirth: string;
@@ -78,6 +79,11 @@ const formatDate = (value: string) =>
         hour: '2-digit',
         minute: '2-digit',
     });
+
+const formatInternshipMode = (mode?: string) => {
+    if (!mode) return 'Not specified';
+    return mode.charAt(0).toUpperCase() + mode.slice(1);
+};
 
 const getStatusMeta = (status: DisplayStatus) => {
     if (status === 'accepted') {
@@ -207,6 +213,7 @@ const AdminInternshipApplications: React.FC = () => {
                 application.email,
                 application.whatsapp,
                 application.internshipTitle,
+                application.internshipMode,
                 application.college,
                 application.referenceCode,
             ]
@@ -298,7 +305,7 @@ const AdminInternshipApplications: React.FC = () => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
                             type="text"
-                            placeholder="Search by name, email, internship, college, or reference..."
+                            placeholder="Search by name, email, internship, mode, college, or reference..."
                             value={searchTerm}
                             onChange={(event) => setSearchTerm(event.target.value)}
                             className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0a192f] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#d6b161] focus:border-[#d6b161] outline-none"
@@ -369,6 +376,9 @@ const AdminInternshipApplications: React.FC = () => {
                                                 <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-300">
                                                     {application.internshipTitle}
                                                 </span>
+                                                <span className="inline-flex items-center rounded-full border border-[#d6b161]/30 bg-[#d6b161]/10 px-3 py-1 text-xs font-semibold text-[#b38f3f] dark:text-[#d6b161]">
+                                                    {formatInternshipMode(application.internshipMode)}
+                                                </span>
                                             </div>
 
                                             <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
@@ -386,10 +396,14 @@ const AdminInternshipApplications: React.FC = () => {
                                                 </span>
                                             </div>
 
-                                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                                                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-[#0a192f]">
                                                     <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Reference</p>
                                                     <p className="mt-1 font-semibold text-gray-900 dark:text-white">{application.referenceCode}</p>
+                                                </div>
+                                                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-[#0a192f]">
+                                                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Mode</p>
+                                                    <p className="mt-1 font-semibold text-gray-900 dark:text-white">{formatInternshipMode(application.internshipMode)}</p>
                                                 </div>
                                                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-[#0a192f]">
                                                     <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">College</p>
@@ -555,6 +569,9 @@ const AdminInternshipApplications: React.FC = () => {
                                                 <Briefcase className="w-4 h-4" />
                                                 {selectedApplication.internshipTitle}
                                             </p>
+                                            <p className="mt-3 inline-flex items-center rounded-full border border-[#d6b161]/30 bg-[#d6b161]/10 px-3 py-1 text-sm font-medium text-[#b38f3f] dark:text-[#d6b161]">
+                                                Mode: {formatInternshipMode(selectedApplication.internshipMode)}
+                                            </p>
                                             <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
                                                 <span className="inline-flex items-center gap-1.5">
                                                     <Calendar className="w-4 h-4" />
@@ -622,6 +639,10 @@ const AdminInternshipApplications: React.FC = () => {
                                             <div>
                                                 <p className="text-gray-500 dark:text-gray-400">Department</p>
                                                 <p className="font-semibold text-gray-900 dark:text-white">{selectedApplication.department}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Internship Mode</p>
+                                                <p className="font-semibold text-gray-900 dark:text-white">{formatInternshipMode(selectedApplication.internshipMode)}</p>
                                             </div>
                                             <div>
                                                 <p className="text-gray-500 dark:text-gray-400">Semester</p>
