@@ -219,47 +219,49 @@ const LandingPage: React.FC = () => {
                     />
                 </div>
 
-                {/* Dark Gradient Overlay — navy-dominant for text legibility */}
-                <div className="absolute inset-0 bg-gradient-to-b from-[#0a192f]/80 via-[#0a192f]/50 to-[#0a192f]/90" aria-hidden="true" />
+                {/* Gradient overlay — light mode */}
+                <div className="absolute inset-0 bg-gradient-to-r from-white/70 via-white/40 to-transparent dark:from-transparent dark:via-transparent dark:to-transparent" aria-hidden="true" />
+                {/* Gradient overlay — dark mode */}
+                <div className="absolute inset-0 bg-gradient-to-b from-[#0a192f]/75 via-[#0a192f]/45 to-[#0a192f]/85" aria-hidden="true" />
 
                 {/* Subtle radial glow from center */}
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_40%,rgba(214,177,97,0.08),transparent)]" aria-hidden="true" />
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_40%,rgba(214,177,97,0.06),transparent)]" aria-hidden="true" />
 
                 {/* Bottom vignette for seamless transition to next section */}
                 <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white dark:from-[#0a192f] to-transparent" aria-hidden="true" />
 
-                {/* Content */}
-                <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-24 lg:pt-40 lg:pb-36">
+                {/* Content — wider container with generous padding */}
+                <div className="relative z-10 w-full max-w-5xl mx-auto px-6 sm:px-8 lg:px-12 pt-28 pb-24 lg:pt-40 lg:pb-36">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: [0.0, 0.0, 0.2, 1] }}
-                        className="flex flex-col items-center text-center"
+                        className="flex flex-col items-center text-center space-y-4 md:space-y-6"
                     >
-                        <div className="inline-block px-4 py-2 bg-[#d6b161]/15 backdrop-blur-sm rounded-full mb-8 border border-[#d6b161]/30">
+                        <div className="inline-block px-4 py-2 bg-[#d6b161]/15 backdrop-blur-sm rounded-full border border-[#d6b161]/30">
                             <span className="text-[#d6b161] font-medium text-sm flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-[#d6b161] animate-pulse"></span>
                                 New: Summer 2026 Batches Now Open
                             </span>
                         </div>
 
-                        <h1 className="font-sans text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium text-white leading-[1.1] tracking-tight mb-6 drop-shadow-lg">
+                        <h1 className="font-sans text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-medium text-gray-900 dark:text-white leading-tight md:leading-[1.1] tracking-tight drop-shadow-lg">
                             SoVir Skilling & <br className="hidden sm:block" />
                             <span>Training Center</span>
                         </h1>
 
-                        <p className="text-lg sm:text-xl font-semibold text-gray-200 mb-4 max-w-2xl drop-shadow-md">
+                        <p className="text-base md:text-lg lg:text-xl font-semibold text-gray-700 dark:text-gray-200 max-w-3xl opacity-90 drop-shadow-md">
                             A Training & Career Services Division of SoVir Technologies LLP
                         </p>
 
-                        <p className="text-base sm:text-lg text-gray-300 mb-12 leading-relaxed max-w-2xl drop-shadow-sm">
+                        <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl opacity-90 drop-shadow-sm">
                             A professional training academy empowering individuals with industry-ready skills and global career opportunities through specialized skill development and abroad placement support.
                         </p>
 
-                        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center">
+                        <div className="flex flex-col sm:flex-row flex-wrap gap-4 w-full sm:w-auto justify-center pt-2">
                             <Link to="/skill-training">
                                 <Button
-                                    className="bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] font-semibold px-8 py-6 text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b161] transition-all duration-300 hover:shadow-lg hover:shadow-[#d6b161]/25"
+                                    className="bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] font-semibold px-8 py-4 text-base sm:text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b161] transition-all duration-300 hover:shadow-lg hover:shadow-[#d6b161]/25 min-h-[48px]"
                                 >
                                     Start Learning
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
@@ -268,7 +270,7 @@ const LandingPage: React.FC = () => {
                             <Button
                                 onClick={() => setIsBookingFormOpen(true)}
                                 variant="outline"
-                                className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm px-8 py-6 text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b161] transition-all duration-300 hover:shadow-lg hover:border-white/50"
+                                className="border-gray-400/50 dark:border-white/30 text-gray-900 dark:text-white hover:bg-gray-900/5 dark:hover:bg-white/10 backdrop-blur-sm px-8 py-4 text-base sm:text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b161] transition-all duration-300 hover:shadow-lg dark:hover:border-white/50 min-h-[48px]"
                             >
                                 <Play className="w-5 h-5" />
                                 Book Free Consultation

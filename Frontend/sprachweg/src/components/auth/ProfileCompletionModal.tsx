@@ -38,6 +38,21 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
     const uploadTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Drag constraint ref for draggable modal
+    const constraintRef = useRef<HTMLDivElement>(null);
+
+    // Responsive breakpoint detection
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkBreakpoint = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkBreakpoint();
+        window.addEventListener('resize', checkBreakpoint);
+        return () => window.removeEventListener('resize', checkBreakpoint);
+    }, []);
+
     useEffect(() => {
         if (user) {
             setFormData(prev => ({
@@ -71,7 +86,7 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
 
         let progress = 0;
         uploadTimerRef.current = setInterval(() => {
-            progress += Math.random() * 15 + 5; // Increment by 5-20%
+            progress += Math.random() * 15 + 5;
             if (progress >= 100) {
                 progress = 100;
                 if (uploadTimerRef.current) clearInterval(uploadTimerRef.current);
@@ -79,7 +94,6 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
                 setIsUploading(false);
                 setUploadSuccess(true);
 
-                // Auto-hide success notification after 3 seconds
                 successTimerRef.current = setTimeout(() => {
                     setUploadSuccess(false);
                 }, 3000);
@@ -93,23 +107,18 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Reset states
         setImageError(null);
         setUploadSuccess(false);
         setUploadProgress(0);
 
-        // Validate file size
         if (file.size > MAX_IMAGE_SIZE_BYTES) {
             setImageError(`Image size must be less than ${MAX_IMAGE_SIZE_MB} MB. Selected file is ${(file.size / (1024 * 1024)).toFixed(1)} MB.`);
-            // Reset file input so the same file can be re-selected after fixing
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
 
-        // Set avatar state for form submission
         setAvatar(file);
 
-        // Generate preview
         const reader = new FileReader();
         reader.onloadend = () => {
             setImagePreview(reader.result as string);
@@ -161,8 +170,9 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
             if (onClose) {
                 onClose();
             }
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to update profile');
+        } catch (err: unknown) {
+            const axiosErr = err as { response?: { data?: { message?: string } } };
+            setError(axiosErr.response?.data?.message || 'Failed to update profile');
         } finally {
             setLoading(false);
         }
@@ -175,252 +185,274 @@ const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({ isOpen,
 
     if (!isOpen || isDismissed) return null;
 
+    // Input field classes (shared)
+    const inputClasses = "mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 shadow-sm focus:border-[#d6b161] focus:outline-none focus:ring-1 focus:ring-[#d6b161] text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors";
+
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4">
+            {/* Full-screen backdrop + drag constraint container */}
+            <div
+                ref={constraintRef}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            >
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="w-full max-w-[96vw] sm:max-w-md max-h-[90dvh] flex flex-col rounded-2xl bg-white shadow-xl dark:bg-gray-800"
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                    drag={!isMobile}
+                    dragConstraints={constraintRef}
+                    dragElastic={0.05}
+                    dragMomentum={false}
+                    className={`
+                        flex flex-col bg-white dark:bg-gray-800 shadow-2xl
+                        ${isMobile
+                            ? 'w-full h-full rounded-none'
+                            : 'w-[85vw] md:w-[480px] max-h-[90vh] rounded-2xl'
+                        }
+                    `}
                 >
-                    {/* Fixed header — always visible, never scrolls away */}
-                    <div className="flex-shrink-0 px-4 pt-4 pb-2 sm:px-6 sm:pt-5 sm:pb-3 border-b border-gray-100 dark:border-gray-700">
+                    {/* ═══════════ STICKY HEADER — never scrolls ═══════════ */}
+                    <div className={`flex-shrink-0 px-5 pt-4 pb-3 sm:px-6 sm:pt-5 sm:pb-4 border-b border-gray-200 dark:border-gray-700 ${!isMobile ? 'cursor-grab active:cursor-grabbing' : ''}`}>
                         <div className="flex items-center justify-between mb-2">
                             <button
                                 type="button"
                                 onClick={handleClose}
-                                className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                                className="flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
                             >
-                                <ArrowLeft className="h-4 w-4 mr-1" />
+                                <ArrowLeft className="h-4 w-4" />
                                 Back
                             </button>
-                            
+
                             {onClose && (
                                 <button
                                     onClick={handleClose}
-                                    className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                                    className="p-1 rounded-lg text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                 >
                                     <X className="h-5 w-5" />
                                 </button>
                             )}
                         </div>
 
-                        <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">Complete Your Profile</h2>
-                        <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Complete Your Profile</h2>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                             Please provide the following details to continue.
                         </p>
                     </div>
 
-                    {/* Scrollable body — all form content scrolls here */}
-                    <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pb-4 sm:px-6 sm:pb-6">
+                    {/* ═══════════ SCROLLABLE BODY — all form fields ═══════════ */}
+                    <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-5 py-4 sm:px-6 sm:py-5">
+                        {error && (
+                            <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/30">
+                                {error}
+                            </div>
+                        )}
 
-                    {error && (
-                        <div className="mt-3 sm:mt-4 rounded-md bg-red-50 p-3 sm:p-4 text-xs sm:text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
-                            {error}
-                        </div>
-                    )}
-
-                    {/* Profile Image Upload Section */}
-                    <div className="mt-4 sm:mt-5 flex flex-col items-center">
-                        <div className="relative group">
-                            <div
-                                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center bg-gray-100 dark:bg-gray-700 cursor-pointer hover:border-[#d6b161] transition-colors"
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                {imagePreview ? (
-                                    <img
-                                        src={imagePreview}
-                                        alt="Profile preview"
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : user?.avatar ? (
-                                    <img 
-                                        src={getAssetUrl(user.avatar)} 
-                                        alt="Current Avatar" 
-                                        className="w-full h-full object-cover" 
-                                    />
-                                ) : (
-                                    <Camera className="w-7 h-7 sm:w-8 sm:h-8 text-gray-400" />
+                        {/* Profile Image Upload Section */}
+                        <div className="flex flex-col items-center mb-6">
+                            <div className="relative group">
+                                <div
+                                    className="w-22 h-22 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center bg-gray-50 dark:bg-gray-700 cursor-pointer hover:border-[#d6b161] dark:hover:border-[#d6b161] transition-colors"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    {imagePreview ? (
+                                        <img
+                                            src={imagePreview}
+                                            alt="Profile preview"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : user?.avatar ? (
+                                        <img
+                                            src={getAssetUrl(user.avatar)}
+                                            alt="Current Avatar"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <Camera className="w-7 h-7 sm:w-8 sm:h-8 text-gray-400 dark:text-gray-500" />
+                                    )}
+                                </div>
+                                {imagePreview && (
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveImage}
+                                        className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
                                 )}
                             </div>
-                            {imagePreview && (
-                                <button
-                                    type="button"
-                                    onClick={handleRemoveImage}
-                                    className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                    <X className="w-3 h-3" />
-                                </button>
-                            )}
-                        </div>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageSelect}
-                            className="hidden"
-                            id="profile-image-upload"
-                        />
-                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                            Upload profile photo (max {MAX_IMAGE_SIZE_MB} MB)
-                        </p>
-
-                        {/* Image validation error */}
-                        {imageError && (
-                            <p className="mt-1 text-xs text-red-600 dark:text-red-400 text-center">
-                                {imageError}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleImageSelect}
+                                className="hidden"
+                                id="profile-image-upload"
+                            />
+                            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                Upload profile photo (max {MAX_IMAGE_SIZE_MB} MB)
                             </p>
-                        )}
 
-                        {/* Upload progress bar */}
-                        {(isUploading || uploadProgress > 0) && !imageError && imagePreview && (
-                            <div className="w-full max-w-[200px] mt-2">
-                                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 overflow-hidden">
-                                    <motion.div
-                                        className="h-full rounded-full bg-[#d6b161]"
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${uploadProgress}%` }}
-                                        transition={{ duration: 0.2, ease: 'easeOut' }}
-                                    />
-                                </div>
-                                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 text-center mt-0.5">
-                                    {uploadProgress < 100 ? `Uploading... ${uploadProgress}%` : 'Upload complete'}
+                            {/* Image validation error */}
+                            {imageError && (
+                                <p className="mt-1 text-xs text-red-600 dark:text-red-400 text-center">
+                                    {imageError}
                                 </p>
-                            </div>
-                        )}
-
-                        {/* Upload success notification */}
-                        <AnimatePresence>
-                            {uploadSuccess && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -5 }}
-                                    className="mt-2 flex items-center gap-1.5 rounded-md bg-green-50 dark:bg-green-900/20 px-3 py-1.5 text-xs text-green-700 dark:text-green-400"
-                                >
-                                    <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                                    <span>Profile image uploaded successfully.</span>
-                                </motion.div>
                             )}
-                        </AnimatePresence>
+
+                            {/* Upload progress bar */}
+                            {(isUploading || uploadProgress > 0) && !imageError && imagePreview && (
+                                <div className="w-full max-w-[200px] mt-2">
+                                    <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 overflow-hidden">
+                                        <motion.div
+                                            className="h-full rounded-full bg-[#d6b161]"
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${uploadProgress}%` }}
+                                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-1">
+                                        {uploadProgress < 100 ? `Uploading... ${uploadProgress}%` : 'Upload complete'}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Upload success notification */}
+                            <AnimatePresence>
+                                {uploadSuccess && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -5 }}
+                                        className="mt-2 flex items-center gap-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 px-3 py-1.5 text-xs text-green-700 dark:text-green-400"
+                                    >
+                                        <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                                        <span>Profile image uploaded successfully.</span>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Form Fields */}
+                        <form id="profile-form" onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name <span className="text-red-500">*</span></label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    id="name"
+                                    required
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    className={inputClasses}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                                <input
+                                    type="email"
+                                    value={user?.email || ''}
+                                    disabled
+                                    className="mt-1 block w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 px-3 py-2.5 text-sm text-gray-500 dark:text-gray-400 shadow-sm cursor-not-allowed"
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number <span className="text-red-500">*</span></label>
+                                <input
+                                    type="tel"
+                                    name="phoneNumber"
+                                    id="phoneNumber"
+                                    required
+                                    value={formData.phoneNumber}
+                                    onChange={handleChange}
+                                    className={inputClasses}
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="guardianName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Guardian Name <span className="text-red-500">*</span></label>
+                                <input
+                                    type="text"
+                                    name="guardianName"
+                                    id="guardianName"
+                                    required
+                                    value={formData.guardianName}
+                                    onChange={handleChange}
+                                    className={inputClasses}
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="guardianPhone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Guardian Phone Number <span className="text-red-500">*</span></label>
+                                <input
+                                    type="tel"
+                                    name="guardianPhone"
+                                    id="guardianPhone"
+                                    required
+                                    value={formData.guardianPhone}
+                                    onChange={handleChange}
+                                    className={inputClasses}
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Date of Birth <span className="text-red-500">*</span></label>
+                                <input
+                                    type="date"
+                                    name="dateOfBirth"
+                                    id="dateOfBirth"
+                                    required
+                                    value={formData.dateOfBirth}
+                                    onChange={handleChange}
+                                    className={inputClasses}
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="qualification" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Highest Educational Qualification <span className="text-red-500">*</span></label>
+                                <select
+                                    name="qualification"
+                                    id="qualification"
+                                    required
+                                    value={formData.qualification}
+                                    onChange={handleChange}
+                                    className={inputClasses}
+                                >
+                                    <option value="High School">High School</option>
+                                    <option value="Diploma">Diploma</option>
+                                    <option value="Undergraduate">Undergraduate</option>
+                                    <option value="Postgraduate">Postgraduate</option>
+                                    <option value="PhD">PhD</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </form>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="mt-4 sm:mt-6 space-y-3 sm:space-y-4">
-                        <div>
-                            <label htmlFor="name" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Name <span className="text-red-500">*</span></label>
-                            <input
-                                type="text"
-                                name="name"
-                                id="name"
-                                required
-                                value={formData.name}
-                                onChange={handleChange}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#d6b161] focus:outline-none focus:ring-[#d6b161] text-xs sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                            <input
-                                type="email"
-                                value={user?.email || ''}
-                                disabled
-                                className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-500 shadow-sm text-xs sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="phoneNumber" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number <span className="text-red-500">*</span></label>
-                            <input
-                                type="tel"
-                                name="phoneNumber"
-                                id="phoneNumber"
-                                required
-                                value={formData.phoneNumber}
-                                onChange={handleChange}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#d6b161] focus:outline-none focus:ring-[#d6b161] text-xs sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="guardianName" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Guardian Name <span className="text-red-500">*</span></label>
-                            <input
-                                type="text"
-                                name="guardianName"
-                                id="guardianName"
-                                required
-                                value={formData.guardianName}
-                                onChange={handleChange}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#d6b161] focus:outline-none focus:ring-[#d6b161] text-xs sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="guardianPhone" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Guardian Phone Number <span className="text-red-500">*</span></label>
-                            <input
-                                type="tel"
-                                name="guardianPhone"
-                                id="guardianPhone"
-                                required
-                                value={formData.guardianPhone}
-                                onChange={handleChange}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#d6b161] focus:outline-none focus:ring-[#d6b161] text-xs sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="dateOfBirth" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Date of Birth <span className="text-red-500">*</span></label>
-                            <input
-                                type="date"
-                                name="dateOfBirth"
-                                id="dateOfBirth"
-                                required
-                                value={formData.dateOfBirth}
-                                onChange={handleChange}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#d6b161] focus:outline-none focus:ring-[#d6b161] text-xs sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="qualification" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Highest Educational Qualification <span className="text-red-500">*</span></label>
-                            <select
-                                name="qualification"
-                                id="qualification"
-                                required
-                                value={formData.qualification}
-                                onChange={handleChange}
-                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-[#d6b161] focus:outline-none focus:ring-[#d6b161] text-xs sm:text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                            >
-                                <option value="High School">High School</option>
-                                <option value="Diploma">Diploma</option>
-                                <option value="Undergraduate">Undergraduate</option>
-                                <option value="Postgraduate">Postgraduate</option>
-                                <option value="PhD">PhD</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-
-                        <div className="mt-4 sm:mt-6 flex gap-3">
+                    {/* ═══════════ STICKY FOOTER — always visible ═══════════ */}
+                    <div className="flex-shrink-0 px-5 py-4 sm:px-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 rounded-b-2xl">
+                        <div className="flex gap-3">
                             {onClose && (
                                 <Button
                                     type="button"
                                     onClick={handleClose}
-                                    className="flex-1 justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600"
+                                    className="flex-1 justify-center rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors min-h-[48px]"
                                 >
                                     Cancel
                                 </Button>
                             )}
                             <Button
                                 type="submit"
+                                form="profile-form"
                                 disabled={loading}
-                                className="flex-1 justify-center rounded-md bg-[#d6b161] px-4 py-2 text-xs sm:text-sm font-medium text-[#0a192f] shadow-sm hover:bg-[#c4a055] focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 disabled:opacity-50"
+                                className="flex-1 justify-center rounded-lg bg-[#d6b161] px-4 py-2.5 text-sm font-semibold text-[#0a192f] shadow-sm hover:bg-[#c4a055] focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 transition-colors min-h-[48px]"
                             >
                                 {loading ? 'Saving...' : 'Save & Continue'}
                             </Button>
                         </div>
-                    </form>
-                    </div>{/* end scrollable body */}
+                    </div>
                 </motion.div>
             </div>
         </AnimatePresence>
