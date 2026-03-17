@@ -143,10 +143,13 @@ const AdminInternshipApplications: React.FC = () => {
     };
 
     const handleDecision = async (application: InternshipApplication, nextStatus: 'accepted' | 'rejected') => {
+        const normalizedStatus = normalizeStatus(application.status);
         const confirmationText =
             nextStatus === 'accepted'
                 ? 'Accept this internship application?'
-                : 'Reject this internship application?';
+                : normalizedStatus === 'accepted'
+                    ? 'Mark this accepted internship application as rejected?'
+                    : 'Reject this internship application?';
 
         if (!window.confirm(confirmationText)) {
             return;
@@ -356,6 +359,7 @@ const AdminInternshipApplications: React.FC = () => {
                             const normalizedStatus = normalizeStatus(application.status);
                             const statusMeta = getStatusMeta(normalizedStatus);
                             const isPending = normalizedStatus === 'submitted';
+                            const isAccepted = normalizedStatus === 'accepted';
                             const isRejected = normalizedStatus === 'rejected';
                             const isProcessing = processingId === application._id;
 
@@ -439,26 +443,7 @@ const AdminInternshipApplications: React.FC = () => {
                                                 Resume
                                             </a>
 
-                                            {isPending ? (
-                                                <>
-                                                    <button
-                                                        onClick={() => handleDecision(application, 'accepted')}
-                                                        disabled={isProcessing}
-                                                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors disabled:opacity-60 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/30"
-                                                    >
-                                                        {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                                                        Accept
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDecision(application, 'rejected')}
-                                                        disabled={isProcessing}
-                                                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors disabled:opacity-60 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30"
-                                                    >
-                                                        {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
-                                                        Reject
-                                                    </button>
-                                                </>
-                                            ) : isRejected ? (
+                                            {isRejected ? (
                                                 <button
                                                     onClick={() => handleDeleteRejectedApplication(application)}
                                                     disabled={isProcessing}
@@ -468,9 +453,26 @@ const AdminInternshipApplications: React.FC = () => {
                                                     Delete
                                                 </button>
                                             ) : (
-                                                <div className={`inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium ${statusMeta.actionClass}`}>
-                                                    {statusMeta.label}
-                                                </div>
+                                                <>
+                                                    {isPending && (
+                                                        <button
+                                                            onClick={() => handleDecision(application, 'accepted')}
+                                                            disabled={isProcessing}
+                                                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors disabled:opacity-60 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/30"
+                                                        >
+                                                            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                                                            Accept
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDecision(application, 'rejected')}
+                                                        disabled={isProcessing}
+                                                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors disabled:opacity-60 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30"
+                                                    >
+                                                        {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                                                        {isAccepted ? 'Mark Rejected' : 'Reject'}
+                                                    </button>
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -714,20 +716,22 @@ const AdminInternshipApplications: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {normalizeStatus(selectedApplication.status) === 'submitted' && (
+                                {normalizeStatus(selectedApplication.status) !== 'rejected' && (
                                     <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                                        <button
-                                            onClick={() => handleDecision(selectedApplication, 'accepted')}
-                                            disabled={processingId === selectedApplication._id}
-                                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 px-5 py-3 text-sm font-semibold text-green-700 hover:bg-green-100 transition-colors disabled:opacity-60 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/30"
-                                        >
-                                            {processingId === selectedApplication._id ? (
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                            ) : (
-                                                <FileText className="w-4 h-4" />
-                                            )}
-                                            Accept Application
-                                        </button>
+                                        {normalizeStatus(selectedApplication.status) === 'submitted' && (
+                                            <button
+                                                onClick={() => handleDecision(selectedApplication, 'accepted')}
+                                                disabled={processingId === selectedApplication._id}
+                                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 px-5 py-3 text-sm font-semibold text-green-700 hover:bg-green-100 transition-colors disabled:opacity-60 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/30"
+                                            >
+                                                {processingId === selectedApplication._id ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <FileText className="w-4 h-4" />
+                                                )}
+                                                Accept Application
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => handleDecision(selectedApplication, 'rejected')}
                                             disabled={processingId === selectedApplication._id}
@@ -738,7 +742,7 @@ const AdminInternshipApplications: React.FC = () => {
                                             ) : (
                                                 <X className="w-4 h-4" />
                                             )}
-                                            Reject Application
+                                            {normalizeStatus(selectedApplication.status) === 'accepted' ? 'Mark Rejected' : 'Reject Application'}
                                         </button>
                                     </div>
                                 )}
