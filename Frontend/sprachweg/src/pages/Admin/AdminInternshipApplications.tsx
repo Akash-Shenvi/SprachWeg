@@ -113,6 +113,7 @@ const AdminInternshipApplications: React.FC = () => {
     const APPLICATIONS_PER_PAGE = 10;
     const [applications, setApplications] = useState<InternshipApplication[]>([]);
     const [selectedApplication, setSelectedApplication] = useState<InternshipApplication | null>(null);
+    const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [processingId, setProcessingId] = useState<string | null>(null);
@@ -259,6 +260,12 @@ const AdminInternshipApplications: React.FC = () => {
             setCurrentPage(totalPages);
         }
     }, [currentPage, totalPages]);
+
+    useEffect(() => {
+        if (!selectedApplication) {
+            setIsAvatarFullScreen(false);
+        }
+    }, [selectedApplication]);
 
     return (
         <AdminLayout>
@@ -551,9 +558,24 @@ const AdminInternshipApplications: React.FC = () => {
                             <div className="p-8 space-y-8">
                                 <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
                                     <div className="flex items-start gap-4">
-                                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#d6b161] text-2xl font-bold text-[#0a192f]">
-                                            {selectedApplication.firstName.charAt(0).toUpperCase()}
-                                        </div>
+                                        {selectedApplication.userId?.avatar ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsAvatarFullScreen(true)}
+                                                className="flex h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-[#d6b161]/40 bg-[#d6b161]/10 transition-transform hover:scale-[1.03]"
+                                                title="Click to view profile photo"
+                                            >
+                                                <img
+                                                    src={getAssetUrl(selectedApplication.userId.avatar)}
+                                                    alt={`${selectedApplication.firstName} ${selectedApplication.lastName}`}
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            </button>
+                                        ) : (
+                                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#d6b161] text-2xl font-bold text-[#0a192f]">
+                                                {selectedApplication.firstName.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
                                         <div>
                                             <div className="flex flex-wrap items-center gap-3">
                                                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -690,6 +712,25 @@ const AdminInternshipApplications: React.FC = () => {
                                             Profile Snapshot
                                         </h3>
                                         <div className="mt-4 space-y-3 text-sm">
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Profile Image</p>
+                                                {selectedApplication.userId?.avatar ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsAvatarFullScreen(true)}
+                                                        className="mt-2 inline-flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 text-left transition-colors hover:border-[#d6b161] hover:bg-[#d6b161]/5 dark:border-gray-700 dark:bg-[#112240] dark:hover:border-[#d6b161]/50 dark:hover:bg-[#112240]"
+                                                    >
+                                                        <img
+                                                            src={getAssetUrl(selectedApplication.userId.avatar)}
+                                                            alt={`${selectedApplication.firstName} ${selectedApplication.lastName}`}
+                                                            className="h-12 w-12 rounded-xl object-cover"
+                                                        />
+                                                        <span className="font-semibold text-gray-900 dark:text-white">Click to view photo</span>
+                                                    </button>
+                                                ) : (
+                                                    <p className="font-semibold text-gray-900 dark:text-white">Not provided</p>
+                                                )}
+                                            </div>
                                             <div className="flex items-center gap-2 text-gray-900 dark:text-white">
                                                 <Mail className="w-4 h-4 text-gray-400" />
                                                 <span className="font-semibold">
@@ -768,6 +809,27 @@ const AdminInternshipApplications: React.FC = () => {
                     </div>
                 )}
             </AnimatePresence>
+
+            {selectedApplication?.userId?.avatar && isAvatarFullScreen && (
+                <div
+                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4 backdrop-blur-sm"
+                    onClick={() => setIsAvatarFullScreen(false)}
+                >
+                    <button
+                        type="button"
+                        onClick={() => setIsAvatarFullScreen(false)}
+                        className="absolute right-4 top-4 rounded-full p-2 text-white transition-colors hover:bg-white/10"
+                    >
+                        <X className="h-7 w-7" />
+                    </button>
+                    <img
+                        src={getAssetUrl(selectedApplication.userId.avatar)}
+                        alt={`${selectedApplication.firstName} ${selectedApplication.lastName}`}
+                        className="max-h-[90vh] max-w-full rounded-2xl object-contain shadow-2xl"
+                        onClick={(event) => event.stopPropagation()}
+                    />
+                </div>
+            )}
         </AdminLayout>
     );
 };
