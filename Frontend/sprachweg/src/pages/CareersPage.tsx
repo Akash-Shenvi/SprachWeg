@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef } from 'react';
+import { motion, useAnimation, useInView, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import { Briefcase, Clock, MapPin, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Header from '../components/layout/Header';
@@ -129,49 +129,125 @@ const internships: Internship[] = [
     },
 ];
 
+const fadeInUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: (custom: number = 0) => ({
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.6, delay: custom * 0.1, ease: [0.22, 1, 0.36, 1] as const }
+    })
+};
+
+const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: { staggerChildren: 0.15, delayChildren: 0.2 }
+    }
+};
+
+const AnimatedSection: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => {
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true, margin: '-100px' });
+    const controls = useAnimation();
+
+    useEffect(() => {
+        if (isInView) {
+            controls.start('visible');
+        }
+    }, [isInView, controls]);
+
+    return (
+        <motion.div
+            ref={ref}
+            initial="hidden"
+            animate={controls}
+            variants={staggerContainer}
+            className={className}
+        >
+            {children}
+        </motion.div>
+    );
+};
+
+const HeroBackground: React.FC = () => {
+    const shouldReduceMotion = useReducedMotion();
+    const { scrollY } = useScroll();
+    const y1 = useTransform(scrollY, [0, 500], [0, shouldReduceMotion ? 0 : 150]);
+    const y2 = useTransform(scrollY, [0, 500], [0, shouldReduceMotion ? 0 : -150]);
+    const opacity = useTransform(scrollY, [0, 500], [1, 0]);
+
+    return (
+        <motion.div
+            style={{ opacity }}
+            className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
+            aria-hidden="true"
+        >
+            <motion.div
+                style={{ y: y1 }}
+                animate={{
+                    scale: [1, 1.1, 1],
+                    opacity: [0.3, 0.5, 0.3]
+                }}
+                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -top-[10%] -right-[10%] h-[600px] w-[600px] rounded-full bg-linear-to-br from-[#d6b161]/20 to-red-500/10 blur-[120px]"
+            />
+            <motion.div
+                style={{ y: y2 }}
+                animate={{
+                    scale: [1, 1.2, 1],
+                    opacity: [0.2, 0.4, 0.2]
+                }}
+                transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                className="absolute top-[20%] -left-[10%] h-[500px] w-[500px] rounded-full bg-yellow-500/10 blur-[100px]"
+            />
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
+        </motion.div>
+    );
+};
+
 const CareersPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-[#0a192f]">
             <Header />
 
             {/* Hero */}
-            <section className="pt-32 pb-16 px-4 relative overflow-hidden">
-                {/* Background gradient blobs */}
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#d6b161]/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#d6b161]/5 rounded-full blur-3xl pointer-events-none" />
+            <section className="relative bg-linear-to-br from-[#0a192f] via-[#112240] to-[#1a365d] overflow-hidden py-28 sm:py-36 text-center">
+                <HeroBackground />
 
-                <div className="max-w-7xl mx-auto text-center relative z-10">
-                    <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                    >
-                        <span className="inline-flex items-center gap-2 bg-[#d6b161]/10 text-[#d6b161] text-sm font-semibold px-4 py-1.5 rounded-full mb-4">
-                            <Briefcase className="w-4 h-4" />
-                            Join Our Team
-                        </span>
-                    </motion.div>
+                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <AnimatedSection className="flex flex-col items-center text-center">
+                        <motion.div variants={fadeInUp} className="mb-6 flex justify-center">
+                            <span className="inline-flex items-center gap-2 rounded-full border border-[#d6b161]/20 bg-[#d6b161]/10 px-4 py-1.5 text-sm font-semibold text-[#d6b161] backdrop-blur-sm">
+                                <Briefcase className="h-4 w-4" />
+                                Join Our Team
+                            </span>
+                        </motion.div>
 
-                    <motion.h1
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
-                        className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6 leading-tight"
-                    >
-                        Launch Your Career with a{' '}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d6b161] to-[#c4a055]">
-                            Real Internship
-                        </span>
-                    </motion.h1>
+                        <motion.h1
+                            variants={fadeInUp}
+                            className="text-4xl md:text-5xl lg:text-6xl font-sans font-bold text-white mb-6 leading-tight"
+                        >
+                            Launch Your Career with a <br />
+                            <span className="text-[#d6b161] relative">
+                                Real Internship
+                                <motion.span
+                                    initial={{ scaleX: 0 }}
+                                    animate={{ scaleX: 1 }}
+                                    transition={{ delay: 0.8, duration: 0.6 }}
+                                    className="absolute -bottom-2 left-0 w-full h-1 bg-[#d6b161]/50 rounded-full origin-left"
+                                />
+                            </span>
+                        </motion.h1>
 
-                    <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                        className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
-                    >
-                        We offer hands-on internship opportunities across tech disciplines. Gain real-world experience, work with industry professionals, and kickstart your career.
-                    </motion.p>
+                        <motion.p
+                            variants={fadeInUp}
+                            custom={1}
+                            className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed"
+                        >
+                            We offer hands-on internship opportunities across tech disciplines. Gain real-world experience, work with industry professionals, and kickstart your career.
+                        </motion.p>
+                    </AnimatedSection>
                 </div>
             </section>
 
@@ -189,7 +265,7 @@ const CareersPage: React.FC = () => {
                             >
                                 {/* Icon & Title */}
                                 <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-[#d6b161]/10 flex items-center justify-center text-2xl group-hover:bg-[#d6b161]/20 transition-colors">
+                                    <div className="w-12 h-12 shrink-0 rounded-xl bg-[#d6b161]/10 flex items-center justify-center text-2xl group-hover:bg-[#d6b161]/20 transition-colors">
                                         {internship.icon}
                                     </div>
                                     <div>

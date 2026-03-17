@@ -222,7 +222,7 @@ const LandingPage: React.FC = () => {
                 {/* Gradient overlay — light mode */}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/70 via-white/40 to-transparent dark:from-transparent dark:via-transparent dark:to-transparent" aria-hidden="true" />
                 {/* Gradient overlay — dark mode */}
-                <div className="absolute inset-0 bg-gradient-to-b from-[#0a192f]/75 via-[#0a192f]/45 to-[#0a192f]/85" aria-hidden="true" />
+                <div className="absolute inset-0 hidden dark:block bg-gradient-to-b from-[#0a192f]/75 via-[#0a192f]/45 to-[#0a192f]/85" aria-hidden="true" />
 
                 {/* Subtle radial glow from center */}
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_40%,rgba(214,177,97,0.06),transparent)]" aria-hidden="true" />
@@ -231,7 +231,7 @@ const LandingPage: React.FC = () => {
                 <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white dark:from-[#0a192f] to-transparent" aria-hidden="true" />
 
                 {/* Content — wider container with generous padding */}
-                <div className="relative z-10 w-full max-w-5xl mx-auto px-6 sm:px-8 lg:px-12 pt-28 pb-24 lg:pt-40 lg:pb-36">
+                <div className="relative z-10 w-full max-w-6xl lg:max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-28 pb-24 lg:pt-40 lg:pb-36">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -250,11 +250,11 @@ const LandingPage: React.FC = () => {
                             <span>Training Center</span>
                         </h1>
 
-                        <p className="text-base md:text-lg lg:text-xl font-semibold text-gray-700 dark:text-gray-200 max-w-3xl opacity-90 drop-shadow-md">
+                        <p className="text-base md:text-lg lg:text-xl font-semibold text-gray-700 dark:text-gray-200 max-w-4xl opacity-90 drop-shadow-md">
                             A Training & Career Services Division of SoVir Technologies LLP
                         </p>
 
-                        <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl opacity-90 drop-shadow-sm">
+                        <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-300 leading-relaxed max-w-3xl opacity-90 drop-shadow-sm">
                             A professional training academy empowering individuals with industry-ready skills and global career opportunities through specialized skill development and abroad placement support.
                         </p>
 
