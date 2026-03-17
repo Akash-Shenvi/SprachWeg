@@ -113,6 +113,7 @@ const AdminInternshipApplications: React.FC = () => {
     const APPLICATIONS_PER_PAGE = 10;
     const [applications, setApplications] = useState<InternshipApplication[]>([]);
     const [selectedApplication, setSelectedApplication] = useState<InternshipApplication | null>(null);
+    const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [processingId, setProcessingId] = useState<string | null>(null);
@@ -143,10 +144,13 @@ const AdminInternshipApplications: React.FC = () => {
     };
 
     const handleDecision = async (application: InternshipApplication, nextStatus: 'accepted' | 'rejected') => {
+        const normalizedStatus = normalizeStatus(application.status);
         const confirmationText =
             nextStatus === 'accepted'
                 ? 'Accept this internship application?'
-                : 'Reject this internship application?';
+                : normalizedStatus === 'accepted'
+                    ? 'Mark this accepted internship application as rejected?'
+                    : 'Reject this internship application?';
 
         if (!window.confirm(confirmationText)) {
             return;
@@ -257,6 +261,12 @@ const AdminInternshipApplications: React.FC = () => {
         }
     }, [currentPage, totalPages]);
 
+    useEffect(() => {
+        if (!selectedApplication) {
+            setIsAvatarFullScreen(false);
+        }
+    }, [selectedApplication]);
+
     return (
         <AdminLayout>
             <div className="max-w-7xl mx-auto space-y-6">
@@ -356,6 +366,7 @@ const AdminInternshipApplications: React.FC = () => {
                             const normalizedStatus = normalizeStatus(application.status);
                             const statusMeta = getStatusMeta(normalizedStatus);
                             const isPending = normalizedStatus === 'submitted';
+                            const isAccepted = normalizedStatus === 'accepted';
                             const isRejected = normalizedStatus === 'rejected';
                             const isProcessing = processingId === application._id;
 
@@ -439,26 +450,7 @@ const AdminInternshipApplications: React.FC = () => {
                                                 Resume
                                             </a>
 
-                                            {isPending ? (
-                                                <>
-                                                    <button
-                                                        onClick={() => handleDecision(application, 'accepted')}
-                                                        disabled={isProcessing}
-                                                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors disabled:opacity-60 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/30"
-                                                    >
-                                                        {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                                                        Accept
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDecision(application, 'rejected')}
-                                                        disabled={isProcessing}
-                                                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors disabled:opacity-60 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30"
-                                                    >
-                                                        {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
-                                                        Reject
-                                                    </button>
-                                                </>
-                                            ) : isRejected ? (
+                                            {isRejected ? (
                                                 <button
                                                     onClick={() => handleDeleteRejectedApplication(application)}
                                                     disabled={isProcessing}
@@ -468,9 +460,26 @@ const AdminInternshipApplications: React.FC = () => {
                                                     Delete
                                                 </button>
                                             ) : (
-                                                <div className={`inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium ${statusMeta.actionClass}`}>
-                                                    {statusMeta.label}
-                                                </div>
+                                                <>
+                                                    {isPending && (
+                                                        <button
+                                                            onClick={() => handleDecision(application, 'accepted')}
+                                                            disabled={isProcessing}
+                                                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors disabled:opacity-60 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/30"
+                                                        >
+                                                            {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                                                            Accept
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDecision(application, 'rejected')}
+                                                        disabled={isProcessing}
+                                                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors disabled:opacity-60 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30"
+                                                    >
+                                                        {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                                                        {isAccepted ? 'Mark Rejected' : 'Reject'}
+                                                    </button>
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -549,9 +558,24 @@ const AdminInternshipApplications: React.FC = () => {
                             <div className="p-8 space-y-8">
                                 <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
                                     <div className="flex items-start gap-4">
-                                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#d6b161] text-2xl font-bold text-[#0a192f]">
-                                            {selectedApplication.firstName.charAt(0).toUpperCase()}
-                                        </div>
+                                        {selectedApplication.userId?.avatar ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsAvatarFullScreen(true)}
+                                                className="flex h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-[#d6b161]/40 bg-[#d6b161]/10 transition-transform hover:scale-[1.03]"
+                                                title="Click to view profile photo"
+                                            >
+                                                <img
+                                                    src={getAssetUrl(selectedApplication.userId.avatar)}
+                                                    alt={`${selectedApplication.firstName} ${selectedApplication.lastName}`}
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            </button>
+                                        ) : (
+                                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#d6b161] text-2xl font-bold text-[#0a192f]">
+                                                {selectedApplication.firstName.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
                                         <div>
                                             <div className="flex flex-wrap items-center gap-3">
                                                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -688,6 +712,25 @@ const AdminInternshipApplications: React.FC = () => {
                                             Profile Snapshot
                                         </h3>
                                         <div className="mt-4 space-y-3 text-sm">
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Profile Image</p>
+                                                {selectedApplication.userId?.avatar ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsAvatarFullScreen(true)}
+                                                        className="mt-2 inline-flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 text-left transition-colors hover:border-[#d6b161] hover:bg-[#d6b161]/5 dark:border-gray-700 dark:bg-[#112240] dark:hover:border-[#d6b161]/50 dark:hover:bg-[#112240]"
+                                                    >
+                                                        <img
+                                                            src={getAssetUrl(selectedApplication.userId.avatar)}
+                                                            alt={`${selectedApplication.firstName} ${selectedApplication.lastName}`}
+                                                            className="h-12 w-12 rounded-xl object-cover"
+                                                        />
+                                                        <span className="font-semibold text-gray-900 dark:text-white">Click to view photo</span>
+                                                    </button>
+                                                ) : (
+                                                    <p className="font-semibold text-gray-900 dark:text-white">Not provided</p>
+                                                )}
+                                            </div>
                                             <div className="flex items-center gap-2 text-gray-900 dark:text-white">
                                                 <Mail className="w-4 h-4 text-gray-400" />
                                                 <span className="font-semibold">
@@ -714,20 +757,22 @@ const AdminInternshipApplications: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {normalizeStatus(selectedApplication.status) === 'submitted' && (
+                                {normalizeStatus(selectedApplication.status) !== 'rejected' && (
                                     <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                                        <button
-                                            onClick={() => handleDecision(selectedApplication, 'accepted')}
-                                            disabled={processingId === selectedApplication._id}
-                                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 px-5 py-3 text-sm font-semibold text-green-700 hover:bg-green-100 transition-colors disabled:opacity-60 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/30"
-                                        >
-                                            {processingId === selectedApplication._id ? (
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                            ) : (
-                                                <FileText className="w-4 h-4" />
-                                            )}
-                                            Accept Application
-                                        </button>
+                                        {normalizeStatus(selectedApplication.status) === 'submitted' && (
+                                            <button
+                                                onClick={() => handleDecision(selectedApplication, 'accepted')}
+                                                disabled={processingId === selectedApplication._id}
+                                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 px-5 py-3 text-sm font-semibold text-green-700 hover:bg-green-100 transition-colors disabled:opacity-60 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/30"
+                                            >
+                                                {processingId === selectedApplication._id ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <FileText className="w-4 h-4" />
+                                                )}
+                                                Accept Application
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => handleDecision(selectedApplication, 'rejected')}
                                             disabled={processingId === selectedApplication._id}
@@ -738,7 +783,7 @@ const AdminInternshipApplications: React.FC = () => {
                                             ) : (
                                                 <X className="w-4 h-4" />
                                             )}
-                                            Reject Application
+                                            {normalizeStatus(selectedApplication.status) === 'accepted' ? 'Mark Rejected' : 'Reject Application'}
                                         </button>
                                     </div>
                                 )}
@@ -764,6 +809,27 @@ const AdminInternshipApplications: React.FC = () => {
                     </div>
                 )}
             </AnimatePresence>
+
+            {selectedApplication?.userId?.avatar && isAvatarFullScreen && (
+                <div
+                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4 backdrop-blur-sm"
+                    onClick={() => setIsAvatarFullScreen(false)}
+                >
+                    <button
+                        type="button"
+                        onClick={() => setIsAvatarFullScreen(false)}
+                        className="absolute right-4 top-4 rounded-full p-2 text-white transition-colors hover:bg-white/10"
+                    >
+                        <X className="h-7 w-7" />
+                    </button>
+                    <img
+                        src={getAssetUrl(selectedApplication.userId.avatar)}
+                        alt={`${selectedApplication.firstName} ${selectedApplication.lastName}`}
+                        className="max-h-[90vh] max-w-full rounded-2xl object-contain shadow-2xl"
+                        onClick={(event) => event.stopPropagation()}
+                    />
+                </div>
+            )}
         </AdminLayout>
     );
 };
