@@ -7,7 +7,8 @@ import {
     TrendingUp,
     Award,
     Mail,
-    ArrowRight
+    ArrowRight,
+    Plus
 } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
@@ -226,6 +227,61 @@ const AdminDashboard: React.FC = () => {
                     />
                 </div>
 
+                <section className="space-y-4">
+                    <div>
+                        <h2 className="text-xl font-bold text-[#0a192f] dark:text-white">Internship Dashboard</h2>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Choose whether you want to review internship requests or add new internship listings.
+                        </p>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <Link to="/admin/internship-applications" className="group">
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.05 }}
+                                className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-[#112240] hover:border-[#d6b161] dark:hover:border-[#d6b161] transition-all hover:shadow-lg"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div className="mb-3 inline-flex rounded-lg bg-[#d6b161]/10 p-3 text-[#d6b161]">
+                                            <Briefcase className="h-6 w-6" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-[#0a192f] dark:text-white mb-1">Internship Hub Requests</h3>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                            {loading ? 'Loading requests...' : `${stats.pendingInternshipRequests} pending applications`}
+                                        </p>
+                                    </div>
+                                    <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-[#d6b161] group-hover:translate-x-1 transition-all" />
+                                </div>
+                            </motion.div>
+                        </Link>
+
+                        <Link to="/admin/internships" className="group">
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.1 }}
+                                className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-[#112240] hover:border-[#d6b161] dark:hover:border-[#d6b161] transition-all hover:shadow-lg"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div className="mb-3 inline-flex rounded-lg bg-green-500/10 p-3 text-green-500">
+                                            <Plus className="h-6 w-6" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-[#0a192f] dark:text-white mb-1">Add Internships</h3>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                            Create and manage live internship listings
+                                        </p>
+                                    </div>
+                                    <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-green-500 group-hover:translate-x-1 transition-all" />
+                                </div>
+                            </motion.div>
+                        </Link>
+                    </div>
+                </section>
+
                 {/* Quick Access Links */}
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     <Link to="/admin/messages" className="group">
@@ -267,33 +323,11 @@ const AdminDashboard: React.FC = () => {
                         </motion.div>
                     </Link>
 
-                    <Link to="/admin/internship-applications" className="group">
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.15 }}
-                            className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-[#112240] hover:border-[#d6b161] dark:hover:border-[#d6b161] transition-all hover:shadow-lg"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <div className="mb-3 inline-flex rounded-lg bg-[#d6b161]/10 p-3 text-[#d6b161]">
-                                        <Briefcase className="h-6 w-6" />
-                                    </div>
-                                    <h3 className="text-lg font-bold text-[#0a192f] dark:text-white mb-1">Internship Requests</h3>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        {loading ? 'Loading requests...' : `${stats.pendingInternshipRequests} pending applications`}
-                                    </p>
-                                </div>
-                                <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-[#d6b161] group-hover:translate-x-1 transition-all" />
-                            </div>
-                        </motion.div>
-                    </Link>
-
                     <Link to="/admin/trainers" className="group">
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
+                            transition={{ delay: 0.15 }}
                             className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-[#112240] hover:border-[#d6b161] dark:hover:border-[#d6b161] transition-all hover:shadow-lg"
                         >
                             <div className="flex items-center justify-between">
@@ -313,7 +347,7 @@ const AdminDashboard: React.FC = () => {
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
+                            transition={{ delay: 0.2 }}
                             className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-[#112240] hover:border-[#d6b161] dark:hover:border-[#d6b161] transition-all hover:shadow-lg"
                         >
                             <div className="flex items-center justify-between">
@@ -333,7 +367,7 @@ const AdminDashboard: React.FC = () => {
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.4 }}
+                            transition={{ delay: 0.25 }}
                             className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-[#112240] hover:border-[#d6b161] dark:hover:border-[#d6b161] transition-all hover:shadow-lg"
                         >
                             <div className="flex items-center justify-between">

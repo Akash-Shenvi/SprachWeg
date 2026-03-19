@@ -1,6 +1,6 @@
 import React, { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Briefcase, LogOut, Menu, X, Users, Edit } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Briefcase, LogOut, Menu, X, Users, Edit, Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 
@@ -16,7 +16,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
     const menuItems = [
         { path: '/admin-dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { path: '/admin/internship-applications', icon: Briefcase, label: 'Internships' },
+        { path: '/admin/internship-applications', icon: Briefcase, label: 'Internship Requests' },
+        { path: '/admin/internships', icon: Plus, label: 'Add Internships' },
         { path: '/admin/students', icon: Users, label: 'Students' },
         { path: '/admin/language-enrollment-details', icon: BookOpen, label: 'Class Enrollments' },
         { path: '/admin/language-batches', icon: Users, label: 'Active Classes' },

@@ -41,6 +41,7 @@ import ContactPage from './pages/ContactPage';
 import AdminContactMessages from './pages/Admin/AdminContactMessages';
 import AdminBookingRequests from './pages/Admin/AdminBookingRequests';
 import AdminInternshipApplications from './pages/Admin/AdminInternshipApplications';
+import AdminInternshipCatalog from './pages/Admin/AdminInternshipCatalog';
 import ManageTrainers from './pages/Admin/ManageTrainers';
 import FeedbackPage from './pages/FeedbackPage';
 import AdminFeedback from './pages/Admin/AdminFeedback';
@@ -305,6 +306,14 @@ const AppContent = () => {
           element={
             <AdminRoute>
               <AdminInternshipApplications />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/internships"
+          element={
+            <AdminRoute>
+              <AdminInternshipCatalog />
             </AdminRoute>
           }
         />

@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
-import InternshipCatalogManager from '../../components/admin/InternshipCatalogManager';
 import { getAssetUrl, internshipApplicationAPI } from '../../lib/api';
 
 type InternshipApplicationStatus = 'submitted' | 'accepted' | 'rejected' | 'reviewed' | 'shortlisted';
@@ -281,18 +280,16 @@ const AdminInternshipApplications: React.FC = () => {
                             Back to Dashboard
                         </Link>
                         <h1 className="text-3xl font-serif font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                            Internship Hub
+                            Internship Hub Requests
                             <span className="bg-[#d6b161] text-[#0a192f] text-sm font-bold px-3 py-1 rounded-full">
                                 {statusCounts.submitted} Pending
                             </span>
                         </h1>
                         <p className="text-gray-600 dark:text-gray-400 mt-1">
-                            Manage live internship listings and review internship applicants in one place.
+                            Review and manage internship applications submitted through the internship hub.
                         </p>
                     </div>
                 </div>
-
-                <InternshipCatalogManager />
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <div className="rounded-2xl border border-[#d6b161]/30 bg-[#d6b161]/10 p-5">
