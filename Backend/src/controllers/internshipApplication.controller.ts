@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { Request, Response } from 'express';
 import InternshipApplication from '../models/internshipApplication.model';
+import InternshipListing from '../models/internshipListing.model';
 import { EmailService } from '../utils/email.service';
 
 const fileServeRoot = '/home/sovirtraining/file_serve';
@@ -33,6 +34,7 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
         }
 
         const {
+            internshipSlug,
             internshipTitle,
             internshipMode,
             firstName,
@@ -50,7 +52,6 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
         } = req.body;
 
         const requiredFields = {
-            internshipTitle,
             internshipMode,
             firstName,
             lastName,
@@ -69,6 +70,30 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
         const missingField = Object.entries(requiredFields).find(([, value]) => !String(value ?? '').trim());
         if (missingField) {
             return res.status(400).json({ message: `${missingField[0]} is required.` });
+        }
+
+        let selectedInternship = null;
+        const normalizedInternshipSlug = String(internshipSlug ?? '').trim().toLowerCase();
+        const normalizedRequestedTitle = String(internshipTitle ?? '').trim();
+
+        if (normalizedInternshipSlug) {
+            selectedInternship = await InternshipListing.findOne({
+                slug: normalizedInternshipSlug,
+                isActive: true,
+            });
+        } else if (normalizedRequestedTitle) {
+            selectedInternship = await InternshipListing.findOne({
+                title: normalizedRequestedTitle,
+                isActive: true,
+            });
+        }
+
+        if (!selectedInternship && !normalizedRequestedTitle) {
+            return res.status(400).json({ message: 'internshipSlug is required.' });
+        }
+
+        if (!selectedInternship) {
+            return res.status(404).json({ message: 'Selected internship is no longer available.' });
         }
 
         const normalizedMode = String(internshipMode).trim().toLowerCase();
@@ -90,7 +115,9 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
             accountName: req.user.name,
             accountEmail: req.user.email,
             accountPhoneNumber: req.user.phoneNumber,
-            internshipTitle: String(internshipTitle).trim(),
+            internshipSlug: selectedInternship.slug,
+            internshipTitle: selectedInternship.title,
+            internshipPrice: selectedInternship.price,
             internshipMode: normalizedMode,
             firstName: String(firstName).trim(),
             lastName: String(lastName).trim(),
@@ -110,7 +137,14 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
 
         const existingApplication = await InternshipApplication.findOne({
             userId: req.user._id,
-            internshipTitle: applicationData.internshipTitle,
+            ...(applicationData.internshipSlug
+                ? {
+                    $or: [
+                        { internshipSlug: applicationData.internshipSlug },
+                        { internshipTitle: applicationData.internshipTitle },
+                    ],
+                }
+                : { internshipTitle: applicationData.internshipTitle }),
         });
 
         if (existingApplication) {
@@ -202,7 +236,7 @@ export const getMyEnrolledInternships = async (req: Request, res: Response) => {
             userId: req.user._id,
             status: 'accepted',
         })
-            .select('internshipTitle internshipMode referenceCode status createdAt')
+            .select('internshipSlug internshipTitle internshipPrice internshipMode referenceCode status createdAt')
             .sort({ createdAt: -1 });
 
         return res.status(200).json({ internships });

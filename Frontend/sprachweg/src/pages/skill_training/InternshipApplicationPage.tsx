@@ -1,7 +1,8 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { internshipApplicationAPI } from '../../lib/api';
+import { internshipApplicationAPI, internshipCatalogAPI } from '../../lib/api';
+import { formatInternshipPrice, slugifyInternshipTitle, type InternshipListing } from '../../types/internship';
 
 // ─── Icon Components ──────────────────────────────────────────────────────────
 
@@ -102,7 +103,9 @@ type InternshipMode = 'online' | 'hybrid' | 'onsite';
 
 interface ExistingApplication {
   _id: string;
+  internshipSlug?: string;
   internshipTitle: string;
+  internshipPrice?: number;
   internshipMode?: InternshipMode;
   status: ApplicationStatus;
   referenceCode: string;
@@ -223,15 +226,21 @@ const SelectField: React.FC<SelectFieldProps> = ({ label, required, error, child
 const InternshipApplicationPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const requestedInternshipTitle = searchParams.get('internship')?.trim() || '';
+  const requestedSlug = searchParams.get('slug')?.trim().toLowerCase()
+    || (requestedInternshipTitle ? slugifyInternshipTitle(requestedInternshipTitle) : '');
   const [step, setStep] = useState<number>(0);
   const [submitted, setSubmitted] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [refCode, setRefCode] = useState<string>(generateRef());
   const [submitError, setSubmitError] = useState<string>('');
+  const [internship, setInternship] = useState<InternshipListing | null>(null);
+  const [internshipLoading, setInternshipLoading] = useState<boolean>(true);
+  const [internshipError, setInternshipError] = useState<string>('');
   const [checkingExistingApplication, setCheckingExistingApplication] = useState<boolean>(true);
   const [existingApplication, setExistingApplication] = useState<ExistingApplication | null>(null);
-  const internshipTitle = searchParams.get('internship')?.trim() || 'General Internship';
+  const internshipTitle = internship?.title || requestedInternshipTitle || 'Selected Internship';
   const requestedMode = searchParams.get('mode')?.trim().toLowerCase();
   const initialInternshipMode = INTERNSHIP_MODES.some(({ value }) => value === requestedMode)
     ? requestedMode as InternshipMode
@@ -254,6 +263,43 @@ const InternshipApplicationPage: React.FC = () => {
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const fetchInternship = async () => {
+      if (!requestedSlug) {
+        setInternship(null);
+        setInternshipError('We could not find which internship you want to apply for.');
+        setInternshipLoading(false);
+        return;
+      }
+
+      try {
+        setInternshipLoading(true);
+        setInternshipError('');
+        const response = await internshipCatalogAPI.getBySlug(requestedSlug);
+
+        if (!isMounted) return;
+        setInternship(response.internship || null);
+      } catch (err: any) {
+        console.error('Failed to fetch internship details:', err);
+        if (!isMounted) return;
+        setInternship(null);
+        setInternshipError(err.response?.data?.message || 'This internship is no longer available.');
+      } finally {
+        if (isMounted) {
+          setInternshipLoading(false);
+        }
+      }
+    };
+
+    fetchInternship();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [requestedSlug]);
+
+  useEffect(() => {
     if (!user) return;
 
     const fullName = user.name?.trim().split(/\s+/).filter(Boolean) ?? [];
@@ -272,7 +318,11 @@ const InternshipApplicationPage: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!user) {
+    if (internshipLoading) {
+      return;
+    }
+
+    if (!user || !internship) {
       setExistingApplication(null);
       setCheckingExistingApplication(false);
       return;
@@ -286,7 +336,10 @@ const InternshipApplicationPage: React.FC = () => {
       try {
         const response = await internshipApplicationAPI.getMine();
         const matchedApplication = (response.applications || []).find((application: ExistingApplication) =>
-          application.internshipTitle?.trim().toLowerCase() === internshipTitle.toLowerCase() &&
+          (
+            application.internshipSlug?.trim().toLowerCase() === internship.slug.toLowerCase()
+            || application.internshipTitle?.trim().toLowerCase() === internship.title.toLowerCase()
+          ) &&
           application.status !== 'rejected'
         ) || null;
 
@@ -312,7 +365,7 @@ const InternshipApplicationPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [internshipTitle, user]);
+  }, [internship, internshipLoading, user]);
 
   useEffect(() => {
     return () => {
@@ -421,6 +474,10 @@ const InternshipApplicationPage: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!validateStep(2)) return;
+    if (!internship) {
+      setSubmitError('This internship is no longer available.');
+      return;
+    }
     if (existingApplication) {
       setSubmitError('You have already applied for this internship.');
       return;
@@ -435,6 +492,7 @@ const InternshipApplicationPage: React.FC = () => {
 
     try {
       const payload = new FormData();
+      payload.append('internshipSlug', internship.slug);
       payload.append('internshipTitle', internshipTitle);
       payload.append('internshipMode', form.internshipMode);
       payload.append('firstName', form.firstName.trim());
@@ -472,7 +530,7 @@ const InternshipApplicationPage: React.FC = () => {
   const stepsActive = [step === 0, step === 1, step === 2];
 
   // ─── Success Screen ─────────────────────────────────────────────────────────
-  if (checkingExistingApplication) {
+  if (internshipLoading || checkingExistingApplication) {
     return (
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gray-50 px-4 py-16 text-gray-900 transition-colors duration-300 dark:bg-[#0a192f] dark:text-gray-100">
         <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -482,10 +540,41 @@ const InternshipApplicationPage: React.FC = () => {
 
         <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white/95 p-10 text-center shadow-[0_20px_60px_rgba(10,25,47,0.12)] backdrop-blur-sm dark:border-white/10 dark:bg-[#112240]/95 dark:shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
           <div className="mx-auto mb-5 h-12 w-12 rounded-full border-4 border-[#d6b161]/30 border-t-[#d6b161] animate-spin" />
-          <h2 className="text-2xl font-bold text-[#0a192f] dark:text-white">Checking your application</h2>
+          <h2 className="text-2xl font-bold text-[#0a192f] dark:text-white">
+            {internshipLoading ? 'Loading internship details' : 'Checking your application'}
+          </h2>
           <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
-            We&apos;re verifying whether you have already applied for this internship.
+            {internshipLoading
+              ? 'We are preparing the latest internship information for this application.'
+              : 'We are verifying whether you have already applied for this internship.'}
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (internshipError || !internship) {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gray-50 px-4 py-16 text-gray-900 transition-colors duration-300 dark:bg-[#0a192f] dark:text-gray-100">
+        <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white/95 p-10 text-center shadow-[0_20px_60px_rgba(10,25,47,0.12)] backdrop-blur-sm dark:border-white/10 dark:bg-[#112240]/95 dark:shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-300">
+            <AlertCircle />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0a192f] dark:text-white">
+            Internship not available
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+            {internshipError || 'This internship could not be found.'}
+          </p>
+          <div className="mt-8 flex justify-center">
+            <Link
+              to="/careers"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0a192f] px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#112240] dark:bg-[#d6b161] dark:text-[#0a192f] dark:hover:bg-[#c4a055]"
+            >
+              <ArrowLeft />
+              Back to Careers
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -515,6 +604,12 @@ const InternshipApplicationPage: React.FC = () => {
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-left dark:border-white/10 dark:bg-[#0f223f]">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">Program Fee</p>
+                <p className="mt-2 text-sm font-bold text-[#0a192f] dark:text-white">
+                  {formatInternshipPrice(existingApplication.internshipPrice ?? internship.price, internship.currency)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-left dark:border-white/10 dark:bg-[#0f223f]">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">Reference ID</p>
                 <p className="mt-2 font-mono text-sm font-bold text-[#0a192f] dark:text-white">{existingApplication.referenceCode}</p>
               </div>
@@ -529,13 +624,13 @@ const InternshipApplicationPage: React.FC = () => {
             </div>
 
             <div className="mt-8 flex justify-center">
-              <a
-                href="/careers"
+              <Link
+                to="/careers"
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0a192f] px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#112240] dark:bg-[#d6b161] dark:text-[#0a192f] dark:hover:bg-[#c4a055]"
               >
                 <ArrowLeft />
                 Back to Careers
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -565,6 +660,9 @@ const InternshipApplicationPage: React.FC = () => {
             </p>
             <div className="mt-4 inline-flex items-center justify-center rounded-full border border-[#d6b161]/30 bg-[#d6b161]/10 px-4 py-2 text-xs font-semibold text-[#b38f3f] dark:text-[#d6b161]">
               Applying for: {internshipTitle} · {formatInternshipMode(form.internshipMode)}
+            </div>
+            <div className="mt-4 inline-flex items-center justify-center rounded-full border border-[#d6b161]/20 bg-[#d6b161]/10 px-4 py-2 text-xs font-semibold text-[#b38f3f] dark:text-[#d6b161]">
+              Program fee: {formatInternshipPrice(internship.price, internship.currency)}
             </div>
             <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#d6b161]/20 bg-[#0a192f]/5 px-4 py-2 font-mono text-sm font-medium text-[#0a192f] dark:bg-[#0a192f]/40 dark:text-[#d6b161]">
               <FileText />
@@ -630,6 +728,23 @@ const InternshipApplicationPage: React.FC = () => {
 
           <div className="mt-4 inline-flex items-center justify-center rounded-full border border-[#d6b161]/30 bg-[#d6b161]/10 px-4 py-2 text-xs font-semibold text-[#b38f3f] dark:text-[#d6b161]">
             Applying for: {internshipTitle} · {form.internshipMode ? formatInternshipMode(form.internshipMode) : 'Select mode below'}
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-[#d6b161]/20 bg-[#d6b161]/10 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b6f2c] dark:text-[#e3c778]">Program Fee</p>
+              <p className="mt-1 text-sm font-bold text-[#0a192f] dark:text-white">
+                {formatInternshipPrice(internship.price, internship.currency)}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-white/10 dark:bg-[#0f223f]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Duration</p>
+              <p className="mt-1 text-sm font-bold text-[#0a192f] dark:text-white">{internship.duration}</p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 dark:border-white/10 dark:bg-[#0f223f]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Location</p>
+              <p className="mt-1 text-sm font-bold text-[#0a192f] dark:text-white">{internship.location}</p>
+            </div>
           </div>
 
           {/* Step tracker */}

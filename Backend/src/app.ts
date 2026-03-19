@@ -68,4 +68,7 @@ app.use('/api/chat', chatRoutes);
 import internshipApplicationRoutes from './routes/internshipApplication.routes';
 app.use('/api/internship-applications', internshipApplicationRoutes);
 
+import internshipListingRoutes from './routes/internshipListing.routes';
+app.use('/api/internships', internshipListingRoutes);
+
 export default app;

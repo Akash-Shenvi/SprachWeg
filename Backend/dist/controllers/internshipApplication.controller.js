@@ -16,6 +16,7 @@ exports.deleteRejectedInternshipApplication = exports.updateInternshipApplicatio
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const internshipApplication_model_1 = __importDefault(require("../models/internshipApplication.model"));
+const internshipListing_model_1 = __importDefault(require("../models/internshipListing.model"));
 const email_service_1 = require("../utils/email.service");
 const fileServeRoot = '/home/sovirtraining/file_serve';
 const adminDecisionStatuses = ['accepted', 'rejected'];
@@ -39,9 +40,8 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
         if (req.fileValidationError) {
             return res.status(400).json({ message: req.fileValidationError });
         }
-        const { internshipTitle, internshipMode, firstName, lastName, dob, email, whatsapp, college, registration, department, semester, passingYear, address, source, } = req.body;
+        const { internshipSlug, internshipTitle, internshipMode, firstName, lastName, dob, email, whatsapp, college, registration, department, semester, passingYear, address, source, } = req.body;
         const requiredFields = {
-            internshipTitle,
             internshipMode,
             firstName,
             lastName,
@@ -60,6 +60,27 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
         if (missingField) {
             return res.status(400).json({ message: `${missingField[0]} is required.` });
         }
+        let selectedInternship = null;
+        const normalizedInternshipSlug = String(internshipSlug !== null && internshipSlug !== void 0 ? internshipSlug : '').trim().toLowerCase();
+        const normalizedRequestedTitle = String(internshipTitle !== null && internshipTitle !== void 0 ? internshipTitle : '').trim();
+        if (normalizedInternshipSlug) {
+            selectedInternship = yield internshipListing_model_1.default.findOne({
+                slug: normalizedInternshipSlug,
+                isActive: true,
+            });
+        }
+        else if (normalizedRequestedTitle) {
+            selectedInternship = yield internshipListing_model_1.default.findOne({
+                title: normalizedRequestedTitle,
+                isActive: true,
+            });
+        }
+        if (!selectedInternship && !normalizedRequestedTitle) {
+            return res.status(400).json({ message: 'internshipSlug is required.' });
+        }
+        if (!selectedInternship) {
+            return res.status(404).json({ message: 'Selected internship is no longer available.' });
+        }
         const normalizedMode = String(internshipMode).trim().toLowerCase();
         if (!internshipModes.includes(normalizedMode)) {
             return res.status(400).json({ message: 'Internship mode must be online, hybrid, or onsite.' });
@@ -76,7 +97,9 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
             accountName: req.user.name,
             accountEmail: req.user.email,
             accountPhoneNumber: req.user.phoneNumber,
-            internshipTitle: String(internshipTitle).trim(),
+            internshipSlug: selectedInternship.slug,
+            internshipTitle: selectedInternship.title,
+            internshipPrice: selectedInternship.price,
             internshipMode: normalizedMode,
             firstName: String(firstName).trim(),
             lastName: String(lastName).trim(),
@@ -93,10 +116,14 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
             resumeUrl: toStoredResumeUrl(req.file.filename),
             resumeOriginalName: req.file.originalname,
         };
-        const existingApplication = yield internshipApplication_model_1.default.findOne({
-            userId: req.user._id,
-            internshipTitle: applicationData.internshipTitle,
-        });
+        const existingApplication = yield internshipApplication_model_1.default.findOne(Object.assign({ userId: req.user._id }, (applicationData.internshipSlug
+            ? {
+                $or: [
+                    { internshipSlug: applicationData.internshipSlug },
+                    { internshipTitle: applicationData.internshipTitle },
+                ],
+            }
+            : { internshipTitle: applicationData.internshipTitle })));
         if (existingApplication) {
             if (existingApplication.status !== 'rejected') {
                 removeStoredResume(applicationData.resumeUrl);
@@ -159,7 +186,7 @@ const getMyEnrolledInternships = (req, res) => __awaiter(void 0, void 0, void 0,
             userId: req.user._id,
             status: 'accepted',
         })
-            .select('internshipTitle internshipMode referenceCode status createdAt')
+            .select('internshipSlug internshipTitle internshipPrice internshipMode referenceCode status createdAt')
             .sort({ createdAt: -1 });
         return res.status(200).json({ internships });
     }

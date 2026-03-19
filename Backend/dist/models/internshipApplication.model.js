@@ -40,7 +40,9 @@ const InternshipApplicationSchema = new mongoose_1.Schema({
     accountName: { type: String, required: true, trim: true },
     accountEmail: { type: String, required: true, trim: true, lowercase: true },
     accountPhoneNumber: { type: String, trim: true },
+    internshipSlug: { type: String, trim: true, lowercase: true },
     internshipTitle: { type: String, required: true, trim: true },
+    internshipPrice: { type: Number, min: 0 },
     internshipMode: { type: String, enum: ['online', 'hybrid', 'onsite'], trim: true },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
@@ -71,4 +73,10 @@ const InternshipApplicationSchema = new mongoose_1.Schema({
     timestamps: true,
 });
 InternshipApplicationSchema.index({ userId: 1, internshipTitle: 1 }, { unique: true });
+InternshipApplicationSchema.index({ userId: 1, internshipSlug: 1 }, {
+    unique: true,
+    partialFilterExpression: {
+        internshipSlug: { $exists: true, $type: 'string' },
+    },
+});
 exports.default = mongoose_1.default.model('InternshipApplication', InternshipApplicationSchema);

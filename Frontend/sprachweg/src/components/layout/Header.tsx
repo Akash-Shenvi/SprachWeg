@@ -6,11 +6,14 @@ import { Menu, X, Sun, Moon, ChevronDown, Settings } from 'lucide-react';
 import Button from '../ui/Button';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { internshipCatalogAPI } from '../../lib/api';
+import type { InternshipListing } from '../../types/internship';
 
 const Header: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [internships, setInternships] = useState<InternshipListing[]>([]);
     const { theme, toggleTheme } = useTheme();
     const { user } = useAuth();
 
@@ -37,6 +40,19 @@ const Header: React.FC = () => {
             document.removeEventListener('mousedown', handleClickOutside);
             document.removeEventListener('touchstart', handleClickOutside as unknown as EventListener);
         };
+    }, []);
+
+    useEffect(() => {
+        const fetchInternships = async () => {
+            try {
+                const response = await internshipCatalogAPI.getAll();
+                setInternships(response.internships || []);
+            } catch (error) {
+                console.error('Failed to load header internships:', error);
+            }
+        };
+
+        fetchInternships();
     }, []);
 
     return (
@@ -198,24 +214,9 @@ const Header: React.FC = () => {
                                     <div>
                                         <h3 className="text-xs font-bold uppercase tracking-wider text-[#d6b161] mb-4">Internship</h3>
                                         <div className="space-y-1">
-                                            {[
-                                                "Software Development Intern",
-                                                "Web Development Intern (Frontend / Backend)",
-                                                "Full Stack Development Intern",
-                                                "Python Programming Intern",
-                                                "Java Development Intern",
-                                                "Data Analytics Intern",
-                                                "Cloud Computing Intern",
-                                                "Cyber Security Intern",
-                                                "AI & Machine Learning Intern",
-                                                "IT Support & Systems Intern",
-                                                "PLC Automation Engineer",
-                                                "Controls & Automation Engineer",
-                                                "PLC Programmer (Automation)",
-                                                "Industrial Automation Engineer"
-                                            ].map((item, idx) => (
-                                                <Link key={idx} to="/careers" className="block text-sm text-gray-600 dark:text-gray-400 hover:text-[#d6b161] dark:hover:text-[#d6b161] py-1 transition-colors">
-                                                    {item}
+                                            {internships.map((internship) => (
+                                                <Link key={internship._id} to="/careers" className="block text-sm text-gray-600 dark:text-gray-400 hover:text-[#d6b161] dark:hover:text-[#d6b161] py-1 transition-colors">
+                                                    {internship.title}
                                                 </Link>
                                             ))}
                                         </div>
@@ -496,24 +497,9 @@ const Header: React.FC = () => {
                                     {/* INTERNSHIP Section */}
                                     <div className="space-y-1">
                                         <h4 className="text-xs font-bold uppercase text-[#d6b161] mb-2">Internship</h4>
-                                        {[
-                                            "Software Development Intern",
-                                            "Web Development Intern (Frontend / Backend)",
-                                            "Full Stack Development Intern",
-                                            "Python Programming Intern",
-                                            "Java Development Intern",
-                                            "Data Analytics Intern",
-                                            "Cloud Computing Intern",
-                                            "Cyber Security Intern",
-                                            "AI & Machine Learning Intern",
-                                            "IT Support & Systems Intern",
-                                            "PLC Automation Engineer",
-                                            "Controls & Automation Engineer",
-                                            "PLC Programmer (Automation)",
-                                            "Industrial Automation Engineer"
-                                        ].map((item, idx) => (
-                                            <Link key={idx} to="/careers" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>
-                                                {item}
+                                        {internships.map((internship) => (
+                                            <Link key={internship._id} to="/careers" className="block text-gray-600 dark:text-gray-400 py-1 text-xs" onClick={() => setIsMenuOpen(false)}>
+                                                {internship.title}
                                             </Link>
                                         ))}
                                     </div>

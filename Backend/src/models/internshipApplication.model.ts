@@ -7,7 +7,9 @@ export interface IInternshipApplication extends Document {
     accountName: string;
     accountEmail: string;
     accountPhoneNumber?: string;
+    internshipSlug?: string;
     internshipTitle: string;
+    internshipPrice?: number;
     internshipMode?: InternshipMode;
     firstName: string;
     lastName: string;
@@ -37,7 +39,9 @@ const InternshipApplicationSchema = new Schema<IInternshipApplication>({
     accountName: { type: String, required: true, trim: true },
     accountEmail: { type: String, required: true, trim: true, lowercase: true },
     accountPhoneNumber: { type: String, trim: true },
+    internshipSlug: { type: String, trim: true, lowercase: true },
     internshipTitle: { type: String, required: true, trim: true },
+    internshipPrice: { type: Number, min: 0 },
     internshipMode: { type: String, enum: ['online', 'hybrid', 'onsite'], trim: true },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
@@ -69,5 +73,14 @@ const InternshipApplicationSchema = new Schema<IInternshipApplication>({
 });
 
 InternshipApplicationSchema.index({ userId: 1, internshipTitle: 1 }, { unique: true });
+InternshipApplicationSchema.index(
+    { userId: 1, internshipSlug: 1 },
+    {
+        unique: true,
+        partialFilterExpression: {
+            internshipSlug: { $exists: true, $type: 'string' },
+        },
+    }
+);
 
 export default mongoose.model<IInternshipApplication>('InternshipApplication', InternshipApplicationSchema);

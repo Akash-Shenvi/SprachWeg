@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { InternshipPayload } from '../types/internship';
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -188,6 +189,33 @@ export const internshipApplicationAPI = {
     },
     async deleteRejected(applicationId: string) {
         const response = await api.delete(`/internship-applications/admin/${applicationId}`);
+        return response.data;
+    },
+};
+
+export const internshipCatalogAPI = {
+    async getAll() {
+        const response = await api.get('/internships');
+        return response.data;
+    },
+    async getBySlug(slug: string) {
+        const response = await api.get(`/internships/${slug}`);
+        return response.data;
+    },
+    async getAllAdmin() {
+        const response = await api.get('/internships/admin');
+        return response.data;
+    },
+    async create(data: InternshipPayload) {
+        const response = await api.post('/internships/admin', data);
+        return response.data;
+    },
+    async update(id: string, data: InternshipPayload) {
+        const response = await api.put(`/internships/admin/${id}`, data);
+        return response.data;
+    },
+    async delete(id: string) {
+        const response = await api.delete(`/internships/admin/${id}`);
         return response.data;
     },
 };
