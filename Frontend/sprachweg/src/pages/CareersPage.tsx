@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { motion } from 'framer-motion';
 import {
     ArrowRight,
@@ -45,9 +46,13 @@ const CareersPage: React.FC = () => {
                 setError(null);
                 const response = await internshipCatalogAPI.getAll();
                 setInternships(response.internships || []);
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error('Failed to fetch internships:', err);
-                setError(err.response?.data?.message || 'Failed to load internships right now.');
+                if (axios.isAxiosError(err)) {
+                    setError(err.response?.data?.message || 'Failed to load internships right now.');
+                } else {
+                    setError('Failed to load internships right now.');
+                }
             } finally {
                 setLoading(false);
             }

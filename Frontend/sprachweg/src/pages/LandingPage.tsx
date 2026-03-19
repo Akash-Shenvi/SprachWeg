@@ -129,16 +129,15 @@ const SkillCard: React.FC<SkillCardProps> = ({ course }) => {
                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Starting at</span>
                         <span className="text-2xl font-bold text-[#0a192f] dark:text-white">₹{Number(course.price).toLocaleString('en-IN')}</span>
                     </div>
-                    <Link to={course.link}>
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                        <Link
+                            to={course.link}
                             className="flex items-center gap-2 px-5 py-2.5 bg-[#0a192f] dark:bg-[#d6b161] text-white dark:text-[#0a192f] rounded-lg font-semibold text-sm hover:bg-[#112240] dark:hover:bg-[#c4a055] transition-colors shadow-md hover:shadow-lg"
                         >
                             Explore
                             <ArrowRight className="w-4 h-4" />
-                        </motion.button>
-                    </Link>
+                        </Link>
+                    </motion.div>
                 </div>
             </div>
         </motion.div>
@@ -223,7 +222,6 @@ const LandingPage: React.FC = () => {
                 <div className="absolute inset-0 block dark:hidden bg-black/20 backdrop-blur-sm" aria-hidden="true" />
                 {/* Gradient overlay — dark mode */}
                 <div className="absolute inset-0 hidden dark:block bg-gradient-to-b from-[#0a192f]/75 via-[#0a192f]/45 to-[#0a192f]/85" aria-hidden="true" />
-                <div className="absolute inset-0 hidden dark:block bg-gradient-to-b from-[#0a192f]/75 via-[#0a192f]/45 to-[#0a192f]/85" aria-hidden="true" />
 
                 {/* Subtle radial glow from center */}
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_40%,rgba(214,177,97,0.06),transparent)]" aria-hidden="true" />
@@ -260,13 +258,12 @@ const LandingPage: React.FC = () => {
                         </p>
 
                         <div className="flex flex-col sm:flex-row flex-wrap gap-4 w-full sm:w-auto justify-center pt-2">
-                            <Link to="/skill-training">
-                                <Button
-                                    className="bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] font-semibold px-8 py-4 text-base sm:text-lg rounded-full w-full sm:w-auto flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b161] transition-all duration-300 hover:shadow-lg hover:shadow-[#d6b161]/25 min-h-[48px]"
-                                >
-                                    Start Learning
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
-                                </Button>
+                            <Link
+                                to="/skill-training"
+                                className="bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] font-semibold px-8 py-4 text-base sm:text-lg rounded-full w-full sm:w-auto inline-flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-[#d6b161] transition-all duration-300 hover:shadow-lg hover:shadow-[#d6b161]/25 min-h-[48px]"
+                            >
+                                Start Learning
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                             </Link>
                             <Button
                                 onClick={() => setIsBookingFormOpen(true)}
@@ -387,11 +384,12 @@ const LandingPage: React.FC = () => {
 
                     {/* View All Link */}
                     <div className="text-center mt-12">
-                        <Link to="/skill-training">
-                            <Button className="bg-[#0a192f] dark:bg-[#d6b161] text-white dark:text-[#0a192f] hover:bg-[#112240] dark:hover:bg-[#c4a055] font-semibold px-8 py-3 rounded-lg flex items-center gap-2 mx-auto focus-visible:ring-2 focus-visible:ring-[#d6b161]">
-                                View All Courses
-                                <ArrowRight className="w-5 h-5" />
-                            </Button>
+                        <Link
+                            to="/skill-training"
+                            className="bg-[#0a192f] dark:bg-[#d6b161] text-white dark:text-[#0a192f] hover:bg-[#112240] dark:hover:bg-[#c4a055] font-semibold px-8 py-3 rounded-lg inline-flex items-center gap-2 mx-auto focus-visible:ring-2 focus-visible:ring-[#d6b161]"
+                        >
+                            View All Courses
+                            <ArrowRight className="w-5 h-5" />
                         </Link>
                     </div>
                 </div>
