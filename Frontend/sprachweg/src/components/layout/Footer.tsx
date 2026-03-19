@@ -84,7 +84,7 @@ const Footer: React.FC = () => {
                     <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
                         {/* Left: Stay Updated */}
                         <div className="flex-1">
-                            <h3 className="font-serif text-2xl text-white mb-3">Stay Updated</h3>
+                            <h3 className="font-sans text-2xl text-white mb-3">Stay Updated</h3>
                             <p className="text-gray-400 text-sm mb-6">Get the latest courses, career tips, and exclusive offers</p>
                             <div className="flex flex-col sm:flex-row gap-3 max-w-xl">
                                 <input
