@@ -6,7 +6,16 @@ import { protect, isAdmin } from '../middlewares/auth.middleware';
 const router = express.Router();
 
 // Only admin should be able to upload, list and delete file links
-router.post('/upload', protect, isAdmin, uploadAny.single('file'), uploadFile);
+router.post(
+    '/upload',
+    protect,
+    isAdmin,
+    uploadAny.fields([
+        { name: 'files', maxCount: 20 },
+        { name: 'file', maxCount: 1 },
+    ]),
+    uploadFile
+);
 router.get('/', protect, isAdmin, getFiles);
 router.delete('/:id', protect, isAdmin, deleteFile);
 

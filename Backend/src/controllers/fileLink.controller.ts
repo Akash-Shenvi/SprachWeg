@@ -5,31 +5,44 @@ import path from 'path';
 
 export const uploadFile = async (req: Request, res: Response) => {
     try {
-        if (!req.file) {
+        const filesFromFields = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+        const uploadedFiles = filesFromFields
+            ? [...(filesFromFields.files ?? []), ...(filesFromFields.file ?? [])]
+            : req.file
+                ? [req.file]
+                : [];
+
+        if (uploadedFiles.length === 0) {
             return res.status(400).json({ message: 'No file uploaded' });
         }
 
-        const { title } = req.body;
-        if (!title) {
-            return res.status(400).json({ message: 'Title is required' });
-        }
+        const providedTitle = String(req.body.title ?? '').trim();
 
-        // In app.ts: app.use('/api/uploads', express.static('/home/sovirtraining/file_serve'));
-        // If file goes to /home/sovirtraining/file_serve/admin_files/filename.ext
-        // The URL should be /api/uploads/admin_files/filename.ext
-        const fileUrl = `/api/uploads/admin_files/${req.file.filename}`;
+        const fileLinks = uploadedFiles.map((file, index) => {
+            const fileUrl = `/api/uploads/admin_files/${file.filename}`;
+            const derivedTitle = path.parse(file.originalname).name.trim() || `File ${index + 1}`;
+            const title = providedTitle
+                ? uploadedFiles.length === 1
+                    ? providedTitle
+                    : `${providedTitle} - ${derivedTitle}`
+                : derivedTitle;
 
-        const newFileLink = new FileLink({
-            title,
-            fileUrl,
-            originalName: req.file.originalname,
-            mimeType: req.file.mimetype,
-            size: req.file.size
+            return {
+                title,
+                fileUrl,
+                originalName: file.originalname,
+                mimeType: file.mimetype,
+                size: file.size,
+            };
         });
 
-        await newFileLink.save();
+        const savedFileLinks = await FileLink.insertMany(fileLinks);
 
-        res.status(201).json(newFileLink);
+        res.status(201).json({
+            message: uploadedFiles.length === 1 ? 'File uploaded successfully' : 'Files uploaded successfully',
+            files: savedFileLinks,
+            uploadedCount: savedFileLinks.length,
+        });
     } catch (error) {
         console.error('Error in uploadFile:', error);
         res.status(500).json({ message: 'Server error' });

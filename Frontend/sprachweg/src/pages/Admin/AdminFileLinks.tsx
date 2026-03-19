@@ -25,7 +25,7 @@ const AdminFileLinks: React.FC = () => {
 
     // Form state
     const [title, setTitle] = useState('');
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
     // Toast state
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -55,25 +55,33 @@ const AdminFileLinks: React.FC = () => {
 
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedFile || !title) {
-            showToast('Please provide a title and select a file', 'error');
+        if (selectedFiles.length === 0) {
+            showToast('Please select at least one file', 'error');
             return;
         }
 
         setUploading(true);
         const formData = new FormData();
-        formData.append('title', title);
-        formData.append('file', selectedFile);
+        if (title.trim()) {
+            formData.append('title', title.trim());
+        }
+        selectedFiles.forEach((file) => {
+            formData.append('files', file);
+        });
 
         try {
-            await api.post('/admin/files/upload', formData, {
+            const response = await api.post('/admin/files/upload', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
             });
-            showToast('File uploaded successfully', 'success');
+            const uploadedCount = response.data.uploadedCount || selectedFiles.length;
+            showToast(
+                uploadedCount === 1 ? 'File uploaded successfully' : `${uploadedCount} files uploaded successfully`,
+                'success'
+            );
             setTitle('');
-            setSelectedFile(null);
+            setSelectedFiles([]);
             // Reset file input
             const fileInput = document.getElementById('file-upload') as HTMLInputElement;
             if (fileInput) fileInput.value = '';
@@ -137,7 +145,7 @@ const AdminFileLinks: React.FC = () => {
                     <div className="lg:col-span-1 border border-gray-200 dark:border-gray-800 bg-white dark:bg-[#112240] rounded-2xl p-6 shadow-sm self-start">
                         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
                             <Upload className="w-5 h-5 mr-2 text-orange-500" />
-                            Upload New File
+                            Upload Files
                         </h2>
                         <form onSubmit={handleUpload} className="space-y-4">
                             <div>
@@ -149,23 +157,70 @@ const AdminFileLinks: React.FC = () => {
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
                                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-[#0a192f] dark:text-white"
-                                    placeholder="Enter a descriptive title"
-                                    required
+                                    placeholder="Optional title or title prefix"
                                 />
+                                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                    Leave blank to use each file name automatically. If you upload multiple files, this title will be used as a prefix.
+                                </p>
                             </div>
                             
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    File
+                                    Files
                                 </label>
                                 <input
                                     id="file-upload"
                                     type="file"
-                                    onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
+                                    multiple
+                                    onChange={(e) => setSelectedFiles(e.target.files ? Array.from(e.target.files) : [])}
                                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-[#0a192f] dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 dark:file:bg-orange-900/20 dark:file:text-orange-400"
                                     required
                                 />
+                                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                    You can select and upload multiple files in one go.
+                                </p>
                             </div>
+
+                            {selectedFiles.length > 0 && (
+                                <div className="rounded-xl border border-orange-200 bg-orange-50/70 p-4 dark:border-orange-900/30 dark:bg-orange-900/10">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <p className="text-sm font-semibold text-orange-700 dark:text-orange-300">
+                                            {selectedFiles.length} file{selectedFiles.length === 1 ? '' : 's'} selected
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedFiles([]);
+                                                const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+                                                if (fileInput) fileInput.value = '';
+                                            }}
+                                            className="text-xs font-medium text-orange-700 hover:text-orange-900 dark:text-orange-300 dark:hover:text-orange-200"
+                                        >
+                                            Clear
+                                        </button>
+                                    </div>
+                                    <div className="mt-3 space-y-2">
+                                        {selectedFiles.slice(0, 5).map((file) => (
+                                            <div
+                                                key={`${file.name}-${file.size}-${file.lastModified}`}
+                                                className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm dark:bg-[#112240]"
+                                            >
+                                                <div className="min-w-0">
+                                                    <p className="truncate font-medium text-gray-900 dark:text-white">{file.name}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {(file.size / (1024 * 1024)).toFixed(2)} MB
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {selectedFiles.length > 5 && (
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                +{selectedFiles.length - 5} more file{selectedFiles.length - 5 === 1 ? '' : 's'}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
 
                             <button
                                 type="submit"
@@ -181,7 +236,7 @@ const AdminFileLinks: React.FC = () => {
                                         Uploading...
                                     </span>
                                 ) : (
-                                    'Upload File'
+                                    selectedFiles.length > 1 ? `Upload ${selectedFiles.length} Files` : 'Upload File'
                                 )}
                             </button>
                         </form>

@@ -17,27 +17,40 @@ const fileLink_model_1 = __importDefault(require("../models/fileLink.model"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const uploadFile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
     try {
-        if (!req.file) {
+        const filesFromFields = req.files;
+        const uploadedFiles = filesFromFields
+            ? [...((_a = filesFromFields.files) !== null && _a !== void 0 ? _a : []), ...((_b = filesFromFields.file) !== null && _b !== void 0 ? _b : [])]
+            : req.file
+                ? [req.file]
+                : [];
+        if (uploadedFiles.length === 0) {
             return res.status(400).json({ message: 'No file uploaded' });
         }
-        const { title } = req.body;
-        if (!title) {
-            return res.status(400).json({ message: 'Title is required' });
-        }
-        // In app.ts: app.use('/api/uploads', express.static('/home/sovirtraining/file_serve'));
-        // If file goes to /home/sovirtraining/file_serve/admin_files/filename.ext
-        // The URL should be /api/uploads/admin_files/filename.ext
-        const fileUrl = `/api/uploads/admin_files/${req.file.filename}`;
-        const newFileLink = new fileLink_model_1.default({
-            title,
-            fileUrl,
-            originalName: req.file.originalname,
-            mimeType: req.file.mimetype,
-            size: req.file.size
+        const providedTitle = String((_c = req.body.title) !== null && _c !== void 0 ? _c : '').trim();
+        const fileLinks = uploadedFiles.map((file, index) => {
+            const fileUrl = `/api/uploads/admin_files/${file.filename}`;
+            const derivedTitle = path_1.default.parse(file.originalname).name.trim() || `File ${index + 1}`;
+            const title = providedTitle
+                ? uploadedFiles.length === 1
+                    ? providedTitle
+                    : `${providedTitle} - ${derivedTitle}`
+                : derivedTitle;
+            return {
+                title,
+                fileUrl,
+                originalName: file.originalname,
+                mimeType: file.mimetype,
+                size: file.size,
+            };
         });
-        yield newFileLink.save();
-        res.status(201).json(newFileLink);
+        const savedFileLinks = yield fileLink_model_1.default.insertMany(fileLinks);
+        res.status(201).json({
+            message: uploadedFiles.length === 1 ? 'File uploaded successfully' : 'Files uploaded successfully',
+            files: savedFileLinks,
+            uploadedCount: savedFileLinks.length,
+        });
     }
     catch (error) {
         console.error('Error in uploadFile:', error);
