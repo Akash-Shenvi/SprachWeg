@@ -5,6 +5,8 @@ export interface IInternshipListing extends Document {
     slug: string;
     shortDescription: string;
     description: string;
+    responsibilities: string[];
+    benefits: string[];
     duration: string;
     location: string;
     price: number;
@@ -21,6 +23,8 @@ const InternshipListingSchema = new Schema<IInternshipListing>({
     slug: { type: String, required: true, trim: true, lowercase: true, unique: true },
     shortDescription: { type: String, required: true, trim: true },
     description: { type: String, required: true, trim: true },
+    responsibilities: { type: [String], default: [] },
+    benefits: { type: [String], default: [] },
     duration: { type: String, required: true, trim: true },
     location: { type: String, required: true, trim: true },
     price: { type: Number, required: true, min: 0 },

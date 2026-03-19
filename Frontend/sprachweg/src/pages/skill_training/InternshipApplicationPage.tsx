@@ -2,7 +2,13 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { internshipApplicationAPI, internshipCatalogAPI } from '../../lib/api';
-import { formatInternshipPrice, slugifyInternshipTitle, type InternshipListing } from '../../types/internship';
+import {
+  formatInternshipPrice,
+  getInternshipBenefits,
+  getInternshipResponsibilities,
+  slugifyInternshipTitle,
+  type InternshipListing,
+} from '../../types/internship';
 
 // ─── Icon Components ──────────────────────────────────────────────────────────
 
@@ -241,6 +247,8 @@ const InternshipApplicationPage: React.FC = () => {
   const [checkingExistingApplication, setCheckingExistingApplication] = useState<boolean>(true);
   const [existingApplication, setExistingApplication] = useState<ExistingApplication | null>(null);
   const internshipTitle = internship?.title || requestedInternshipTitle || 'Selected Internship';
+  const internshipResponsibilities = internship ? getInternshipResponsibilities(internship).slice(0, 3) : [];
+  const internshipBenefits = internship ? getInternshipBenefits(internship).slice(0, 3) : [];
   const requestedMode = searchParams.get('mode')?.trim().toLowerCase();
   const initialInternshipMode = INTERNSHIP_MODES.some(({ value }) => value === requestedMode)
     ? requestedMode as InternshipMode
@@ -746,6 +754,38 @@ const InternshipApplicationPage: React.FC = () => {
               <p className="mt-1 text-sm font-bold text-[#0a192f] dark:text-white">{internship.location}</p>
             </div>
           </div>
+
+          {(internshipResponsibilities.length > 0 || internshipBenefits.length > 0) && (
+            <div className="mt-5 grid gap-3 text-left sm:grid-cols-2">
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4 dark:border-white/10 dark:bg-[#0f223f]">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b6f2c] dark:text-[#e3c778]">
+                  Key Responsibilities
+                </p>
+                <ul className="mt-3 space-y-2 text-sm leading-6 text-gray-700 dark:text-gray-300">
+                  {internshipResponsibilities.map((item) => (
+                    <li key={item} className="flex gap-2">
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[#d6b161]" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="rounded-2xl border border-[#d6b161]/20 bg-[#d6b161]/10 px-4 py-4 dark:border-[#d6b161]/20 dark:bg-[#d6b161]/8">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8b6f2c] dark:text-[#e3c778]">
+                  What You&apos;ll Gain
+                </p>
+                <ul className="mt-3 space-y-2 text-sm leading-6 text-gray-700 dark:text-gray-300">
+                  {internshipBenefits.map((item) => (
+                    <li key={item} className="flex gap-2">
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[#0a192f] dark:bg-[#f1d18a]" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
 
           {/* Step tracker */}
           <div className="flex items-center justify-center gap-0 mt-6">

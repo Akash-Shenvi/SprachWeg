@@ -19,7 +19,12 @@ import { Link } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { internshipCatalogAPI } from '../lib/api';
-import { formatInternshipPrice, type InternshipListing } from '../types/internship';
+import {
+    formatInternshipPrice,
+    getInternshipBenefits,
+    getInternshipResponsibilities,
+    type InternshipListing,
+} from '../types/internship';
 
 const getInternshipIcon = (internship: InternshipListing): LucideIcon => {
     const signal = `${internship.title} ${internship.tags.join(' ')}`.toLowerCase();
@@ -84,7 +89,7 @@ const CareersPage: React.FC = () => {
                         <h1 className="mt-6 text-4xl font-bold leading-tight text-[#0a192f] dark:text-white sm:text-5xl lg:text-6xl">
                             Build real-world experience with
                             <span className="block bg-gradient-to-r from-[#d6b161] to-[#8b6f2c] bg-clip-text text-transparent">
-                                internships that are now live from the backend
+                                internships designed for industry-ready growth
                             </span>
                         </h1>
                         <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-gray-600 dark:text-gray-300 sm:text-lg">
@@ -122,6 +127,8 @@ const CareersPage: React.FC = () => {
                         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                             {internships.map((internship, index) => {
                                 const Icon = getInternshipIcon(internship);
+                                const responsibilities = getInternshipResponsibilities(internship).slice(0, 3);
+                                const benefits = getInternshipBenefits(internship).slice(0, 3);
 
                                 return (
                                     <motion.article
@@ -146,6 +153,9 @@ const CareersPage: React.FC = () => {
                                         </div>
 
                                         <div className="mt-6">
+                                            <div className="inline-flex items-center rounded-full border border-[#0a192f]/10 bg-[#0a192f]/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#0a192f]/70 dark:border-white/10 dark:bg-white/5 dark:text-white/70">
+                                                Professional Internship Track
+                                            </div>
                                             <h2 className="text-xl font-bold leading-snug text-[#0a192f] transition-colors group-hover:text-[#8b6f2c] dark:text-white dark:group-hover:text-[#f0d28a]">
                                                 {internship.title}
                                             </h2>
@@ -176,8 +186,39 @@ const CareersPage: React.FC = () => {
                                             ))}
                                         </div>
 
-                                        <div className="mt-6 flex-1 rounded-2xl border border-dashed border-gray-200 px-4 py-3 text-sm leading-6 text-gray-600 dark:border-white/10 dark:text-gray-300">
-                                            {internship.description}
+                                        <div className="mt-6 flex-1 space-y-4">
+                                            <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-3 text-sm leading-6 text-gray-600 dark:border-white/10 dark:text-gray-300">
+                                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8b6f2c] dark:text-[#e5c978]">
+                                                    Role Overview
+                                                </p>
+                                                <p className="mt-2">{internship.description}</p>
+                                            </div>
+
+                                            <div className="grid gap-4">
+                                                <section className="rounded-2xl bg-[#f7f2e7] p-4 dark:bg-[#0a192f]">
+                                                    <h3 className="text-sm font-bold text-[#0a192f] dark:text-white">Key Responsibilities</h3>
+                                                    <ul className="mt-3 space-y-2 text-sm leading-6 text-gray-700 dark:text-gray-300">
+                                                        {responsibilities.map((item) => (
+                                                            <li key={item} className="flex gap-2">
+                                                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[#d6b161]" />
+                                                                <span>{item}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </section>
+
+                                                <section className="rounded-2xl border border-[#d6b161]/20 bg-[#fffaf0] p-4 dark:border-[#d6b161]/15 dark:bg-[#112240]">
+                                                    <h3 className="text-sm font-bold text-[#0a192f] dark:text-white">What You&apos;ll Gain</h3>
+                                                    <ul className="mt-3 space-y-2 text-sm leading-6 text-gray-700 dark:text-gray-300">
+                                                        {benefits.map((item) => (
+                                                            <li key={item} className="flex gap-2">
+                                                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[#0a192f] dark:bg-[#d6b161]" />
+                                                                <span>{item}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </section>
+                                            </div>
                                         </div>
 
                                         <Link

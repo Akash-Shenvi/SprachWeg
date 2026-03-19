@@ -7,6 +7,8 @@ interface InternshipFormState {
     title: string;
     shortDescription: string;
     description: string;
+    responsibilities: string;
+    benefits: string;
     duration: string;
     location: string;
     price: string;
@@ -18,6 +20,8 @@ const defaultForm: InternshipFormState = {
     title: '',
     shortDescription: '',
     description: '',
+    responsibilities: '',
+    benefits: '',
     duration: '3-6 Months',
     location: 'Remote / Hybrid / Onsite',
     price: '',
@@ -28,10 +32,18 @@ const defaultForm: InternshipFormState = {
 const cardClassName = 'rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-[#112240]';
 const inputClassName = 'w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition-colors focus:border-[#d6b161] focus:ring-2 focus:ring-[#d6b161]/20 dark:border-gray-700 dark:bg-[#0a192f] dark:text-white';
 
+const parseListInput = (value: string) =>
+    value
+        .split(/\r?\n|,/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+
 const toPayload = (form: InternshipFormState): InternshipPayload => ({
     title: form.title.trim(),
     shortDescription: form.shortDescription.trim(),
     description: form.description.trim(),
+    responsibilities: parseListInput(form.responsibilities),
+    benefits: parseListInput(form.benefits),
     duration: form.duration.trim(),
     location: form.location.trim(),
     price: Number(form.price),
@@ -87,6 +99,8 @@ const InternshipCatalogManager: React.FC = () => {
             title: internship.title,
             shortDescription: internship.shortDescription,
             description: internship.description,
+            responsibilities: (internship.responsibilities || []).join('\n'),
+            benefits: (internship.benefits || []).join('\n'),
             duration: internship.duration,
             location: internship.location,
             price: String(internship.price),
@@ -101,6 +115,11 @@ const InternshipCatalogManager: React.FC = () => {
 
         if (!form.title.trim() || !form.shortDescription.trim() || !form.description.trim() || !form.duration.trim() || !form.location.trim()) {
             setFormError('Please complete all internship details before saving.');
+            return;
+        }
+
+        if (parseListInput(form.responsibilities).length === 0 || parseListInput(form.benefits).length === 0) {
+            setFormError('Please add at least one point for Key Responsibilities and one point for What You\'ll Gain.');
             return;
         }
 
@@ -238,6 +257,34 @@ const InternshipCatalogManager: React.FC = () => {
                                     className={`${inputClassName} resize-y`}
                                     placeholder="Detailed explanation shown on the internship detail and application flow."
                                 />
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Key Responsibilities</label>
+                                <textarea
+                                    rows={4}
+                                    value={form.responsibilities}
+                                    onChange={(event) => handleChange('responsibilities', event.target.value)}
+                                    className={`${inputClassName} resize-y`}
+                                    placeholder={'Write one point per line\nWork on live project tasks\nCollaborate with mentors during reviews'}
+                                />
+                                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                    Add one point per line. Commas also work.
+                                </p>
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">What You&apos;ll Gain</label>
+                                <textarea
+                                    rows={4}
+                                    value={form.benefits}
+                                    onChange={(event) => handleChange('benefits', event.target.value)}
+                                    className={`${inputClassName} resize-y`}
+                                    placeholder={'Write one point per line\nHands-on project exposure\nMentorship and portfolio-ready experience'}
+                                />
+                                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                    Add one point per line. Commas also work.
+                                </p>
                             </div>
 
                             <div>
@@ -388,6 +435,42 @@ const InternshipCatalogManager: React.FC = () => {
                                             </span>
                                         ))}
                                     </div>
+
+                                    {((internship.responsibilities || []).length > 0 || (internship.benefits || []).length > 0) && (
+                                        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                                            {(internship.responsibilities || []).length > 0 && (
+                                                <div className="rounded-2xl border border-gray-200 bg-white px-4 py-4 dark:border-gray-700 dark:bg-[#112240]">
+                                                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8b6f2c] dark:text-[#e5c978]">
+                                                        Key Responsibilities
+                                                    </p>
+                                                    <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                                                        {(internship.responsibilities || []).slice(0, 2).map((item) => (
+                                                            <li key={item} className="flex gap-2">
+                                                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[#d6b161]" />
+                                                                <span>{item}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            {(internship.benefits || []).length > 0 && (
+                                                <div className="rounded-2xl border border-gray-200 bg-white px-4 py-4 dark:border-gray-700 dark:bg-[#112240]">
+                                                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8b6f2c] dark:text-[#e5c978]">
+                                                        What You&apos;ll Gain
+                                                    </p>
+                                                    <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                                                        {(internship.benefits || []).slice(0, 2).map((item) => (
+                                                            <li key={item} className="flex gap-2">
+                                                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[#d6b161]" />
+                                                                <span>{item}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
 
                                     <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                                         <button

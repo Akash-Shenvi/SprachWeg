@@ -39,6 +39,8 @@ const InternshipListingSchema = new mongoose_1.Schema({
     slug: { type: String, required: true, trim: true, lowercase: true, unique: true },
     shortDescription: { type: String, required: true, trim: true },
     description: { type: String, required: true, trim: true },
+    responsibilities: { type: [String], default: [] },
+    benefits: { type: [String], default: [] },
     duration: { type: String, required: true, trim: true },
     location: { type: String, required: true, trim: true },
     price: { type: Number, required: true, min: 0 },

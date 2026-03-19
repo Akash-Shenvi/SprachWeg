@@ -20,7 +20,7 @@ const slugify = (value) => value
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .replace(/-{2,}/g, '-');
-const parseTags = (value) => {
+const parseStringList = (value) => {
     if (Array.isArray(value)) {
         return value.map((tag) => String(tag).trim()).filter(Boolean);
     }
@@ -43,7 +43,7 @@ const parseTags = (value) => {
         }
     }
     return trimmed
-        .split(',')
+        .split(/\r?\n|,/)
         .map((tag) => tag.trim())
         .filter(Boolean);
 };
@@ -66,12 +66,16 @@ const buildInternshipPayload = (body) => {
     const duration = String((_d = body.duration) !== null && _d !== void 0 ? _d : '').trim();
     const location = String((_e = body.location) !== null && _e !== void 0 ? _e : '').trim();
     const price = parsePrice(body.price);
-    const tags = parseTags(body.tags);
+    const tags = parseStringList(body.tags);
+    const responsibilities = parseStringList(body.responsibilities);
+    const benefits = parseStringList(body.benefits);
     const isActive = parseIsActive(body.isActive);
     return {
         title,
         shortDescription,
         description,
+        responsibilities,
+        benefits,
         duration,
         location,
         price,

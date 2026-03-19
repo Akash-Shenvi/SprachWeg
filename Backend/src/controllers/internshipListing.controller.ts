@@ -9,7 +9,7 @@ const slugify = (value: string) =>
         .replace(/^-+|-+$/g, '')
         .replace(/-{2,}/g, '-');
 
-const parseTags = (value: unknown): string[] => {
+const parseStringList = (value: unknown): string[] => {
     if (Array.isArray(value)) {
         return value.map((tag) => String(tag).trim()).filter(Boolean);
     }
@@ -35,7 +35,7 @@ const parseTags = (value: unknown): string[] => {
     }
 
     return trimmed
-        .split(',')
+        .split(/\r?\n|,/)
         .map((tag) => tag.trim())
         .filter(Boolean);
 };
@@ -58,13 +58,17 @@ const buildInternshipPayload = (body: Request['body']) => {
     const duration = String(body.duration ?? '').trim();
     const location = String(body.location ?? '').trim();
     const price = parsePrice(body.price);
-    const tags = parseTags(body.tags);
+    const tags = parseStringList(body.tags);
+    const responsibilities = parseStringList(body.responsibilities);
+    const benefits = parseStringList(body.benefits);
     const isActive = parseIsActive(body.isActive);
 
     return {
         title,
         shortDescription,
         description,
+        responsibilities,
+        benefits,
         duration,
         location,
         price,
