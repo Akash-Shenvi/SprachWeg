@@ -223,6 +223,7 @@ const LandingPage: React.FC = () => {
                 <div className="absolute inset-0 block dark:hidden bg-black/20 backdrop-blur-sm" aria-hidden="true" />
                 {/* Gradient overlay — dark mode */}
                 <div className="absolute inset-0 hidden dark:block bg-gradient-to-b from-[#0a192f]/75 via-[#0a192f]/45 to-[#0a192f]/85" aria-hidden="true" />
+                <div className="absolute inset-0 hidden dark:block bg-gradient-to-b from-[#0a192f]/75 via-[#0a192f]/45 to-[#0a192f]/85" aria-hidden="true" />
 
                 {/* Subtle radial glow from center */}
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_40%,rgba(214,177,97,0.06),transparent)]" aria-hidden="true" />
