@@ -3,6 +3,7 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import Button from '../../components/ui/Button';
 import { Edit, X } from 'lucide-react';
 import { skillAPI, skillTrainingDetailAPI } from '../../lib/api';
+import { formatTrainingPrice } from '../../lib/trainingPricing';
 import type { SkillCourse } from '../../types/skill';
 
 // ============= Types & Interfaces =============
@@ -17,6 +18,7 @@ interface Toast {
 
 interface FormData {
     title: string; // Read-only for context
+    price: string;
     duration: string;
     deliveryMode: string;
     classTimings: string;
@@ -27,6 +29,7 @@ interface FormData {
 // ============= Constants =============
 const INITIAL_FORM_STATE: FormData = {
     title: '',
+    price: '',
     duration: '',
     deliveryMode: '',
     classTimings: '',
@@ -104,6 +107,7 @@ const SkillDashboard1: React.FC = () => {
 
         setFormData({
             title: course.title,
+            price: course.price || '',
             duration: course.duration || '40 hours (5 weeks)',
             ...details
         });
@@ -139,6 +143,7 @@ const SkillDashboard1: React.FC = () => {
             // Wait, previous file used `formDataToSend.append`.
 
             const formDataToSend = new FormData();
+            formDataToSend.append('price', formData.price);
             formDataToSend.append('duration', formData.duration);
             // We might need to send other required fields if backend validation fails, 
             // but let's try sending just duration first as per controller logic.
@@ -197,7 +202,7 @@ const SkillDashboard1: React.FC = () => {
                             Skill Training Details
                         </h1>
                         <p className="text-gray-600 dark:text-gray-400">
-                            Manage Duration, Timings, Mode, and Fees for Skill Courses
+                            Manage price, duration, timings, mode, and public fee text for skill courses
                         </p>
                     </div>
                 </div>
@@ -213,6 +218,7 @@ const SkillDashboard1: React.FC = () => {
                                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{course.title}</h3>
                                     <div className="flex gap-6 text-sm text-gray-600 dark:text-gray-400">
                                         <span>⏱️ {course.duration || 'Not set'}</span>
+                                        <span>{formatTrainingPrice(course.price)}</span>
                                         {/* We can't easily show flexible details here without fetching them for ALL courses, 
                                             which might be N+1 requests. For now, rely on Edit to see them. 
                                             Or fetching in the Edit modal is fine. */}
@@ -251,6 +257,20 @@ const SkillDashboard1: React.FC = () => {
                             </div>
 
                             <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Course Price (INR)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={formData.price}
+                                        onChange={e => handleInputChange('price', e.target.value)}
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0a192f] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#d6b161]"
+                                        placeholder="e.g. 7200"
+                                    />
+                                </div>
+
                                 {/* Duration */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -296,7 +316,7 @@ const SkillDashboard1: React.FC = () => {
                                 {/* Fees */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Fees
+                                        Display Fees Text
                                     </label>
                                     <input
                                         type="text"

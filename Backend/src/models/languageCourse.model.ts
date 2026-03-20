@@ -6,6 +6,7 @@ export interface ILanguageCourse extends Document {
     description: string;
     image: string; // URL path to the image
     popular: boolean;
+    startingPrice?: number;
     levels: {
         name: string;
         duration: string;
@@ -29,6 +30,7 @@ const LanguageCourseSchema: Schema = new Schema(
         description: { type: String, required: true },
         image: { type: String, required: false },
         popular: { type: Boolean, default: false },
+        startingPrice: { type: Number, min: 0 },
         levels: [{
             name: { type: String, required: true },
             duration: { type: String, required: true },

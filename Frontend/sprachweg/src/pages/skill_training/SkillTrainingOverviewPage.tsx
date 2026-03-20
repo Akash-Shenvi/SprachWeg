@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
+import { skillAPI } from '../../lib/api';
+import { formatTrainingPrice } from '../../lib/trainingPricing';
 
 // Brand tokens: Navy #0a192f, Gold #d6b161
 
@@ -167,6 +169,32 @@ const courses = [
     }
 ];
 
+const matchesSkillOverviewCard = (card: typeof courses[number], title?: string) => {
+    const normalizedTitle = String(title || '').trim().toLowerCase();
+
+    if (card.route === '/skill-training/scada') {
+        return normalizedTitle.includes('scada');
+    }
+
+    if (card.route === '/skill-training/plc') {
+        return normalizedTitle.includes('plc');
+    }
+
+    if (card.route === '/skill-training/drives') {
+        return normalizedTitle.includes('drives') || normalizedTitle.includes('motion');
+    }
+
+    if (card.route === '/skill-training/industry4') {
+        return normalizedTitle.includes('industry 4') || normalizedTitle.includes('automation');
+    }
+
+    if (card.route === '/skill-training/corporate') {
+        return normalizedTitle.includes('corporate');
+    }
+
+    return false;
+};
+
 // 3D Card Component with tilt effect
 interface CourseCardProps {
     course: typeof courses[0];
@@ -304,6 +332,35 @@ const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
 
 // Main Component
 const SkillTrainingOverviewPage: React.FC = () => {
+    const [courseCards, setCourseCards] = useState(courses);
+
+    useEffect(() => {
+        const syncSkillTrainingPrices = async () => {
+            try {
+                const apiCourses = await skillAPI.getAll();
+
+                setCourseCards((currentCards) =>
+                    currentCards.map((card) => {
+                        const matchedCourse = apiCourses.find((course: any) => matchesSkillOverviewCard(card, course?.title));
+
+                        if (!matchedCourse?.price) {
+                            return card;
+                        }
+
+                        return {
+                            ...card,
+                            fees: formatTrainingPrice(matchedCourse.price),
+                        };
+                    })
+                );
+            } catch (error) {
+                console.error('Failed to sync skill training prices:', error);
+            }
+        };
+
+        syncSkillTrainingPrices();
+    }, []);
+
     return (
         <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
             {/* Skip to content link */}
@@ -369,7 +426,7 @@ const SkillTrainingOverviewPage: React.FC = () => {
                     </AnimatedSection>
 
                     <AnimatedSection className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {courses.map((course, index) => (
+                        {courseCards.map((course, index) => (
                             <CourseCard key={course.id} course={course} index={index} />
                         ))}
                     </AnimatedSection>

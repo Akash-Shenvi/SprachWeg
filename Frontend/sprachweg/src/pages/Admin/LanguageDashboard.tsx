@@ -4,6 +4,7 @@ import ImageUpload from '../../components/admin/ImageUpload';
 import Button from '../../components/ui/Button';
 import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
 import { languageAPI, getAssetUrl } from '../../lib/api';
+import { formatTrainingPrice, getCourseStartingPrice } from '../../lib/trainingPricing';
 // Define type locally or import if you put in types file
 interface LanguageCourse {
     _id?: string;
@@ -12,6 +13,7 @@ interface LanguageCourse {
     description: string;
     image?: string;
     popular: boolean;
+    startingPrice?: number;
     levels: {
         name: string;
         duration: string;
@@ -37,6 +39,7 @@ const LanguageDashboard: React.FC = () => {
         subtitle: '',
         description: '',
         popular: false,
+        startingPrice: '',
         image: null as File | null,
         levels: [] as {
             name: string;
@@ -78,6 +81,7 @@ const LanguageDashboard: React.FC = () => {
             formDataToSend.append('subtitle', formData.subtitle);
             formDataToSend.append('description', formData.description);
             formDataToSend.append('popular', String(formData.popular));
+            formDataToSend.append('startingPrice', formData.startingPrice);
             formDataToSend.append('levels', JSON.stringify(formData.levels));
 
             if (formData.image) {
@@ -107,6 +111,7 @@ const LanguageDashboard: React.FC = () => {
             subtitle: course.subtitle || '',
             description: course.description,
             popular: course.popular || false,
+            startingPrice: typeof course.startingPrice === 'number' ? String(course.startingPrice) : '',
             image: null,
             levels: course.levels || [],
         });
@@ -135,6 +140,7 @@ const LanguageDashboard: React.FC = () => {
             subtitle: '',
             description: '',
             popular: false,
+            startingPrice: '',
             image: null,
             levels: [],
         });
@@ -249,6 +255,10 @@ const LanguageDashboard: React.FC = () => {
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description *</label>
                                             <textarea required value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={4} className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0a192f] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#d6b161] focus:border-transparent" />
                                         </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Starting Price (INR)</label>
+                                            <input type="number" min="0" value={formData.startingPrice} onChange={(e) => setFormData({ ...formData, startingPrice: e.target.value })} className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#0a192f] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#d6b161] focus:border-transparent" placeholder="e.g. 15999" />
+                                        </div>
                                         <div className="flex items-center gap-4 py-2">
                                             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                                                 <input type="checkbox" checked={formData.popular} onChange={(e) => setFormData({ ...formData, popular: e.target.checked })} className="rounded border-gray-300 text-[#d6b161] focus:ring-[#d6b161]" />
@@ -347,6 +357,10 @@ const LanguageDashboard: React.FC = () => {
                                 <div className="p-6">
                                     <h3 className="text-xl font-serif font-bold text-gray-900 dark:text-white mb-1">{course.title}</h3>
                                     {course.subtitle && <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{course.subtitle}</p>}
+
+                                    <div className="mb-4 rounded-lg bg-[#d6b161]/10 px-3 py-2 text-sm font-semibold text-[#8b6f2c] dark:text-[#f0d28a]">
+                                        Starting at {formatTrainingPrice(getCourseStartingPrice(course))}
+                                    </div>
 
                                     <div className="mt-4 flex flex-wrap gap-2 text-xs">
                                         {course.levels.map((l, i) => (

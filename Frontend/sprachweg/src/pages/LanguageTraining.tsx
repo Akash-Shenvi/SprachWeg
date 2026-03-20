@@ -17,6 +17,8 @@ import {
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import BookingForm from '../components/ui/BookingForm';
+import { languageAPI } from '../lib/api';
+import { formatTrainingPrice, getCourseStartingPrice } from '../lib/trainingPricing';
 
 // ... (keep all existing constants and subcomponents like stats, languageCards, benefits, StarRating, LanguageCard, BenefitCard)
 const easeOut: Easing = [0.0, 0.0, 0.2, 1];
@@ -156,6 +158,24 @@ const languageCards = [
         image: "https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
     }
 ];
+
+const matchesLanguageCard = (card: typeof languageCards[number], title?: string) => {
+    const normalizedTitle = String(title || '').trim().toLowerCase();
+
+    if (card.route === '/training/english') {
+        return normalizedTitle.includes('english');
+    }
+
+    if (card.route === '/training/german') {
+        return normalizedTitle.includes('german');
+    }
+
+    if (card.route === '/training/japanese') {
+        return normalizedTitle.includes('japanese');
+    }
+
+    return false;
+};
 
 // Benefits data
 const benefits = [
@@ -334,6 +354,36 @@ const BenefitCard: React.FC<{
 // Main Component
 const LanguageTraining: React.FC = () => {
     const [isBookingOpen, setIsBookingOpen] = useState(false);
+    const [cards, setCards] = useState(languageCards);
+
+    useEffect(() => {
+        const syncLanguagePrices = async () => {
+            try {
+                const courses = await languageAPI.getAll();
+
+                setCards((currentCards) =>
+                    currentCards.map((card) => {
+                        const matchedCourse = courses.find((course: any) => matchesLanguageCard(card, course?.title));
+
+                        if (!matchedCourse) {
+                            return card;
+                        }
+
+                        const startingPrice = getCourseStartingPrice(matchedCourse);
+
+                        return {
+                            ...card,
+                            price: startingPrice !== null ? formatTrainingPrice(startingPrice) : card.price,
+                        };
+                    })
+                );
+            } catch (error) {
+                console.error('Failed to sync language prices:', error);
+            }
+        };
+
+        syncLanguagePrices();
+    }, []);
 
     return (
         <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
@@ -413,7 +463,7 @@ const LanguageTraining: React.FC = () => {
                     </AnimatedSection>
 
                     <AnimatedSection className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {languageCards.map((card, index) => (
+                        {cards.map((card, index) => (
                             <LanguageCard key={card.code} card={card} index={index} />
                         ))}
                     </AnimatedSection>
