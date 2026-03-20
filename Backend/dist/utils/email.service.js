@@ -348,10 +348,69 @@ class EmailService {
             }
         });
     }
-    sendEnrollmentEmail(to, name, courseTitle, status) {
+    sendEnrollmentEmail(to, name, courseTitle, status, paymentDetails) {
         return __awaiter(this, void 0, void 0, function* () {
             const isApproved = status === 'APPROVED';
             const dashboardLink = "https://training.sovirtechnologies.in/student-dashboard";
+            const hasPaymentDetails = !!((paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount) !== undefined
+                || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod)
+                || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId)
+                || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId));
+            if (hasPaymentDetails) {
+                const paymentRows = [
+                    { label: 'Payment Status', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid' },
+                    { label: 'Amount', value: formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR') },
+                    { label: 'Payment Method', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available' },
+                    { label: 'Order ID', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId) || 'Not available' },
+                    { label: 'Payment ID', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId) || 'Not available' },
+                    { label: 'Paid At', value: formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt) },
+                ];
+                const subject = isApproved
+                    ? `Enrollment Approved and Payment Confirmed - ${courseTitle}`
+                    : `Enrollment Request and Payment Received - ${courseTitle}`;
+                const html = this.getProgramEmailTemplate({
+                    name,
+                    title: isApproved
+                        ? 'Your enrollment has been approved and your payment is confirmed.'
+                        : 'Your enrollment request and payment have been received successfully.',
+                    paragraphs: isApproved
+                        ? [
+                            `We are pleased to confirm that your enrollment for <strong>${courseTitle}</strong> has been approved.`,
+                            'Your payment has been recorded successfully, and the transaction details are included below for your records.',
+                            'You can now continue through your student dashboard and keep checking your registered email for class schedules and updates from our admissions team.',
+                        ]
+                        : [
+                            `We have successfully received your enrollment request for <strong>${courseTitle}</strong>.`,
+                            'Your payment has been confirmed successfully, and the transaction details are included below for your records.',
+                            'Our admissions team will review your request and contact you through your registered email with the next updates.',
+                        ],
+                    infoRows: [
+                        { label: 'Course', value: courseTitle },
+                        { label: 'Status', value: isApproved ? 'Approved' : 'Pending Approval' },
+                        ...paymentRows,
+                    ],
+                    actionButton: {
+                        label: 'Open Student Dashboard',
+                        href: dashboardLink,
+                    },
+                });
+                const mailOptions = {
+                    from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                    to,
+                    subject,
+                    html,
+                    text: isApproved
+                        ? `Dear ${name},\n\nYour enrollment for ${courseTitle} has been approved and your payment is confirmed.\nStatus: Approved\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nOrder ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}\n\nStudent Dashboard: ${dashboardLink}\n\nWarm regards,\nSovir Technologies Team`
+                        : `Dear ${name},\n\nWe have received your enrollment request and payment for ${courseTitle} successfully.\nStatus: Pending Approval\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nOrder ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}\n\nOur admissions team will contact you with the next updates.\nStudent Dashboard: ${dashboardLink}\n\nWarm regards,\nSovir Technologies Team`,
+                };
+                try {
+                    yield this.transporter.sendMail(mailOptions);
+                }
+                catch (error) {
+                    console.error('Error sending enrollment payment email:', error);
+                }
+                return;
+            }
             const subject = isApproved
                 ? `Enrollment Approved - ${courseTitle}`
                 : `Enrollment Request Received - ${courseTitle}`;
@@ -468,10 +527,71 @@ class EmailService {
                 text: `Dear ${name},\n\nWelcome to Sovir Technologies Training and Skilling Program.\n\nWe are delighted to have you with us. Our program is designed and delivered by industry-specific professional trainers, ensuring practical knowledge and real-world skill development.\n\nAll further information, updates, and important announcements will be shared through your registered login email ID. Kindly check your email regularly to stay informed.\n\nOnce again, thank you for choosing Sovir Technologies as your skilling partner. We wish you a successful and enriching learning journey with us.\n\nWarm regards,\nSovir Technologies Team`
             };
             try {
-                const info = yield this.transporter.sendMail(mailOptions);
+                yield this.transporter.sendMail(mailOptions);
             }
             catch (error) {
                 console.error('Error sending enrollment email:', error);
+            }
+        });
+    }
+    sendTrainingPaymentFailureEmail(params) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
+            const fallbackRetryUrl = params.trainingType === 'language'
+                ? 'https://training.sovirtechnologies.in/language-training'
+                : 'https://training.sovirtechnologies.in/skill-training';
+            const retryUrl = params.retryUrl || fallbackRetryUrl;
+            const normalizedStatus = String((_a = params.status) !== null && _a !== void 0 ? _a : '').trim().toLowerCase();
+            const isCancelled = normalizedStatus === 'cancelled';
+            const trainingTypeLabel = params.trainingType === 'language' ? 'Language Training' : 'Skill Training';
+            const displayCourseTitle = params.levelName
+                ? `${params.courseTitle} - ${params.levelName}`
+                : params.courseTitle;
+            const amountLabel = formatCurrencyAmount(params.amount, params.currency || 'INR');
+            const subject = isCancelled
+                ? `Training Payment Not Completed - ${displayCourseTitle}`
+                : `Training Payment Failed - ${displayCourseTitle}`;
+            const html = this.getProgramEmailTemplate({
+                name: params.name,
+                title: isCancelled
+                    ? 'Your training checkout was not completed.'
+                    : 'We could not complete your training payment.',
+                paragraphs: [
+                    `We were unable to complete the payment step for <strong>${displayCourseTitle}</strong>.`,
+                    isCancelled
+                        ? 'The checkout was closed before payment could be completed. You can return to the course page and try again whenever you are ready.'
+                        : 'Your enrollment request was not submitted because the payment did not complete successfully. You can try the checkout again from the course page.',
+                    'If the amount was debited from your account but the enrollment request was not submitted, please contact our support team with your payment details so we can assist you quickly.',
+                ],
+                infoRows: [
+                    { label: 'Training', value: displayCourseTitle },
+                    { label: 'Program Type', value: trainingTypeLabel },
+                    { label: 'Amount', value: amountLabel },
+                    { label: 'Status', value: isCancelled ? 'Not Completed' : 'Payment Failed' },
+                    { label: 'Gateway Status', value: params.paymentStatus || 'Not available' },
+                    { label: 'Payment Method', value: params.paymentMethod || 'Not available' },
+                    { label: 'Reason', value: params.failureReason || 'Payment could not be completed.' },
+                ],
+                actionButton: {
+                    label: 'Try Again',
+                    href: retryUrl,
+                },
+            });
+            const mailOptions = {
+                from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                to: params.to,
+                subject,
+                html,
+                text: `Dear ${params.name},\n\nWe were unable to complete the payment step for ${displayCourseTitle}.\nProgram Type: ${trainingTypeLabel}\nAmount: ${amountLabel}\nStatus: ${isCancelled ? 'Not Completed' : 'Payment Failed'}\nGateway Status: ${params.paymentStatus || 'Not available'}\nPayment Method: ${params.paymentMethod || 'Not available'}\nReason: ${params.failureReason || 'Payment could not be completed.'}\n\nNo enrollment request was submitted. Please try again from the course page.\nStudent Dashboard: ${dashboardLink}\nRetry Link: ${retryUrl}\n\nWarm regards,\nSovir Technologies Team`,
+            };
+            try {
+                yield this.transporter.sendMail(mailOptions);
+                return true;
+            }
+            catch (error) {
+                console.error('Error sending training payment failure email:', error);
+                return false;
             }
         });
     }

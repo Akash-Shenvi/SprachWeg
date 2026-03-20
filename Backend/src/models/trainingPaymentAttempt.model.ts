@@ -27,6 +27,7 @@ export interface ITrainingPaymentAttempt extends Document {
     paymentErrorSource?: string;
     paymentErrorStep?: string;
     paymentErrorReason?: string;
+    paymentFailureEmailSentAt?: Date;
     paidAt?: Date;
     createdAt: Date;
     updatedAt: Date;
@@ -72,6 +73,7 @@ const TrainingPaymentAttemptSchema = new Schema<ITrainingPaymentAttempt>({
     paymentErrorSource: { type: String, trim: true },
     paymentErrorStep: { type: String, trim: true },
     paymentErrorReason: { type: String, trim: true },
+    paymentFailureEmailSentAt: { type: Date },
     paidAt: { type: Date },
 }, {
     timestamps: true,

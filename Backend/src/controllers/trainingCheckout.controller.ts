@@ -16,6 +16,7 @@ import {
 
 const emailService = new EmailService();
 const successfulPaymentStatuses = ['authorized', 'captured'] as const;
+const trainingPortalBaseUrl = 'https://training.sovirtechnologies.in';
 
 const extractNumericPrice = (value: string | number | null | undefined) => {
     if (typeof value === 'number') {
@@ -58,6 +59,8 @@ const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$
 const normalizeOrigin = (value: unknown) => String(value ?? '').trim().toLowerCase();
 
 const normalizeCurrency = (currency?: string) => String(currency || 'INR').trim().toUpperCase();
+
+const toDisplayAmount = (subunits: number) => Number((subunits / 100).toFixed(2));
 
 const isSuccessfulPaymentStatus = (status?: string) =>
     successfulPaymentStatuses.includes(String(status ?? '').trim().toLowerCase() as (typeof successfulPaymentStatuses)[number]);
@@ -104,6 +107,80 @@ const buildPaymentFailureReason = (payload: {
     || payload.errorDescription
     || payload.errorReason
     || 'Payment failed before enrollment verification could complete.';
+
+const trainingRetryPathByOrigin: Record<string, string> = {
+    english: '/training/english',
+    german: '/training/german',
+    japanese: '/training/japanese',
+    'plc-automation': '/skill-training/plc',
+    'scada-hmi': '/skill-training/scada',
+    'industrial-drives': '/skill-training/drives',
+    'industry-4.0': '/skill-training/industry4',
+    'corporate-training': '/skill-training/corporate',
+};
+
+const getTrainingRetryUrl = (attempt: ITrainingPaymentAttempt) => {
+    const retryPath = trainingRetryPathByOrigin[normalizeOrigin(attempt.origin)];
+
+    if (retryPath) {
+        return `${trainingPortalBaseUrl}${retryPath}`;
+    }
+
+    return attempt.trainingType === 'language'
+        ? `${trainingPortalBaseUrl}/language-training`
+        : `${trainingPortalBaseUrl}/skill-training`;
+};
+
+const shouldSendPaymentFailureEmail = (attempt: ITrainingPaymentAttempt) => {
+    if (attempt.status !== 'failed' && attempt.status !== 'cancelled') {
+        return false;
+    }
+
+    if (attempt.paymentFailureEmailSentAt) {
+        return false;
+    }
+
+    const normalizedReason = String(attempt.failureReason ?? '').trim().toLowerCase();
+
+    if (normalizedReason === 'superseded by a newer checkout attempt.') {
+        return false;
+    }
+
+    return true;
+};
+
+const sendPaymentFailureEmailIfNeeded = async (attempt: ITrainingPaymentAttempt, user: any) => {
+    if (!shouldSendPaymentFailureEmail(attempt)) {
+        return;
+    }
+
+    const recipientEmail = String(user?.email || attempt.paymentEmail || '').trim();
+    if (!recipientEmail) {
+        return;
+    }
+
+    const emailSent = await emailService.sendTrainingPaymentFailureEmail({
+        to: recipientEmail,
+        name: String(user?.name || 'Student').trim(),
+        courseTitle: attempt.courseTitle,
+        trainingType: attempt.trainingType,
+        levelName: attempt.levelName,
+        amount: toDisplayAmount(attempt.amount),
+        currency: attempt.currency,
+        paymentStatus: attempt.paymentStatus || 'Not available',
+        paymentMethod: attempt.paymentMethod,
+        failureReason: attempt.failureReason || attempt.paymentErrorDescription || attempt.paymentErrorReason,
+        status: attempt.status === 'cancelled' ? 'cancelled' : 'failed',
+        retryUrl: getTrainingRetryUrl(attempt),
+    });
+
+    if (!emailSent) {
+        return;
+    }
+
+    attempt.paymentFailureEmailSentAt = new Date();
+    await attempt.save();
+};
 
 const languageOriginMap: Record<string, { keyword: string; courseTitle: string }> = {
     english: { keyword: 'English', courseTitle: 'English' },
@@ -240,7 +317,13 @@ const findExistingPaidEnrollment = async (attempt: ITrainingPaymentAttempt) => {
     return null;
 };
 
-const upsertLanguageEnrollment = async (attempt: ITrainingPaymentAttempt, user: any) => {
+type UpsertEnrollmentResult = {
+    enrollment: any;
+    shouldSendEnrollmentEmail: boolean;
+    enrollmentEmailCourseTitle: string;
+};
+
+const upsertLanguageEnrollment = async (attempt: ITrainingPaymentAttempt): Promise<UpsertEnrollmentResult> => {
     if (!attempt.levelName) {
         throw new Error('Language level details are missing for this payment attempt.');
     }
@@ -251,7 +334,7 @@ const upsertLanguageEnrollment = async (attempt: ITrainingPaymentAttempt, user: 
         name: attempt.levelName,
     });
 
-    let shouldSendEmail = false;
+    let shouldSendEnrollmentEmail = false;
     let enrollment = existingEnrollment;
 
     if (!enrollment) {
@@ -260,22 +343,22 @@ const upsertLanguageEnrollment = async (attempt: ITrainingPaymentAttempt, user: 
             courseTitle: attempt.courseTitle,
             name: attempt.levelName,
         });
-        shouldSendEmail = true;
+        shouldSendEnrollmentEmail = true;
     } else if (enrollment.status === 'REJECTED') {
         enrollment.status = 'PENDING';
         enrollment.batchId = undefined as any;
         await enrollment.save();
-        shouldSendEmail = true;
+        shouldSendEnrollmentEmail = true;
     }
 
-    if (shouldSendEmail) {
-        await emailService.sendEnrollmentEmail(user.email, user.name, `${attempt.courseTitle} - ${attempt.levelName}`, 'PENDING');
-    }
-
-    return enrollment;
+    return {
+        enrollment,
+        shouldSendEnrollmentEmail,
+        enrollmentEmailCourseTitle: `${attempt.courseTitle} - ${attempt.levelName}`,
+    };
 };
 
-const upsertSkillEnrollment = async (attempt: ITrainingPaymentAttempt, user: any) => {
+const upsertSkillEnrollment = async (attempt: ITrainingPaymentAttempt): Promise<UpsertEnrollmentResult> => {
     if (!attempt.skillCourseId) {
         throw new Error('Skill course details are missing for this payment attempt.');
     }
@@ -285,7 +368,7 @@ const upsertSkillEnrollment = async (attempt: ITrainingPaymentAttempt, user: any
         courseId: attempt.skillCourseId,
     });
 
-    let shouldSendEmail = false;
+    let shouldSendEnrollmentEmail = false;
     let enrollment = existingEnrollment;
 
     if (!enrollment) {
@@ -297,7 +380,7 @@ const upsertSkillEnrollment = async (attempt: ITrainingPaymentAttempt, user: any
             progress: 0,
             completedLessons: [],
         });
-        shouldSendEmail = true;
+        shouldSendEnrollmentEmail = true;
     } else if (enrollment.status === 'dropped') {
         enrollment.status = 'pending';
         enrollment.batchId = undefined as any;
@@ -305,22 +388,22 @@ const upsertSkillEnrollment = async (attempt: ITrainingPaymentAttempt, user: any
         enrollment.progress = 0;
         enrollment.completedLessons = [];
         await enrollment.save();
-        shouldSendEmail = true;
+        shouldSendEnrollmentEmail = true;
     }
 
-    if (shouldSendEmail) {
-        await emailService.sendEnrollmentEmail(user.email, user.name, attempt.courseTitle, 'PENDING');
-    }
-
-    return enrollment;
+    return {
+        enrollment,
+        shouldSendEnrollmentEmail,
+        enrollmentEmailCourseTitle: attempt.courseTitle,
+    };
 };
 
-const upsertEnrollmentFromAttempt = async (attempt: ITrainingPaymentAttempt, user: any) => {
+const upsertEnrollmentFromAttempt = async (attempt: ITrainingPaymentAttempt): Promise<UpsertEnrollmentResult> => {
     if (attempt.trainingType === 'language') {
-        return upsertLanguageEnrollment(attempt, user);
+        return upsertLanguageEnrollment(attempt);
     }
 
-    return upsertSkillEnrollment(attempt, user);
+    return upsertSkillEnrollment(attempt);
 };
 
 export const createTrainingCheckout = async (req: Request, res: Response) => {
@@ -490,6 +573,7 @@ export const verifyTrainingPayment = async (req: Request, res: Response) => {
                 failureReason: 'Payment signature verification failed.',
             });
             await attempt.save();
+            await sendPaymentFailureEmailIfNeeded(attempt, user);
             return res.status(400).json({ message: 'Payment signature verification failed.' });
         }
 
@@ -502,6 +586,7 @@ export const verifyTrainingPayment = async (req: Request, res: Response) => {
                 failureReason: 'Payment order mismatch received from Razorpay.',
             });
             await attempt.save();
+            await sendPaymentFailureEmailIfNeeded(attempt, user);
             return res.status(400).json({ message: 'Payment order mismatch received from Razorpay.' });
         }
 
@@ -516,6 +601,7 @@ export const verifyTrainingPayment = async (req: Request, res: Response) => {
                 }),
             });
             await attempt.save();
+            await sendPaymentFailureEmailIfNeeded(attempt, user);
             return res.status(400).json({ message: 'Payment was not completed successfully.' });
         }
 
@@ -525,7 +611,25 @@ export const verifyTrainingPayment = async (req: Request, res: Response) => {
         });
         await attempt.save();
 
-        const enrollment = await upsertEnrollmentFromAttempt(attempt, user);
+        const { enrollment, shouldSendEnrollmentEmail, enrollmentEmailCourseTitle } = await upsertEnrollmentFromAttempt(attempt);
+
+        if (shouldSendEnrollmentEmail) {
+            await emailService.sendEnrollmentEmail(
+                user.email,
+                user.name,
+                enrollmentEmailCourseTitle,
+                'PENDING',
+                {
+                    amount: toDisplayAmount(attempt.amount),
+                    currency: attempt.currency,
+                    paymentStatus: attempt.paymentStatus || attempt.status || 'paid',
+                    paymentMethod: attempt.paymentMethod,
+                    razorpayOrderId: attempt.razorpayOrderId,
+                    razorpayPaymentId: attempt.razorpayPaymentId,
+                    paidAt: attempt.paidAt,
+                }
+            );
+        }
 
         return res.status(200).json({
             message: 'Payment verified and enrollment submitted successfully.',
@@ -589,6 +693,7 @@ export const recordTrainingPaymentFailure = async (req: Request, res: Response) 
         );
 
         await attempt.save();
+        await sendPaymentFailureEmailIfNeeded(attempt, user);
 
         return res.status(200).json({
             message: `Payment attempt marked as ${normalizedStatus}.`,

@@ -24,6 +24,7 @@ const email_service_1 = require("../utils/email.service");
 const razorpay_1 = require("../utils/razorpay");
 const emailService = new email_service_1.EmailService();
 const successfulPaymentStatuses = ['authorized', 'captured'];
+const trainingPortalBaseUrl = 'https://training.sovirtechnologies.in';
 const extractNumericPrice = (value) => {
     if (typeof value === 'number') {
         return Number.isFinite(value) ? value : null;
@@ -55,6 +56,7 @@ const extractSingleAmount = (value) => {
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const normalizeOrigin = (value) => String(value !== null && value !== void 0 ? value : '').trim().toLowerCase();
 const normalizeCurrency = (currency) => String(currency || 'INR').trim().toUpperCase();
+const toDisplayAmount = (subunits) => Number((subunits / 100).toFixed(2));
 const isSuccessfulPaymentStatus = (status) => successfulPaymentStatuses.includes(String(status !== null && status !== void 0 ? status : '').trim().toLowerCase());
 const syncAttemptWithPayment = (attempt, payment, options) => {
     if (payment.id)
@@ -96,6 +98,67 @@ const buildPaymentFailureReason = (payload) => payload.reason
     || payload.errorDescription
     || payload.errorReason
     || 'Payment failed before enrollment verification could complete.';
+const trainingRetryPathByOrigin = {
+    english: '/training/english',
+    german: '/training/german',
+    japanese: '/training/japanese',
+    'plc-automation': '/skill-training/plc',
+    'scada-hmi': '/skill-training/scada',
+    'industrial-drives': '/skill-training/drives',
+    'industry-4.0': '/skill-training/industry4',
+    'corporate-training': '/skill-training/corporate',
+};
+const getTrainingRetryUrl = (attempt) => {
+    const retryPath = trainingRetryPathByOrigin[normalizeOrigin(attempt.origin)];
+    if (retryPath) {
+        return `${trainingPortalBaseUrl}${retryPath}`;
+    }
+    return attempt.trainingType === 'language'
+        ? `${trainingPortalBaseUrl}/language-training`
+        : `${trainingPortalBaseUrl}/skill-training`;
+};
+const shouldSendPaymentFailureEmail = (attempt) => {
+    var _a;
+    if (attempt.status !== 'failed' && attempt.status !== 'cancelled') {
+        return false;
+    }
+    if (attempt.paymentFailureEmailSentAt) {
+        return false;
+    }
+    const normalizedReason = String((_a = attempt.failureReason) !== null && _a !== void 0 ? _a : '').trim().toLowerCase();
+    if (normalizedReason === 'superseded by a newer checkout attempt.') {
+        return false;
+    }
+    return true;
+};
+const sendPaymentFailureEmailIfNeeded = (attempt, user) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!shouldSendPaymentFailureEmail(attempt)) {
+        return;
+    }
+    const recipientEmail = String((user === null || user === void 0 ? void 0 : user.email) || attempt.paymentEmail || '').trim();
+    if (!recipientEmail) {
+        return;
+    }
+    const emailSent = yield emailService.sendTrainingPaymentFailureEmail({
+        to: recipientEmail,
+        name: String((user === null || user === void 0 ? void 0 : user.name) || 'Student').trim(),
+        courseTitle: attempt.courseTitle,
+        trainingType: attempt.trainingType,
+        levelName: attempt.levelName,
+        amount: toDisplayAmount(attempt.amount),
+        currency: attempt.currency,
+        paymentStatus: attempt.paymentStatus || 'Not available',
+        paymentMethod: attempt.paymentMethod,
+        failureReason: attempt.failureReason || attempt.paymentErrorDescription || attempt.paymentErrorReason,
+        status: attempt.status === 'cancelled' ? 'cancelled' : 'failed',
+        retryUrl: getTrainingRetryUrl(attempt),
+    });
+    if (!emailSent) {
+        return;
+    }
+    attempt.paymentFailureEmailSentAt = new Date();
+    yield attempt.save();
+});
 const languageOriginMap = {
     english: { keyword: 'English', courseTitle: 'English' },
     german: { keyword: 'German', courseTitle: 'German' },
@@ -206,7 +269,7 @@ const findExistingPaidEnrollment = (attempt) => __awaiter(void 0, void 0, void 0
     }
     return null;
 });
-const upsertLanguageEnrollment = (attempt, user) => __awaiter(void 0, void 0, void 0, function* () {
+const upsertLanguageEnrollment = (attempt) => __awaiter(void 0, void 0, void 0, function* () {
     if (!attempt.levelName) {
         throw new Error('Language level details are missing for this payment attempt.');
     }
@@ -215,7 +278,7 @@ const upsertLanguageEnrollment = (attempt, user) => __awaiter(void 0, void 0, vo
         courseTitle: attempt.courseTitle,
         name: attempt.levelName,
     });
-    let shouldSendEmail = false;
+    let shouldSendEnrollmentEmail = false;
     let enrollment = existingEnrollment;
     if (!enrollment) {
         enrollment = yield language_enrollment_model_1.default.create({
@@ -223,20 +286,21 @@ const upsertLanguageEnrollment = (attempt, user) => __awaiter(void 0, void 0, vo
             courseTitle: attempt.courseTitle,
             name: attempt.levelName,
         });
-        shouldSendEmail = true;
+        shouldSendEnrollmentEmail = true;
     }
     else if (enrollment.status === 'REJECTED') {
         enrollment.status = 'PENDING';
         enrollment.batchId = undefined;
         yield enrollment.save();
-        shouldSendEmail = true;
+        shouldSendEnrollmentEmail = true;
     }
-    if (shouldSendEmail) {
-        yield emailService.sendEnrollmentEmail(user.email, user.name, `${attempt.courseTitle} - ${attempt.levelName}`, 'PENDING');
-    }
-    return enrollment;
+    return {
+        enrollment,
+        shouldSendEnrollmentEmail,
+        enrollmentEmailCourseTitle: `${attempt.courseTitle} - ${attempt.levelName}`,
+    };
 });
-const upsertSkillEnrollment = (attempt, user) => __awaiter(void 0, void 0, void 0, function* () {
+const upsertSkillEnrollment = (attempt) => __awaiter(void 0, void 0, void 0, function* () {
     if (!attempt.skillCourseId) {
         throw new Error('Skill course details are missing for this payment attempt.');
     }
@@ -244,7 +308,7 @@ const upsertSkillEnrollment = (attempt, user) => __awaiter(void 0, void 0, void 
         studentId: attempt.userId,
         courseId: attempt.skillCourseId,
     });
-    let shouldSendEmail = false;
+    let shouldSendEnrollmentEmail = false;
     let enrollment = existingEnrollment;
     if (!enrollment) {
         enrollment = yield enrollment_model_1.default.create({
@@ -255,7 +319,7 @@ const upsertSkillEnrollment = (attempt, user) => __awaiter(void 0, void 0, void 
             progress: 0,
             completedLessons: [],
         });
-        shouldSendEmail = true;
+        shouldSendEnrollmentEmail = true;
     }
     else if (enrollment.status === 'dropped') {
         enrollment.status = 'pending';
@@ -264,18 +328,19 @@ const upsertSkillEnrollment = (attempt, user) => __awaiter(void 0, void 0, void 
         enrollment.progress = 0;
         enrollment.completedLessons = [];
         yield enrollment.save();
-        shouldSendEmail = true;
+        shouldSendEnrollmentEmail = true;
     }
-    if (shouldSendEmail) {
-        yield emailService.sendEnrollmentEmail(user.email, user.name, attempt.courseTitle, 'PENDING');
-    }
-    return enrollment;
+    return {
+        enrollment,
+        shouldSendEnrollmentEmail,
+        enrollmentEmailCourseTitle: attempt.courseTitle,
+    };
 });
-const upsertEnrollmentFromAttempt = (attempt, user) => __awaiter(void 0, void 0, void 0, function* () {
+const upsertEnrollmentFromAttempt = (attempt) => __awaiter(void 0, void 0, void 0, function* () {
     if (attempt.trainingType === 'language') {
-        return upsertLanguageEnrollment(attempt, user);
+        return upsertLanguageEnrollment(attempt);
     }
-    return upsertSkillEnrollment(attempt, user);
+    return upsertSkillEnrollment(attempt);
 });
 const createTrainingCheckout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
@@ -418,6 +483,7 @@ const verifyTrainingPayment = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 failureReason: 'Payment signature verification failed.',
             });
             yield attempt.save();
+            yield sendPaymentFailureEmailIfNeeded(attempt, user);
             return res.status(400).json({ message: 'Payment signature verification failed.' });
         }
         const payment = yield (0, razorpay_1.fetchRazorpayPayment)(razorpayPaymentId);
@@ -428,6 +494,7 @@ const verifyTrainingPayment = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 failureReason: 'Payment order mismatch received from Razorpay.',
             });
             yield attempt.save();
+            yield sendPaymentFailureEmailIfNeeded(attempt, user);
             return res.status(400).json({ message: 'Payment order mismatch received from Razorpay.' });
         }
         if (!isSuccessfulPaymentStatus(payment.status)) {
@@ -441,6 +508,7 @@ const verifyTrainingPayment = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 }),
             });
             yield attempt.save();
+            yield sendPaymentFailureEmailIfNeeded(attempt, user);
             return res.status(400).json({ message: 'Payment was not completed successfully.' });
         }
         syncAttemptWithPayment(attempt, payment, {
@@ -448,7 +516,18 @@ const verifyTrainingPayment = (req, res) => __awaiter(void 0, void 0, void 0, fu
             signature: razorpaySignature,
         });
         yield attempt.save();
-        const enrollment = yield upsertEnrollmentFromAttempt(attempt, user);
+        const { enrollment, shouldSendEnrollmentEmail, enrollmentEmailCourseTitle } = yield upsertEnrollmentFromAttempt(attempt);
+        if (shouldSendEnrollmentEmail) {
+            yield emailService.sendEnrollmentEmail(user.email, user.name, enrollmentEmailCourseTitle, 'PENDING', {
+                amount: toDisplayAmount(attempt.amount),
+                currency: attempt.currency,
+                paymentStatus: attempt.paymentStatus || attempt.status || 'paid',
+                paymentMethod: attempt.paymentMethod,
+                razorpayOrderId: attempt.razorpayOrderId,
+                razorpayPaymentId: attempt.razorpayPaymentId,
+                paidAt: attempt.paidAt,
+            });
+        }
         return res.status(200).json({
             message: 'Payment verified and enrollment submitted successfully.',
             enrollment,
@@ -502,6 +581,7 @@ const recordTrainingPaymentFailure = (req, res) => __awaiter(void 0, void 0, voi
             }),
         });
         yield attempt.save();
+        yield sendPaymentFailureEmailIfNeeded(attempt, user);
         return res.status(200).json({
             message: `Payment attempt marked as ${normalizedStatus}.`,
             paymentAttempt: attempt,

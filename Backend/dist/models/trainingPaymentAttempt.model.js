@@ -74,6 +74,7 @@ const TrainingPaymentAttemptSchema = new mongoose_1.Schema({
     paymentErrorSource: { type: String, trim: true },
     paymentErrorStep: { type: String, trim: true },
     paymentErrorReason: { type: String, trim: true },
+    paymentFailureEmailSentAt: { type: Date },
     paidAt: { type: Date },
 }, {
     timestamps: true,
