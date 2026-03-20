@@ -24,6 +24,7 @@ import {
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { getAssetUrl, internshipApplicationAPI } from '../../lib/api';
+import { formatPaymentState } from '../../lib/paymentFormatting';
 import { formatInternshipMode, formatInternshipPrice } from '../../types/internship';
 
 type InternshipApplicationStatus = 'submitted' | 'accepted' | 'rejected' | 'reviewed' | 'shortlisted';
@@ -132,21 +133,6 @@ const formatDate = (value: string) =>
         hour: '2-digit',
         minute: '2-digit',
     });
-
-const formatPaymentState = (value?: string) => {
-    const normalizedValue = String(value ?? '').trim().toLowerCase();
-
-    if (!normalizedValue) return 'Not available';
-    if (normalizedValue === 'paid') return 'Paid';
-    if (normalizedValue === 'created') return 'Created';
-    if (normalizedValue === 'failed') return 'Failed';
-    if (normalizedValue === 'cancelled') return 'Cancelled';
-    if (normalizedValue === 'captured') return 'Captured';
-    if (normalizedValue === 'authorized') return 'Authorized';
-    if (normalizedValue === 'refunded') return 'Refunded';
-
-    return normalizedValue.charAt(0).toUpperCase() + normalizedValue.slice(1);
-};
 
 const getStatusMeta = (status: DisplayStatus) => {
     if (status === 'accepted') {

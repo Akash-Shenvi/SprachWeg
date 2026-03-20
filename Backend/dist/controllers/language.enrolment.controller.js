@@ -26,9 +26,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.demoteTrainer = exports.promoteToTrainer = exports.getTrainers = exports.assignTrainer = exports.deleteBatch = exports.removeStudentFromBatch = exports.getBatchStudents = exports.getBatches = exports.rejectEnrollment = exports.approveEnrollment = exports.getEnrollments = exports.getMyEnrollments = exports.applyEnrollment = void 0;
 const language_enrollment_model_1 = __importDefault(require("../models/language.enrollment.model"));
 const language_batch_model_1 = __importDefault(require("../models/language.batch.model"));
+const trainingPaymentAttempt_model_1 = __importDefault(require("../models/trainingPaymentAttempt.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const email_service_1 = require("../utils/email.service");
 const emailService = new email_service_1.EmailService();
+const buildLanguagePaymentKey = (params) => {
+    var _a, _b, _c;
+    return [
+        String((_a = params.userId) !== null && _a !== void 0 ? _a : '').trim(),
+        String((_b = params.courseTitle) !== null && _b !== void 0 ? _b : '').trim().toLowerCase(),
+        String((_c = params.levelName) !== null && _c !== void 0 ? _c : '').trim().toLowerCase(),
+    ].join('::');
+};
+const toDisplayAmount = (subunits) => {
+    const numericValue = Number(subunits);
+    if (!Number.isFinite(numericValue)) {
+        return null;
+    }
+    return Number((numericValue / 100).toFixed(2));
+};
 /* ============================
    STUDENT APIs
 ============================ */
@@ -128,9 +144,64 @@ const getEnrollments = (req, res) => __awaiter(void 0, void 0, void 0, function*
             .sort({ createdAt: -1 })
             .skip((currentPage - 1) * limit)
             .limit(limit);
+        const enrollmentPaymentKeys = enrollments.map((enrollment) => {
+            var _a, _b;
+            return buildLanguagePaymentKey({
+                userId: (_b = (_a = enrollment.userId) === null || _a === void 0 ? void 0 : _a._id) !== null && _b !== void 0 ? _b : enrollment.userId,
+                courseTitle: enrollment.courseTitle,
+                levelName: enrollment.name,
+            });
+        });
+        const enrollmentPaymentKeySet = new Set(enrollmentPaymentKeys);
+        const matchingPaymentAttempts = enrollments.length > 0
+            ? yield trainingPaymentAttempt_model_1.default.find({
+                trainingType: 'language',
+                status: 'paid',
+                userId: {
+                    $in: enrollments.map((enrollment) => { var _a, _b; return (_b = (_a = enrollment.userId) === null || _a === void 0 ? void 0 : _a._id) !== null && _b !== void 0 ? _b : enrollment.userId; }),
+                },
+                courseTitle: {
+                    $in: [...new Set(enrollments.map((enrollment) => enrollment.courseTitle))],
+                },
+                levelName: {
+                    $in: [...new Set(enrollments.map((enrollment) => enrollment.name))],
+                },
+            })
+                .sort({ paidAt: -1, createdAt: -1 })
+                .lean()
+            : [];
+        const paymentSnapshotByKey = new Map();
+        for (const attempt of matchingPaymentAttempts) {
+            const paymentKey = buildLanguagePaymentKey({
+                userId: attempt.userId,
+                courseTitle: attempt.courseTitle,
+                levelName: attempt.levelName,
+            });
+            if (!enrollmentPaymentKeySet.has(paymentKey) || paymentSnapshotByKey.has(paymentKey)) {
+                continue;
+            }
+            paymentSnapshotByKey.set(paymentKey, {
+                status: String(attempt.paymentStatus || attempt.status || '').trim(),
+                amount: toDisplayAmount(attempt.amount),
+                currency: String(attempt.currency || 'INR').trim().toUpperCase(),
+                method: attempt.paymentMethod || null,
+                gateway: String(attempt.paymentGateway || 'razorpay').trim(),
+                razorpayOrderId: attempt.razorpayOrderId || null,
+                razorpayPaymentId: attempt.razorpayPaymentId || null,
+                paidAt: attempt.paidAt || attempt.createdAt || null,
+            });
+        }
+        const enrollmentsWithPayment = enrollments.map((enrollment) => {
+            var _a, _b;
+            return (Object.assign(Object.assign({}, enrollment.toObject()), { payment: paymentSnapshotByKey.get(buildLanguagePaymentKey({
+                    userId: (_b = (_a = enrollment.userId) === null || _a === void 0 ? void 0 : _a._id) !== null && _b !== void 0 ? _b : enrollment.userId,
+                    courseTitle: enrollment.courseTitle,
+                    levelName: enrollment.name,
+                })) || null }));
+        });
         const availableLevels = yield language_enrollment_model_1.default.distinct('name', status ? { status } : {});
         return res.json({
-            enrollments,
+            enrollments: enrollmentsWithPayment,
             availableLevels: ['All', ...availableLevels],
             pagination: {
                 currentPage,

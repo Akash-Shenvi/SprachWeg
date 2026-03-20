@@ -35,6 +35,26 @@ const extractNumericPrice = (value: string | number | null | undefined) => {
     return Number.isFinite(parsedValue) ? parsedValue : null;
 };
 
+const extractSingleAmount = (value: string | number | null | undefined) => {
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : null;
+    }
+
+    if (typeof value !== 'string') {
+        return null;
+    }
+
+    const amountMatches = value.match(/\d[\d,]*(?:\.\d+)?/g) || [];
+    if (amountMatches.length !== 1) {
+        return null;
+    }
+
+    const parsedValue = Number(amountMatches[0].replace(/,/g, ''));
+    return Number.isFinite(parsedValue) ? parsedValue : null;
+};
+
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const normalizeOrigin = (value: unknown) => String(value ?? '').trim().toLowerCase();
 
 const normalizeCurrency = (currency?: string) => String(currency || 'INR').trim().toUpperCase();
@@ -143,8 +163,28 @@ const resolveLanguageSelection = async (origin: string, selectedLevel: string) =
 };
 
 const resolveSkillSelection = async (origin: string) => {
-    const detail = await SkillTrainingDetail.findOne({ origin }).populate('skillCourseId');
-    const populatedSkillCourse = detail?.skillCourseId as any;
+    const originPattern = new RegExp(`^${escapeRegex(origin)}$`, 'i');
+
+    let detail = await SkillTrainingDetail.findOne({
+        origin: { $regex: originPattern },
+    }).populate('skillCourseId');
+
+    let populatedSkillCourse = detail?.skillCourseId as any;
+
+    if (!detail) {
+        const exactTitleMatch = await SkillCourse.findOne({
+            title: { $regex: originPattern },
+        });
+
+        if (exactTitleMatch?._id) {
+            detail = await SkillTrainingDetail.findOne({ skillCourseId: exactTitleMatch._id }).populate('skillCourseId');
+            populatedSkillCourse = detail?.skillCourseId as any;
+
+            if (!populatedSkillCourse) {
+                populatedSkillCourse = exactTitleMatch;
+            }
+        }
+    }
 
     let course = populatedSkillCourse || null;
 
@@ -163,10 +203,10 @@ const resolveSkillSelection = async (origin: string) => {
         return null;
     }
 
-    const resolvedPrice = extractNumericPrice(course.price);
+    const resolvedPrice = extractNumericPrice(course.price) ?? extractSingleAmount(detail?.fees);
     if (resolvedPrice === null || resolvedPrice <= 0) {
         return {
-            error: `The payment amount for ${course.title} is not configured correctly.`,
+            error: `The payment amount for ${course.title} is not configured correctly. Please set a single course price or a single fee amount in skill details.`,
         };
     }
 

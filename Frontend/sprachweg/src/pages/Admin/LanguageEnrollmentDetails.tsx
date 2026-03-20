@@ -6,11 +6,13 @@ import {
     Check,
     ChevronLeft,
     ChevronRight,
+    CreditCard,
     Eye,
     Filter,
     GraduationCap,
     Loader2,
     Mail,
+    Hash,
     Phone,
     Search,
     User as UserIcon,
@@ -18,6 +20,8 @@ import {
 } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import api, { getAssetUrl } from '../../lib/api';
+import { formatPaymentState } from '../../lib/paymentFormatting';
+import { formatTrainingPrice } from '../../lib/trainingPricing';
 
 interface StudentProfile {
     _id?: string;
@@ -41,6 +45,18 @@ interface Enrollment {
     name: string;
     status: 'PENDING' | 'APPROVED' | 'REJECTED';
     createdAt?: string;
+    payment: PaymentSnapshot | null;
+}
+
+interface PaymentSnapshot {
+    status: string;
+    amount: number | null;
+    currency: string;
+    method: string | null;
+    gateway: string;
+    razorpayOrderId: string | null;
+    razorpayPaymentId: string | null;
+    paidAt: string | null;
 }
 
 interface LanguageEnrollment {
@@ -73,6 +89,18 @@ interface EnrollmentPagination {
 }
 
 const ENROLLMENTS_PER_PAGE = 9;
+
+const formatDateTime = (value?: string | null) => {
+    if (!value) return 'Not available';
+
+    return new Date(value).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+};
 
 const LanguageEnrollmentDetails: React.FC = () => {
     const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -357,9 +385,16 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#1E3A8A] text-blue-300 border border-blue-900 shrink-0">
-                                        {enrollment.name}
-                                    </span>
+                                    <div className="flex shrink-0 flex-col items-end gap-2">
+                                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#1E3A8A] text-blue-300 border border-blue-900">
+                                            {enrollment.name}
+                                        </span>
+                                        {enrollment.payment?.status && (
+                                            <span className="inline-flex items-center rounded-full border border-green-900/60 bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-300">
+                                                Payment {formatPaymentState(enrollment.payment.status)}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="space-y-3 mb-6">
@@ -534,6 +569,58 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                             <div>
                                                 <p className="mb-1 text-xs text-gray-500">Phone</p>
                                                 <p className="font-bold text-gray-900 dark:text-white">{selectedStudentProfile.guardianPhone || 'Not Provided'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#0a192f] sm:col-span-2">
+                                        <div className="mb-3 flex items-center gap-3">
+                                            <CreditCard className="h-5 w-5 text-emerald-500" />
+                                            <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Payment Details</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-4 pl-8 sm:grid-cols-2">
+                                            <div>
+                                                <p className="mb-1 text-xs text-gray-500">Amount</p>
+                                                <p className="font-bold text-gray-900 dark:text-white">
+                                                    {selectedEnrollment.payment?.amount !== null && selectedEnrollment.payment?.amount !== undefined
+                                                        ? formatTrainingPrice(selectedEnrollment.payment.amount, selectedEnrollment.payment.currency || 'INR')
+                                                        : 'Not available'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="mb-1 text-xs text-gray-500">Gateway Status</p>
+                                                <p className="font-bold text-gray-900 dark:text-white">
+                                                    {formatPaymentState(selectedEnrollment.payment?.status)}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="mb-1 text-xs text-gray-500">Method</p>
+                                                <p className="font-bold text-gray-900 dark:text-white">{selectedEnrollment.payment?.method || 'Not available'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="mb-1 text-xs text-gray-500">Gateway</p>
+                                                <p className="font-bold text-gray-900 dark:text-white">{selectedEnrollment.payment?.gateway || 'Not available'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="mb-1 text-xs text-gray-500">Paid At</p>
+                                                <p className="font-bold text-gray-900 dark:text-white">{formatDateTime(selectedEnrollment.payment?.paidAt)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="mb-1 flex items-center gap-1 text-xs text-gray-500">
+                                                    <Hash className="h-3.5 w-3.5" />
+                                                    Order ID
+                                                </p>
+                                                <p className="font-mono text-xs font-bold text-gray-900 dark:text-white">
+                                                    {selectedEnrollment.payment?.razorpayOrderId || 'Not available'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="mb-1 flex items-center gap-1 text-xs text-gray-500">
+                                                    <Hash className="h-3.5 w-3.5" />
+                                                    Payment ID
+                                                </p>
+                                                <p className="font-mono text-xs font-bold text-gray-900 dark:text-white">
+                                                    {selectedEnrollment.payment?.razorpayPaymentId || 'Not available'}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>

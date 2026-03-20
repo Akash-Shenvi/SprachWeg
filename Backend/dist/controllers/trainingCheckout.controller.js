@@ -38,6 +38,21 @@ const extractNumericPrice = (value) => {
     const parsedValue = Number(normalizedValue);
     return Number.isFinite(parsedValue) ? parsedValue : null;
 };
+const extractSingleAmount = (value) => {
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : null;
+    }
+    if (typeof value !== 'string') {
+        return null;
+    }
+    const amountMatches = value.match(/\d[\d,]*(?:\.\d+)?/g) || [];
+    if (amountMatches.length !== 1) {
+        return null;
+    }
+    const parsedValue = Number(amountMatches[0].replace(/,/g, ''));
+    return Number.isFinite(parsedValue) ? parsedValue : null;
+};
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const normalizeOrigin = (value) => String(value !== null && value !== void 0 ? value : '').trim().toLowerCase();
 const normalizeCurrency = (currency) => String(currency || 'INR').trim().toUpperCase();
 const isSuccessfulPaymentStatus = (status) => successfulPaymentStatuses.includes(String(status !== null && status !== void 0 ? status : '').trim().toLowerCase());
@@ -128,8 +143,24 @@ const resolveLanguageSelection = (origin, selectedLevel) => __awaiter(void 0, vo
     };
 });
 const resolveSkillSelection = (origin) => __awaiter(void 0, void 0, void 0, function* () {
-    const detail = yield skillTrainingDetail_model_1.default.findOne({ origin }).populate('skillCourseId');
-    const populatedSkillCourse = detail === null || detail === void 0 ? void 0 : detail.skillCourseId;
+    var _a;
+    const originPattern = new RegExp(`^${escapeRegex(origin)}$`, 'i');
+    let detail = yield skillTrainingDetail_model_1.default.findOne({
+        origin: { $regex: originPattern },
+    }).populate('skillCourseId');
+    let populatedSkillCourse = detail === null || detail === void 0 ? void 0 : detail.skillCourseId;
+    if (!detail) {
+        const exactTitleMatch = yield skillCourse_model_1.default.findOne({
+            title: { $regex: originPattern },
+        });
+        if (exactTitleMatch === null || exactTitleMatch === void 0 ? void 0 : exactTitleMatch._id) {
+            detail = yield skillTrainingDetail_model_1.default.findOne({ skillCourseId: exactTitleMatch._id }).populate('skillCourseId');
+            populatedSkillCourse = detail === null || detail === void 0 ? void 0 : detail.skillCourseId;
+            if (!populatedSkillCourse) {
+                populatedSkillCourse = exactTitleMatch;
+            }
+        }
+    }
     let course = populatedSkillCourse || null;
     if (!course) {
         const fallbackPattern = skillOriginPatterns[origin];
@@ -143,10 +174,10 @@ const resolveSkillSelection = (origin) => __awaiter(void 0, void 0, void 0, func
     if (!course) {
         return null;
     }
-    const resolvedPrice = extractNumericPrice(course.price);
+    const resolvedPrice = (_a = extractNumericPrice(course.price)) !== null && _a !== void 0 ? _a : extractSingleAmount(detail === null || detail === void 0 ? void 0 : detail.fees);
     if (resolvedPrice === null || resolvedPrice <= 0) {
         return {
-            error: `The payment amount for ${course.title} is not configured correctly.`,
+            error: `The payment amount for ${course.title} is not configured correctly. Please set a single course price or a single fee amount in skill details.`,
         };
     }
     return {

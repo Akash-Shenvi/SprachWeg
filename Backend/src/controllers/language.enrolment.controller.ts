@@ -1,10 +1,30 @@
 import { Request, Response } from "express";
 import Enrollment from "../models/language.enrollment.model";
 import Batch from "../models/language.batch.model";
+import TrainingPaymentAttempt from "../models/trainingPaymentAttempt.model";
 import User from "../models/user.model";
 import { EmailService } from "../utils/email.service";
 
 const emailService = new EmailService();
+
+const buildLanguagePaymentKey = (params: {
+  userId: unknown;
+  courseTitle: unknown;
+  levelName: unknown;
+}) => [
+  String(params.userId ?? '').trim(),
+  String(params.courseTitle ?? '').trim().toLowerCase(),
+  String(params.levelName ?? '').trim().toLowerCase(),
+].join('::');
+
+const toDisplayAmount = (subunits?: number) => {
+  const numericValue = Number(subunits);
+  if (!Number.isFinite(numericValue)) {
+    return null;
+  }
+
+  return Number((numericValue / 100).toFixed(2));
+};
 
 /* ============================
    STUDENT APIs
@@ -122,10 +142,80 @@ export const getEnrollments = async (req: Request, res: Response) => {
       .skip((currentPage - 1) * limit)
       .limit(limit);
 
+    const enrollmentPaymentKeys = enrollments.map((enrollment) =>
+      buildLanguagePaymentKey({
+        userId: (enrollment.userId as any)?._id ?? enrollment.userId,
+        courseTitle: enrollment.courseTitle,
+        levelName: enrollment.name,
+      })
+    );
+    const enrollmentPaymentKeySet = new Set(enrollmentPaymentKeys);
+
+    const matchingPaymentAttempts = enrollments.length > 0
+      ? await TrainingPaymentAttempt.find({
+        trainingType: 'language',
+        status: 'paid',
+        userId: {
+          $in: enrollments.map((enrollment) => (enrollment.userId as any)?._id ?? enrollment.userId),
+        },
+        courseTitle: {
+          $in: [...new Set(enrollments.map((enrollment) => enrollment.courseTitle))],
+        },
+        levelName: {
+          $in: [...new Set(enrollments.map((enrollment) => enrollment.name))],
+        },
+      })
+        .sort({ paidAt: -1, createdAt: -1 })
+        .lean()
+      : [];
+
+    const paymentSnapshotByKey = new Map<string, {
+      status: string;
+      amount: number | null;
+      currency: string;
+      method: string | null;
+      gateway: string;
+      razorpayOrderId: string | null;
+      razorpayPaymentId: string | null;
+      paidAt: Date | null;
+    }>();
+
+    for (const attempt of matchingPaymentAttempts) {
+      const paymentKey = buildLanguagePaymentKey({
+        userId: attempt.userId,
+        courseTitle: attempt.courseTitle,
+        levelName: attempt.levelName,
+      });
+
+      if (!enrollmentPaymentKeySet.has(paymentKey) || paymentSnapshotByKey.has(paymentKey)) {
+        continue;
+      }
+
+      paymentSnapshotByKey.set(paymentKey, {
+        status: String(attempt.paymentStatus || attempt.status || '').trim(),
+        amount: toDisplayAmount(attempt.amount),
+        currency: String(attempt.currency || 'INR').trim().toUpperCase(),
+        method: attempt.paymentMethod || null,
+        gateway: String(attempt.paymentGateway || 'razorpay').trim(),
+        razorpayOrderId: attempt.razorpayOrderId || null,
+        razorpayPaymentId: attempt.razorpayPaymentId || null,
+        paidAt: attempt.paidAt || attempt.createdAt || null,
+      });
+    }
+
+    const enrollmentsWithPayment = enrollments.map((enrollment) => ({
+      ...enrollment.toObject(),
+      payment: paymentSnapshotByKey.get(buildLanguagePaymentKey({
+        userId: (enrollment.userId as any)?._id ?? enrollment.userId,
+        courseTitle: enrollment.courseTitle,
+        levelName: enrollment.name,
+      })) || null,
+    }));
+
     const availableLevels = await Enrollment.distinct('name', status ? { status } : {});
 
     return res.json({
-      enrollments,
+      enrollments: enrollmentsWithPayment,
       availableLevels: ['All', ...availableLevels],
       pagination: {
         currentPage,
