@@ -390,6 +390,7 @@ const CustomizedCorporateTrainingPage: React.FC = () => {
                 onClose={() => setIsEnrollModalOpen(false)}
                 origin={courseDetails.origin}
                 originPath="/skill-training/corporate"
+                paymentAmount={courseDetails.fees}
             />
         </div>
     );

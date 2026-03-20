@@ -390,6 +390,7 @@ const IndustrialDrivesMotionPage: React.FC = () => {
                 onClose={() => setIsEnrollModalOpen(false)}
                 origin={courseDetails.origin}
                 originPath="/skill-training/drives"
+                paymentAmount={courseDetails.fees}
             />
         </div>
     );

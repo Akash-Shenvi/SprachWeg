@@ -252,6 +252,8 @@ const CourseJapanesePage: React.FC = () => {
     );
   }
 
+  const selectedLevelDetails = course.levels?.find((level) => level.name === selectedLevelName);
+
   return (
     <div className="relative min-h-screen bg-white text-gray-900 selection:bg-[#d6b161]/30 dark:bg-[#0a192f] dark:text-gray-100">
       <Header />
@@ -415,6 +417,7 @@ const CourseJapanesePage: React.FC = () => {
         origin="japanese"
         originPath="/training/japanese"
         selectedLevel={selectedLevelName}
+        paymentAmount={selectedLevelDetails?.price}
       />
     </div>
   );

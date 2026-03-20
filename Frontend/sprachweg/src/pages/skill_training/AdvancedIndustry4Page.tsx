@@ -390,6 +390,7 @@ const AdvancedIndustry4Page: React.FC = () => {
                 onClose={() => setIsEnrollModalOpen(false)}
                 origin={courseDetails.origin}
                 originPath="/skill-training/industry4"
+                paymentAmount={courseDetails.fees}
             />
         </div>
     );

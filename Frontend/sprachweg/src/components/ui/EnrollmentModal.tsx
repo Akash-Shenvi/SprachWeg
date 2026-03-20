@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ChevronLeft, Check, AlertCircle, GraduationCap, Phone, Mail, User, BookOpen } from 'lucide-react';
+import { ChevronLeft, Check, AlertCircle, GraduationCap, Phone, Mail, User, BookOpen, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { trainingCheckoutAPI } from '../../lib/api';
@@ -17,6 +17,7 @@ interface EnrollmentModalProps {
     origin: string;
     originPath?: string;
     selectedLevel?: string;
+    paymentAmount?: string;
 }
 
 
@@ -45,7 +46,7 @@ const initialFormData: FormData = {
     guardianPhone: '',
 };
 
-const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, origin, originPath, selectedLevel }) => {
+const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, origin, originPath, selectedLevel, paymentAmount }) => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const shouldReduceMotion = useReducedMotion();
@@ -541,6 +542,37 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
                                                 />
                                             </div>
                                         </div>
+
+                                        {paymentAmount && (
+                                            <div className="md:col-span-2 rounded-xl border border-[#d6b161]/30 bg-gradient-to-r from-[#d6b161]/10 to-transparent p-4 dark:from-[#d6b161]/15">
+                                                <h4 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#0a192f] dark:text-[#f2d48c]">
+                                                    <CreditCard className="h-4 w-4" /> Payment Summary
+                                                </h4>
+                                                <div className="grid gap-4 md:grid-cols-2">
+                                                    {selectedLevel && (
+                                                        <div>
+                                                            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                                Selected Level
+                                                            </p>
+                                                            <p className="text-base font-bold text-[#0a192f] dark:text-white">
+                                                                {selectedLevel}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    <div className={selectedLevel ? '' : 'md:col-span-2'}>
+                                                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                            Payment Amount
+                                                        </p>
+                                                        <p className="text-xl font-bold text-[#0a192f] dark:text-white">
+                                                            {paymentAmount}
+                                                        </p>
+                                                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                            This amount will be shown again in Razorpay before payment confirmation.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Submission Error Summary */}

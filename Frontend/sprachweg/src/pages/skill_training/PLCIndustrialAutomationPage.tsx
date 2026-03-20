@@ -390,6 +390,7 @@ const PLCIndustrialAutomationPage: React.FC = () => {
                 onClose={() => setIsEnrollModalOpen(false)}
                 origin={courseDetails.origin}
                 originPath="/skill-training/plc"
+                paymentAmount={courseDetails.fees}
             />
         </div>
     );

@@ -390,6 +390,7 @@ const SCADAAndHMIPage: React.FC = () => {
                 onClose={() => setIsEnrollModalOpen(false)}
                 origin={courseDetails.origin}
                 originPath="/skill-training/scada"
+                paymentAmount={courseDetails.fees}
             />
         </div>
     );
