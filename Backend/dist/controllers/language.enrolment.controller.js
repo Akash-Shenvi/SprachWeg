@@ -92,10 +92,60 @@ exports.getMyEnrollments = getMyEnrollments;
 ============================ */
 // GET /api/language-training/admin/enrollments?status=PENDING
 const getEnrollments = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const filter = req.query.status ? { status: req.query.status } : {};
-    const enrollments = yield language_enrollment_model_1.default.find(filter)
-        .populate("userId", "name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role");
-    res.json(enrollments);
+    var _a, _b, _c;
+    try {
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 9));
+        const status = String((_a = req.query.status) !== null && _a !== void 0 ? _a : '').trim();
+        const level = String((_b = req.query.level) !== null && _b !== void 0 ? _b : '').trim();
+        const search = String((_c = req.query.search) !== null && _c !== void 0 ? _c : '').trim();
+        const filter = {};
+        if (status) {
+            filter.status = status;
+        }
+        if (level && level !== 'All') {
+            filter.name = level;
+        }
+        if (search) {
+            const matchingUserIds = yield user_model_1.default.find({
+                $or: [
+                    { name: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } },
+                    { phoneNumber: { $regex: search, $options: 'i' } },
+                ],
+            }).distinct('_id');
+            filter.$or = [
+                { courseTitle: { $regex: search, $options: 'i' } },
+                { name: { $regex: search, $options: 'i' } },
+                { userId: { $in: matchingUserIds } },
+            ];
+        }
+        const totalEnrollments = yield language_enrollment_model_1.default.countDocuments(filter);
+        const totalPages = Math.max(1, Math.ceil(totalEnrollments / limit));
+        const currentPage = Math.min(page, totalPages);
+        const enrollments = yield language_enrollment_model_1.default.find(filter)
+            .populate('userId', 'name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role createdAt')
+            .sort({ createdAt: -1 })
+            .skip((currentPage - 1) * limit)
+            .limit(limit);
+        const availableLevels = yield language_enrollment_model_1.default.distinct('name', status ? { status } : {});
+        return res.json({
+            enrollments,
+            availableLevels: ['All', ...availableLevels],
+            pagination: {
+                currentPage,
+                totalPages,
+                totalEnrollments,
+                limit,
+                hasPreviousPage: currentPage > 1,
+                hasNextPage: currentPage < totalPages,
+            },
+        });
+    }
+    catch (error) {
+        console.error('Failed to fetch enrollments:', error);
+        return res.status(500).json({ message: 'Failed to fetch enrollments' });
+    }
 });
 exports.getEnrollments = getEnrollments;
 // POST /api/language-training/admin/enroll/:id/approve

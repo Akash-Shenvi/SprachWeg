@@ -79,12 +79,67 @@ export const getMyEnrollments = async (req: Request, res: Response) => {
 
 // GET /api/language-training/admin/enrollments?status=PENDING
 export const getEnrollments = async (req: Request, res: Response) => {
-  const filter = req.query.status ? { status: req.query.status } : {};
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 9));
+    const status = String(req.query.status ?? '').trim();
+    const level = String(req.query.level ?? '').trim();
+    const search = String(req.query.search ?? '').trim();
 
-  const enrollments = await Enrollment.find(filter)
-    .populate("userId", "name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role");
+    const filter: any = {};
 
-  res.json(enrollments);
+    if (status) {
+      filter.status = status;
+    }
+
+    if (level && level !== 'All') {
+      filter.name = level;
+    }
+
+    if (search) {
+      const matchingUserIds = await User.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+          { phoneNumber: { $regex: search, $options: 'i' } },
+        ],
+      }).distinct('_id');
+
+      filter.$or = [
+        { courseTitle: { $regex: search, $options: 'i' } },
+        { name: { $regex: search, $options: 'i' } },
+        { userId: { $in: matchingUserIds } },
+      ];
+    }
+
+    const totalEnrollments = await Enrollment.countDocuments(filter);
+    const totalPages = Math.max(1, Math.ceil(totalEnrollments / limit));
+    const currentPage = Math.min(page, totalPages);
+
+    const enrollments = await Enrollment.find(filter)
+      .populate('userId', 'name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role createdAt')
+      .sort({ createdAt: -1 })
+      .skip((currentPage - 1) * limit)
+      .limit(limit);
+
+    const availableLevels = await Enrollment.distinct('name', status ? { status } : {});
+
+    return res.json({
+      enrollments,
+      availableLevels: ['All', ...availableLevels],
+      pagination: {
+        currentPage,
+        totalPages,
+        totalEnrollments,
+        limit,
+        hasPreviousPage: currentPage > 1,
+        hasNextPage: currentPage < totalPages,
+      },
+    });
+  } catch (error) {
+    console.error('Failed to fetch enrollments:', error);
+    return res.status(500).json({ message: 'Failed to fetch enrollments' });
+  }
 };
 
 // POST /api/language-training/admin/enroll/:id/approve
