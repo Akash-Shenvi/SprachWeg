@@ -111,7 +111,7 @@ const courses = [
         fees: '₹7,200+',
         icon: Zap,
         route: '/skill-training/scada',
-        image: 'https://sovirtechnologies.in/api/uploads/tariningwebsite/landing/plc.png',
+        image: 'https://sovirtechnologies.in/api/uploads/tariningwebsite/landing/scada.png',
         bgColor: 'bg-white dark:bg-blue-950/30',
         borderColor: 'border-blue-200 dark:border-blue-800'
     },
