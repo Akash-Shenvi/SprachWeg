@@ -254,7 +254,7 @@ const CareersPage: React.FC = () => {
                             className="relative w-full max-w-3xl overflow-hidden flex flex-col rounded-[32px] bg-white shadow-2xl dark:bg-[#0a192f] border border-gray-200 dark:border-[#d6b161]/20 max-h-[90vh]"
                         >
                             {/* Modal Header/Scrollable Area */}
-                            <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto p-6 md:p-10 scrollbar-hide">
                                 <button
                                     onClick={() => setSelectedInternship(null)}
                                     className="absolute top-5 right-5 md:top-7 md:right-7 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10 transition-colors"

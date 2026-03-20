@@ -25,6 +25,15 @@
     @apply bg-gray-400 dark:bg-gray-500;
 }
 
+/* Hide scrollbar but keep scrollable */
+.scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;             /* Chrome, Safari, Opera */
+}
+
 /* Smooth Transitions */
 * {
     @apply transition-colors duration-200;

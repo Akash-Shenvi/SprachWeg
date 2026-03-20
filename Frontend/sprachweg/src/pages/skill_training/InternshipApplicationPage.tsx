@@ -598,7 +598,7 @@ const InternshipApplicationPage: React.FC = () => {
 
         <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white/95 shadow-[0_20px_60px_rgba(10,25,47,0.12)] backdrop-blur-sm dark:border-white/10 dark:bg-[#112240]/95 dark:shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
           <div className="h-[3px] bg-gradient-to-r from-[#0a192f] via-[#d6b161] to-[#c4a055] dark:from-[#d6b161] dark:via-[#c4a055] dark:to-[#f1d18a]" />
-          <div className="p-10 text-center">
+          <div className="p-5 sm:p-8 md:p-10 text-center">
             <div className="mx-auto mb-6 flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[#d6b161]/15 text-[#d6b161] shadow-[0_0_0_12px_rgba(214,177,97,0.12)]">
               <FileText />
             </div>
@@ -657,7 +657,7 @@ const InternshipApplicationPage: React.FC = () => {
 
         <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white/95 shadow-[0_20px_60px_rgba(10,25,47,0.12)] backdrop-blur-sm animate-[slideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_both] dark:border-white/10 dark:bg-[#112240]/95 dark:shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
           <div className="h-[3px] bg-gradient-to-r from-[#0a192f] via-[#d6b161] to-[#c4a055] dark:from-[#d6b161] dark:via-[#c4a055] dark:to-[#f1d18a]" />
-          <div className="p-12 text-center">
+          <div className="p-6 sm:p-10 md:p-12 text-center">
             <div className="w-18 h-18 mx-auto mb-6 flex items-center justify-center rounded-full bg-gradient-to-br from-[#d6b161] to-[#c4a055] text-[#0a192f] shadow-[0_0_0_12px_rgba(214,177,97,0.18)]" style={{ width: 72, height: 72 }}>
               <CheckIcon />
             </div>
@@ -684,7 +684,7 @@ const InternshipApplicationPage: React.FC = () => {
 
   // ─── Main Form ──────────────────────────────────────────────────────────────
   return (
-    <div className="relative flex min-h-screen items-start justify-center overflow-hidden bg-gray-50 px-4 py-12 text-gray-900 transition-colors duration-300 dark:bg-[#0a192f] dark:text-gray-100">
+    <div className="relative flex min-h-screen items-start justify-center overflow-hidden overflow-x-hidden bg-gray-50 px-3 sm:px-4 py-8 sm:py-12 text-gray-900 transition-colors duration-300 dark:bg-[#0a192f] dark:text-gray-100">
 
       {/* Animated background blobs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -703,10 +703,10 @@ const InternshipApplicationPage: React.FC = () => {
       </div>
 
       {/* Form Card */}
-      <div className="relative z-10 w-full max-w-[780px] overflow-hidden rounded-2xl border border-gray-200 bg-white/95 shadow-[0_20px_60px_rgba(10,25,47,0.12)] backdrop-blur-sm animate-[slideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_both] dark:border-white/10 dark:bg-[#112240]/95 dark:shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+      <div className="relative z-10 w-full max-w-[780px] overflow-hidden rounded-2xl border border-gray-200 bg-white/95 shadow-[0_20px_60px_rgba(10,25,47,0.12)] backdrop-blur-sm animate-[slideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_both] dark:border-white/10 dark:bg-[#112240]/95 dark:shadow-[0_20px_60px_rgba(0,0,0,0.35)] box-border">
 
         {/* ─── Card Header ─────────────────────────────────────────────────── */}
-        <div className="relative border-b border-gray-200 px-10 pb-6 pt-10 text-center dark:border-white/10">
+        <div className="relative border-b border-gray-200 px-4 sm:px-8 md:px-10 pb-6 pt-8 sm:pt-10 text-center dark:border-white/10">
           {/* Top gradient stripe */}
           <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#0a192f] via-[#d6b161] to-[#c4a055] dark:from-[#d6b161] dark:via-[#c4a055] dark:to-[#f1d18a]" />
 
@@ -714,7 +714,7 @@ const InternshipApplicationPage: React.FC = () => {
           {step > 0 && (
             <button
               onClick={prevStep}
-              className="absolute left-8 top-8 flex cursor-pointer items-center gap-1.5 rounded-lg border-none bg-transparent px-2.5 py-1.5 text-[13px] font-medium text-gray-500 transition-all duration-200 hover:bg-[#d6b161]/10 hover:text-[#d6b161] dark:text-gray-300"
+              className="absolute left-3 sm:left-8 top-6 sm:top-8 flex cursor-pointer items-center gap-1.5 rounded-lg border-none bg-transparent px-2 sm:px-2.5 py-1.5 text-[12px] sm:text-[13px] font-medium text-gray-500 transition-all duration-200 hover:bg-[#d6b161]/10 hover:text-[#d6b161] dark:text-gray-300"
             >
               <ArrowLeft />
               Back
@@ -727,7 +727,7 @@ const InternshipApplicationPage: React.FC = () => {
             SoVir Technologies
           </div>
 
-          <h1 className="text-[30px] font-bold tracking-[-0.03em] leading-tight text-[#0a192f] dark:text-white">
+          <h1 className="text-[22px] sm:text-[26px] md:text-[30px] font-bold tracking-[-0.03em] leading-tight text-[#0a192f] dark:text-white">
             Internship <span className="text-[#d6b161]">Application</span>
           </h1>
           <p className="mt-1 text-[13px] tracking-wide text-gray-500 dark:text-gray-400">
@@ -823,7 +823,7 @@ const InternshipApplicationPage: React.FC = () => {
         </div>
 
         {/* ─── Form Body ───────────────────────────────────────────────────── */}
-        <div className="p-10">
+        <div className="p-4 sm:p-8 md:p-10">
 
           {/* ── STEP 0: Personal Identity ──────────────────────────────────── */}
           {step === 0 && (
