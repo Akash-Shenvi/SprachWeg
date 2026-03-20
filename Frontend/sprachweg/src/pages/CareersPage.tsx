@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import {
     ArrowRight,
     BarChart3,
@@ -29,6 +29,70 @@ import {
     type InternshipListing,
 } from '../types/internship';
 
+// --- Premium Animation Variants ---
+const fadeInUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: (custom: number = 0) => ({
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.6, delay: custom * 0.1, ease: [0.22, 1, 0.36, 1] as const }
+    })
+};
+
+const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: (startHeavyAnimations: boolean = false) => ({
+        opacity: 1,
+        transition: startHeavyAnimations
+            ? { staggerChildren: 0.1, delayChildren: 0.2 }
+            : { duration: 0.3 }
+    })
+};
+
+// Elevated Hero Background - Memoized and deferred for performance
+const HeroBackground: React.FC<{ startAnimations: boolean }> = React.memo(({ startAnimations }) => {
+    const shouldReduceMotion = useReducedMotion();
+    const { scrollY } = useScroll();
+    const y1 = useTransform(scrollY, [0, 500], [0, shouldReduceMotion ? 0 : 150]);
+    const y2 = useTransform(scrollY, [0, 500], [0, shouldReduceMotion ? 0 : -150]);
+    const opacity = useTransform(scrollY, [0, 500], [1, 0]);
+
+    return (
+        <motion.div
+            style={{ opacity, contain: 'paint' }}
+            className="absolute inset-0 z-0 overflow-hidden pointer-events-none"
+            aria-hidden="true"
+        >
+            {/* Static background immediately visible */}
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
+
+            {/* Heavy animated layers deferred until after first paint */}
+            {startAnimations && (
+                <>
+                    <motion.div
+                        style={{ y: y1 }}
+                        animate={{
+                            scale: [1, 1.1, 1],
+                            opacity: [0.3, 0.5, 0.3]
+                        }}
+                        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute -top-[10%] -right-[10%] h-[600px] w-[600px] rounded-full bg-gradient-to-br from-[#d6b161]/20 to-cyan-500/10 blur-[120px]"
+                    />
+                    <motion.div
+                        style={{ y: y2 }}
+                        animate={{
+                            scale: [1, 1.2, 1],
+                            opacity: [0.2, 0.4, 0.2]
+                        }}
+                        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                        className="absolute top-[20%] -left-[10%] h-[500px] w-[500px] rounded-full bg-indigo-500/10 blur-[100px]"
+                    />
+                </>
+            )}
+        </motion.div>
+    );
+});
+
 const getInternshipIcon = (internship: InternshipListing): LucideIcon => {
     const signal = `${internship.title} ${internship.tags.join(' ')}`.toLowerCase();
 
@@ -47,6 +111,21 @@ const CareersPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedInternship, setSelectedInternship] = useState<InternshipListing | null>(null);
+    const [startHeavyAnimations, setStartHeavyAnimations] = useState(false);
+
+    // Defer heavy animations until after first paint / idle
+    useEffect(() => {
+        if ('requestIdleCallback' in window) {
+            (window as any).requestIdleCallback(() => {
+                setStartHeavyAnimations(true);
+            }, { timeout: 200 });
+        } else {
+            const id = requestAnimationFrame(() => {
+                setStartHeavyAnimations(true);
+            });
+            return () => cancelAnimationFrame(id);
+        }
+    }, []);
 
     useEffect(() => {
         const fetchInternships = async () => {
@@ -88,33 +167,42 @@ const CareersPage: React.FC = () => {
         <div className="min-h-screen bg-[#f6f4ef] dark:bg-[#0a192f] transition-colors duration-300 flex flex-col">
             <Header />
 
-            {/* Compact Professional Hero */}
-            <section className="relative px-4 pt-40 pb-20 bg-[#0a192f] overflow-hidden flex-shrink-0">
-                {/* Centered radial gold glow */}
-                <div 
-                    className="absolute inset-x-0 top-1/2 -translate-y-1/2 mx-auto w-full max-w-3xl h-64 bg-[radial-gradient(ellipse_at_center,rgba(214,177,97,0.18),transparent_70%)] pointer-events-none" 
-                    aria-hidden="true" 
-                />
-                
-                {/* Smooth bottom fade */}
-                <div 
-                    className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-[#f6f4ef] dark:from-[#0a192f] to-transparent pointer-events-none" 
-                    aria-hidden="true" 
-                />
+            {/* Hero Section */}
+            <section className="relative bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#1a365d] py-28 sm:py-36 text-center overflow-hidden flex-shrink-0">
+                <HeroBackground startAnimations={startHeavyAnimations} />
 
-                <div className="relative z-10 mx-auto max-w-4xl text-center flex flex-col items-center">
-                    <span className="mb-8 inline-flex items-center gap-2 rounded-full border border-[#d6b161]/30 bg-[#d6b161]/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#d6b161] shadow-sm">
-                        ✦ Now Hiring
-                    </span>
-                    <h1 className="text-4xl md:text-5xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.2]">
-                        Shape your future with <br className="hidden sm:block" />
-                        <span className="bg-gradient-to-r from-[#d6b161] to-[#8b6f2c] bg-clip-text text-transparent drop-shadow-sm">
-                            practical industry experience
-                        </span>
-                    </h1>
-                    <p className="mt-5 text-gray-400 text-sm md:text-base max-w-lg mx-auto">
-                        Apply to curated roles built for professional growth, practical skills, and global career pathways.
-                    </p>
+                <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+                    <motion.div
+                        initial="hidden"
+                        animate="visible"
+                        variants={staggerContainer}
+                        custom={startHeavyAnimations}
+                        className="mx-auto max-w-4xl flex flex-col items-center"
+                    >
+                        <motion.div variants={fadeInUp} className="mb-6 flex justify-center">
+                            <span className="inline-flex items-center gap-2 rounded-full border border-[#d6b161]/20 bg-[#d6b161]/10 px-4 py-1.5 text-sm font-semibold text-[#d6b161] backdrop-blur-sm">
+                                <Briefcase className="h-4 w-4 fill-current" />
+                                Now Hiring
+                            </span>
+                        </motion.div>
+
+                        <motion.h1
+                            variants={fadeInUp}
+                            className="font-display mb-4 text-4xl md:text-5xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.2]"
+                        >
+                            Shape your future with <br className="hidden sm:block" />
+                            <span className="bg-gradient-to-r from-[#d6b161] to-[#b38f3f] bg-clip-text text-transparent">
+                                practical industry experience
+                            </span>
+                        </motion.h1>
+
+                        <motion.p
+                            variants={fadeInUp}
+                            className="mx-auto mt-2 max-w-2xl text-base leading-relaxed text-gray-300 sm:text-lg"
+                        >
+                            Apply to curated roles built for professional growth, practical skills, and global career pathways.
+                        </motion.p>
+                    </motion.div>
                 </div>
             </section>
 
