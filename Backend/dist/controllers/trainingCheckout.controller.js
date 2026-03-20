@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.recordTrainingPaymentFailure = exports.verifyTrainingPayment = exports.createTrainingCheckout = void 0;
+exports.recordTrainingPaymentFailure = exports.verifyTrainingPayment = exports.createTrainingCheckout = exports.deleteTrainingPaymentAttempt = exports.getAllTrainingPaymentAttempts = void 0;
 const env_1 = require("../config/env");
 const language_enrollment_model_1 = __importDefault(require("../models/language.enrollment.model"));
 const enrollment_model_1 = __importDefault(require("../models/enrollment.model"));
@@ -159,6 +159,66 @@ const sendPaymentFailureEmailIfNeeded = (attempt, user) => __awaiter(void 0, voi
     attempt.paymentFailureEmailSentAt = new Date();
     yield attempt.save();
 });
+const getAllTrainingPaymentAttempts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    try {
+        const rawPage = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 6));
+        const issuesOnly = String((_a = req.query.issuesOnly) !== null && _a !== void 0 ? _a : '').trim().toLowerCase() === 'true';
+        const status = String((_b = req.query.status) !== null && _b !== void 0 ? _b : '').trim().toLowerCase();
+        const filters = {};
+        if (issuesOnly || status === 'issues') {
+            filters.status = { $in: ['failed', 'cancelled'] };
+        }
+        else if (['created', 'paid', 'failed', 'cancelled'].includes(status)) {
+            filters.status = status;
+        }
+        const totalItems = yield trainingPaymentAttempt_model_1.default.countDocuments(filters);
+        const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+        const page = Math.min(rawPage, totalPages);
+        const paymentAttempts = yield trainingPaymentAttempt_model_1.default.find(filters)
+            .populate('userId', 'name email phoneNumber role avatar')
+            .populate('skillCourseId', 'title')
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .sort({ createdAt: -1 });
+        return res.status(200).json({
+            paymentAttempts,
+            pagination: {
+                page,
+                limit,
+                totalItems,
+                totalPages,
+                hasPreviousPage: page > 1,
+                hasNextPage: page < totalPages,
+            },
+        });
+    }
+    catch (error) {
+        console.error('Fetching training payment attempts failed:', error);
+        return res.status(500).json({ message: 'Failed to fetch training payment attempts.' });
+    }
+});
+exports.getAllTrainingPaymentAttempts = getAllTrainingPaymentAttempts;
+const deleteTrainingPaymentAttempt = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const paymentAttempt = yield trainingPaymentAttempt_model_1.default.findById(id);
+        if (!paymentAttempt) {
+            return res.status(404).json({ message: 'Training payment attempt not found.' });
+        }
+        if (paymentAttempt.status !== 'failed' && paymentAttempt.status !== 'cancelled') {
+            return res.status(400).json({ message: 'Only failed or cancelled payment attempts can be deleted.' });
+        }
+        yield paymentAttempt.deleteOne();
+        return res.status(200).json({ message: 'Training payment attempt deleted successfully.' });
+    }
+    catch (error) {
+        console.error('Deleting training payment attempt failed:', error);
+        return res.status(500).json({ message: 'Failed to delete training payment attempt.' });
+    }
+});
+exports.deleteTrainingPaymentAttempt = deleteTrainingPaymentAttempt;
 const languageOriginMap = {
     english: { keyword: 'English', courseTitle: 'English' },
     german: { keyword: 'German', courseTitle: 'German' },

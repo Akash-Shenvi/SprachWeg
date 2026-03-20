@@ -15,11 +15,12 @@ import {
     Hash,
     Phone,
     Search,
+    Trash2,
     User as UserIcon,
     X,
 } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import api, { getAssetUrl } from '../../lib/api';
+import api, { getAssetUrl, trainingCheckoutAPI } from '../../lib/api';
 import { formatPaymentState } from '../../lib/paymentFormatting';
 import { formatTrainingPrice } from '../../lib/trainingPricing';
 
@@ -89,7 +90,43 @@ interface EnrollmentPagination {
     hasNextPage: boolean;
 }
 
+interface TrainingPaymentAttempt {
+    _id: string;
+    userId?: StudentProfile | null;
+    skillCourseId?: {
+        _id: string;
+        title: string;
+    } | null;
+    trainingType: 'language' | 'skill';
+    origin: string;
+    courseTitle: string;
+    levelName?: string;
+    amount: number;
+    currency: string;
+    paymentStatus?: string;
+    paymentMethod?: string;
+    razorpayOrderId?: string;
+    razorpayPaymentId?: string;
+    failureReason?: string;
+    paymentErrorDescription?: string;
+    paymentErrorReason?: string;
+    status: 'created' | 'paid' | 'failed' | 'cancelled';
+    paidAt?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+interface PaymentAttemptPagination {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
 const ENROLLMENTS_PER_PAGE = 9;
+const TRAINING_PAYMENT_ISSUES_PAGE_SIZE = 6;
 
 const formatDateTime = (value?: string | null) => {
     if (!value) return 'Not available';
@@ -133,6 +170,27 @@ const getEnrollmentStatusClasses = (value?: string | null) => {
     return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
 };
 
+const getPaymentAttemptStatusMeta = (status: TrainingPaymentAttempt['status']) => {
+    if (status === 'paid') {
+        return 'border-green-200 bg-green-50 text-green-700 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300';
+    }
+
+    if (status === 'failed') {
+        return 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300';
+    }
+
+    if (status === 'cancelled') {
+        return 'border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-[#0a192f] dark:text-gray-300';
+    }
+
+    return 'border-[#d6b161]/30 bg-[#d6b161]/10 text-[#b38f3f] dark:text-[#d6b161]';
+};
+
+const formatPaymentAttemptTitle = (attempt: TrainingPaymentAttempt) =>
+    attempt.trainingType === 'language' && attempt.levelName
+        ? `${attempt.courseTitle} - ${attempt.levelName}`
+        : attempt.courseTitle;
+
 const LanguageEnrollmentDetails: React.FC = () => {
     const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
     const [loading, setLoading] = useState(true);
@@ -157,10 +215,27 @@ const LanguageEnrollmentDetails: React.FC = () => {
     const [languageEnrollments, setLanguageEnrollments] = useState<LanguageEnrollment[]>([]);
     const [skillEnrollments, setSkillEnrollments] = useState<SkillEnrollment[]>([]);
     const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
+    const [paymentIssueItems, setPaymentIssueItems] = useState<TrainingPaymentAttempt[]>([]);
+    const [paymentIssuePagination, setPaymentIssuePagination] = useState<PaymentAttemptPagination>({
+        page: 1,
+        limit: TRAINING_PAYMENT_ISSUES_PAGE_SIZE,
+        totalItems: 0,
+        totalPages: 1,
+        hasPreviousPage: false,
+        hasNextPage: false,
+    });
+    const [isPaymentIssuesOpen, setIsPaymentIssuesOpen] = useState(false);
+    const [paymentIssuesLoading, setPaymentIssuesLoading] = useState(false);
+    const [paymentIssuesError, setPaymentIssuesError] = useState('');
+    const [paymentIssueDeletingId, setPaymentIssueDeletingId] = useState<string | null>(null);
 
     useEffect(() => {
         void fetchEnrollments();
     }, [pagination.currentPage, searchQuery, filterLevel]);
+
+    useEffect(() => {
+        void fetchPaymentIssues(1);
+    }, []);
 
     useEffect(() => {
         if (!selectedEnrollment) {
@@ -199,6 +274,51 @@ const LanguageEnrollmentDetails: React.FC = () => {
             setError(err.response?.data?.message || 'Failed to fetch enrollments');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const syncPaymentIssueState = (
+        paymentAttempts: TrainingPaymentAttempt[],
+        nextPagination?: Partial<PaymentAttemptPagination>,
+        fallbackPage = 1
+    ) => {
+        setPaymentIssueItems(paymentAttempts);
+        setPaymentIssuePagination({
+            page: nextPagination?.page ?? fallbackPage,
+            limit: nextPagination?.limit ?? TRAINING_PAYMENT_ISSUES_PAGE_SIZE,
+            totalItems: nextPagination?.totalItems ?? paymentAttempts.length,
+            totalPages: nextPagination?.totalPages ?? 1,
+            hasPreviousPage: nextPagination?.hasPreviousPage ?? false,
+            hasNextPage: nextPagination?.hasNextPage ?? false,
+        });
+    };
+
+    const fetchPaymentIssues = async (page = 1, options?: { showLoader?: boolean }) => {
+        try {
+            if (options?.showLoader) {
+                setPaymentIssuesLoading(true);
+            }
+
+            setPaymentIssuesError('');
+
+            const response = await trainingCheckoutAPI.getAllPaymentAttemptsAdmin({
+                page,
+                limit: TRAINING_PAYMENT_ISSUES_PAGE_SIZE,
+                issuesOnly: true,
+            });
+
+            syncPaymentIssueState(
+                response.paymentAttempts || [],
+                response.pagination,
+                page
+            );
+        } catch (err: any) {
+            console.error('Failed to fetch training payment issues:', err);
+            setPaymentIssuesError(err.response?.data?.message || 'Failed to load payment issues.');
+        } finally {
+            if (options?.showLoader) {
+                setPaymentIssuesLoading(false);
+            }
         }
     };
 
@@ -297,8 +417,45 @@ const LanguageEnrollmentDetails: React.FC = () => {
         setSelectedStudentProfile(null);
     };
 
+    const handleOpenPaymentIssues = async () => {
+        setIsPaymentIssuesOpen(true);
+        await fetchPaymentIssues(1, { showLoader: true });
+    };
+
+    const handleDeletePaymentIssue = async (attempt: TrainingPaymentAttempt) => {
+        if (!window.confirm('Delete this training payment issue record?')) {
+            return;
+        }
+
+        try {
+            setPaymentIssueDeletingId(attempt._id);
+            await trainingCheckoutAPI.deletePaymentAttemptAdmin(attempt._id);
+
+            const nextPage =
+                paymentIssueItems.length === 1 && paymentIssuePagination.page > 1
+                    ? paymentIssuePagination.page - 1
+                    : paymentIssuePagination.page;
+
+            await fetchPaymentIssues(nextPage, { showLoader: true });
+        } catch (err: any) {
+            console.error('Failed to delete training payment issue:', err);
+            window.alert(err.response?.data?.message || 'Failed to delete training payment issue.');
+        } finally {
+            setPaymentIssueDeletingId(null);
+        }
+    };
+
     const enrollmentStart = enrollments.length === 0 ? 0 : (pagination.currentPage - 1) * pagination.limit + 1;
     const enrollmentEnd = enrollments.length === 0 ? 0 : Math.min(pagination.currentPage * pagination.limit, pagination.totalEnrollments);
+    const paymentIssueCount = paymentIssuePagination.totalItems;
+    const paymentIssueStart =
+        paymentIssueCount === 0
+            ? 0
+            : (paymentIssuePagination.page - 1) * paymentIssuePagination.limit + 1;
+    const paymentIssueEnd =
+        paymentIssueCount === 0
+            ? 0
+            : Math.min(paymentIssuePagination.page * paymentIssuePagination.limit, paymentIssueCount);
 
     return (
         <AdminLayout>
@@ -341,6 +498,60 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                 </option>
                             ))}
                         </select>
+                    </div>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-[#112240]">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Payment Issue Center</h2>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Review failed and cancelled training payments separately from the pending enrollment queue.
+                            </p>
+                        </div>
+                        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+                            <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 dark:border-orange-900/40 dark:bg-orange-900/20 dark:text-orange-300">
+                                {paymentIssueCount} issue{paymentIssueCount === 1 ? '' : 's'}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => void handleOpenPaymentIssues()}
+                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#d6b161]/30 bg-[#d6b161]/10 px-4 py-2 text-sm font-semibold text-[#d6b161] transition-colors hover:bg-[#d6b161]/20"
+                            >
+                                <Eye className="h-4 w-4" />
+                                View Payment Issues
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                        <div className="rounded-2xl border border-orange-200 bg-orange-50/70 p-4 dark:border-orange-900/40 dark:bg-orange-900/10">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-700 dark:text-orange-300">
+                                Queue Size
+                            </p>
+                            <p className="mt-2 text-2xl font-bold text-[#0a192f] dark:text-white">{paymentIssueCount}</p>
+                            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                Failed and cancelled attempts waiting for admin review.
+                            </p>
+                        </div>
+                        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#0a192f]">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
+                                Page Size
+                            </p>
+                            <p className="mt-2 text-2xl font-bold text-[#0a192f] dark:text-white">{TRAINING_PAYMENT_ISSUES_PAGE_SIZE}</p>
+                            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                Each page in the modal shows a compact batch of payment issues.
+                            </p>
+                        </div>
+                        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#0a192f]">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
+                                Cleanup
+                            </p>
+                            <p className="mt-2 text-2xl font-bold text-[#0a192f] dark:text-white">Delete</p>
+                            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                Remove stale failed or cancelled attempts without cluttering the main enrollment list.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -498,6 +709,203 @@ const LanguageEnrollmentDetails: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            <AnimatePresence>
+                {isPaymentIssuesOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+                            onClick={() => setIsPaymentIssuesOpen(false)}
+                        />
+
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative z-10 flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl dark:bg-[#112240]"
+                        >
+                            <div className="border-b border-gray-200 dark:border-gray-800">
+                                <div className="flex items-start justify-between gap-4 p-6">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Payment Issues</h2>
+                                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                            Review failed or cancelled training checkout attempts and delete stale records when needed.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsPaymentIssuesOpen(false)}
+                                        className="rounded-full p-2 text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                                    >
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="max-h-[70vh] overflow-y-auto p-6">
+                                {paymentIssuesLoading ? (
+                                    <div className="flex justify-center py-16">
+                                        <Loader2 className="h-8 w-8 animate-spin text-[#d6b161]" />
+                                    </div>
+                                ) : paymentIssuesError ? (
+                                    <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-8 text-center text-red-700 dark:border-red-900/40 dark:bg-red-900/10 dark:text-red-300">
+                                        {paymentIssuesError}
+                                    </div>
+                                ) : paymentIssueItems.length === 0 ? (
+                                    <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-12 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                                        No failed or cancelled training payment attempts right now.
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-4 lg:grid-cols-2">
+                                        {paymentIssueItems.map((attempt) => {
+                                            const isDeleting = paymentIssueDeletingId === attempt._id;
+                                            const displayName = attempt.userId?.name || 'Unknown User';
+                                            const displayEmail = attempt.userId?.email || 'Not available';
+                                            const displayPhone = attempt.userId?.phoneNumber || 'Not available';
+
+                                            return (
+                                                <article
+                                                    key={attempt._id}
+                                                    className="rounded-2xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-[#0a192f]"
+                                                >
+                                                    <div className="flex flex-wrap items-start justify-between gap-3">
+                                                        <div>
+                                                            <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                                                                {displayName}
+                                                            </h3>
+                                                            <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                                {formatPaymentAttemptTitle(attempt)}
+                                                            </p>
+                                                            <p className="mt-1 text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                                {attempt.trainingType === 'language' ? 'Language Training' : 'Skill Training'}
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getPaymentAttemptStatusMeta(attempt.status)}`}>
+                                                                {formatPaymentState(attempt.status)}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => void handleDeletePaymentIssue(attempt)}
+                                                                disabled={isDeleting}
+                                                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30"
+                                                            >
+                                                                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
+                                                        <div>
+                                                            <p className="text-gray-500 dark:text-gray-400">Contact</p>
+                                                            <p className="font-semibold text-gray-900 dark:text-white">{displayEmail}</p>
+                                                            <p className="text-gray-600 dark:text-gray-300">{displayPhone}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-500 dark:text-gray-400">Amount</p>
+                                                            <p className="font-semibold text-gray-900 dark:text-white">
+                                                                {formatTrainingPrice(attempt.amount / 100, attempt.currency)}
+                                                            </p>
+                                                            <p className="text-gray-600 dark:text-gray-300">
+                                                                {attempt.levelName || (attempt.trainingType === 'skill' ? 'Skill Training' : 'Language Training')}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-500 dark:text-gray-400">Order ID</p>
+                                                            <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
+                                                                {attempt.razorpayOrderId || 'Not created'}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-500 dark:text-gray-400">Payment ID</p>
+                                                            <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
+                                                                {attempt.razorpayPaymentId || 'Not available'}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-500 dark:text-gray-400">Gateway Status</p>
+                                                            <p className="font-semibold text-gray-900 dark:text-white">
+                                                                {formatPaymentState(attempt.paymentStatus)}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-500 dark:text-gray-400">Payment Method</p>
+                                                            <p className="font-semibold text-gray-900 dark:text-white">
+                                                                {attempt.paymentMethod || 'Not available'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-4 space-y-2 text-sm">
+                                                        <p className="text-gray-500 dark:text-gray-400">
+                                                            Failure reason:{' '}
+                                                            <span className="font-semibold text-gray-900 dark:text-white">
+                                                                {attempt.failureReason || attempt.paymentErrorDescription || attempt.paymentErrorReason || 'Not available'}
+                                                            </span>
+                                                        </p>
+                                                        <p className="text-gray-500 dark:text-gray-400">
+                                                            Recorded:{' '}
+                                                            <span className="font-semibold text-gray-900 dark:text-white">{formatDateTime(attempt.createdAt)}</span>
+                                                        </p>
+                                                    </div>
+                                                </article>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="border-t border-gray-200 px-6 py-4 dark:border-gray-800">
+                                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        Showing{' '}
+                                        <span className="font-semibold text-gray-900 dark:text-white">{paymentIssueStart}</span>{' '}
+                                        to{' '}
+                                        <span className="font-semibold text-gray-900 dark:text-white">{paymentIssueEnd}</span>{' '}
+                                        of{' '}
+                                        <span className="font-semibold text-gray-900 dark:text-white">{paymentIssueCount}</span>{' '}
+                                        issues
+                                    </p>
+
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => void fetchPaymentIssues(paymentIssuePagination.page - 1, { showLoader: true })}
+                                            disabled={!paymentIssuePagination.hasPreviousPage || paymentIssuesLoading}
+                                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-[#0a192f] dark:text-gray-300 dark:hover:bg-gray-800"
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                            Previous
+                                        </button>
+
+                                        <span className="px-3 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                            Page{' '}
+                                            <span className="text-gray-900 dark:text-white">{paymentIssuePagination.page}</span>{' '}
+                                            of{' '}
+                                            <span className="text-gray-900 dark:text-white">{paymentIssuePagination.totalPages}</span>
+                                        </span>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => void fetchPaymentIssues(paymentIssuePagination.page + 1, { showLoader: true })}
+                                            disabled={!paymentIssuePagination.hasNextPage || paymentIssuesLoading}
+                                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-[#0a192f] dark:text-gray-300 dark:hover:bg-gray-800"
+                                        >
+                                            Next
+                                            <ChevronRight className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             <AnimatePresence>
                 {selectedEnrollment && selectedStudentProfile && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

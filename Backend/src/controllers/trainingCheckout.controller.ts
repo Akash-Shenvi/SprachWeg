@@ -182,6 +182,71 @@ const sendPaymentFailureEmailIfNeeded = async (attempt: ITrainingPaymentAttempt,
     await attempt.save();
 };
 
+export const getAllTrainingPaymentAttempts = async (req: Request, res: Response) => {
+    try {
+        const rawPage = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 6));
+        const issuesOnly = String(req.query.issuesOnly ?? '').trim().toLowerCase() === 'true';
+        const status = String(req.query.status ?? '').trim().toLowerCase();
+
+        const filters: Record<string, any> = {};
+
+        if (issuesOnly || status === 'issues') {
+            filters.status = { $in: ['failed', 'cancelled'] };
+        } else if (['created', 'paid', 'failed', 'cancelled'].includes(status)) {
+            filters.status = status;
+        }
+
+        const totalItems = await TrainingPaymentAttempt.countDocuments(filters);
+        const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+        const page = Math.min(rawPage, totalPages);
+
+        const paymentAttempts = await TrainingPaymentAttempt.find(filters)
+            .populate('userId', 'name email phoneNumber role avatar')
+            .populate('skillCourseId', 'title')
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            paymentAttempts,
+            pagination: {
+                page,
+                limit,
+                totalItems,
+                totalPages,
+                hasPreviousPage: page > 1,
+                hasNextPage: page < totalPages,
+            },
+        });
+    } catch (error) {
+        console.error('Fetching training payment attempts failed:', error);
+        return res.status(500).json({ message: 'Failed to fetch training payment attempts.' });
+    }
+};
+
+export const deleteTrainingPaymentAttempt = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const paymentAttempt = await TrainingPaymentAttempt.findById(id);
+
+        if (!paymentAttempt) {
+            return res.status(404).json({ message: 'Training payment attempt not found.' });
+        }
+
+        if (paymentAttempt.status !== 'failed' && paymentAttempt.status !== 'cancelled') {
+            return res.status(400).json({ message: 'Only failed or cancelled payment attempts can be deleted.' });
+        }
+
+        await paymentAttempt.deleteOne();
+
+        return res.status(200).json({ message: 'Training payment attempt deleted successfully.' });
+    } catch (error) {
+        console.error('Deleting training payment attempt failed:', error);
+        return res.status(500).json({ message: 'Failed to delete training payment attempt.' });
+    }
+};
+
 const languageOriginMap: Record<string, { keyword: string; courseTitle: string }> = {
     english: { keyword: 'English', courseTitle: 'English' },
     german: { keyword: 'German', courseTitle: 'German' },
