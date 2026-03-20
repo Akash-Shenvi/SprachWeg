@@ -631,6 +631,24 @@ const InternshipApplicationPage: React.FC = () => {
           internshipTitle: checkout.internshipTitle,
           internshipMode: formatInternshipMode(form.internshipMode),
         },
+        config: {
+          display: {
+            blocks: {
+              upi_priority: {
+                name: 'Pay via UPI',
+                instruments: [
+                  {
+                    method: 'upi',
+                  },
+                ],
+              },
+            },
+            sequence: ['block.upi_priority'],
+            preferences: {
+              show_default_blocks: true,
+            },
+          },
+        },
         theme: {
           color: '#d6b161',
         },
