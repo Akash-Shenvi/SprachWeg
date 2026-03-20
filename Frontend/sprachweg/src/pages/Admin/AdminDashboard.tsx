@@ -11,7 +11,8 @@ import {
     Plus,
     ChevronRight,
     Activity,
-    Layers
+    Layers,
+    ArrowLeft
 } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
@@ -292,6 +293,18 @@ const AdminDashboard: React.FC = () => {
                 {/* ── Hero ── */}
                 <div className="relative bg-[#0a192f] dark:bg-[#030810] text-white py-24 sm:py-32 text-center overflow-hidden -mx-6 -mt-6 lg:-mx-8 lg:-mt-8 mb-10">
                     <HeroBackground />
+                    
+                    {/* Back Button */}
+                    <div className="absolute top-6 left-6 z-20 sm:top-8 sm:left-8">
+                        <Link
+                            to="/"
+                            className="group flex items-center gap-2 rounded-full bg-white/5 px-3 py-2 sm:px-4 sm:py-2.5 text-sm font-medium text-white/80 border border-white/10 backdrop-blur-md transition-all hover:bg-white/15 hover:text-white hover:border-[#d6b161]/50 hover:shadow-[0_0_15px_rgba(214,177,97,0.2)] hover:scale-105 active:scale-95"
+                        >
+                            <ArrowLeft className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-1" />
+                            <span className="hidden sm:block tracking-wide">Return Home</span>
+                        </Link>
+                    </div>
+
                     <div className="relative z-10 max-w-3xl mx-auto px-4">
                         <motion.div initial="hidden" animate="visible" variants={fadeInUp}>
                             <div className="inline-flex items-center gap-2 rounded-full border border-[#d6b161]/30 bg-[#d6b161]/10 px-4 py-1.5 mb-5">
