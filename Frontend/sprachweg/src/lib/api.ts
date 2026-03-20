@@ -163,12 +163,30 @@ export const skillTrainingDetailAPI = {
 };
 
 export const internshipApplicationAPI = {
-    async submit(data: FormData) {
+    async createCheckout(data: FormData) {
         const response = await api.post('/internship-applications', data, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
         });
+        return response.data;
+    },
+    async verifyPayment(data: {
+        attemptId: string;
+        razorpay_order_id: string;
+        razorpay_payment_id: string;
+        razorpay_signature: string;
+    }) {
+        const response = await api.post('/internship-applications/verify-payment', data);
+        return response.data;
+    },
+    async recordPaymentFailure(data: {
+        attemptId: string;
+        status: 'failed' | 'cancelled';
+        reason?: string;
+        error?: Record<string, unknown>;
+    }) {
+        const response = await api.post('/internship-applications/payment-failure', data);
         return response.data;
     },
     async getMine() {
@@ -181,6 +199,10 @@ export const internshipApplicationAPI = {
     },
     async getAllAdmin() {
         const response = await api.get('/internship-applications/admin');
+        return response.data;
+    },
+    async getAllPaymentAttemptsAdmin() {
+        const response = await api.get('/internship-applications/admin/payment-attempts');
         return response.data;
     },
     async updateStatus(applicationId: string, status: 'accepted' | 'rejected') {

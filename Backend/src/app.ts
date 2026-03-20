@@ -18,7 +18,11 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
-app.use(express.json());
+app.use(express.json({
+    verify: (req, _res, buf) => {
+        (req as any).rawBody = Buffer.from(buf);
+    },
+}));
 
 import itemRoutes from './routes/item.routes';
 import authRoutes from './routes/auth.routes';

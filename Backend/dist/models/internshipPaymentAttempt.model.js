@@ -34,25 +34,18 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const generateReferenceCode = () => `SOV-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-const InternshipApplicationSchema = new mongoose_1.Schema({
-    userId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-    paymentAttemptId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'InternshipPaymentAttempt' },
+const InternshipPaymentAttemptSchema = new mongoose_1.Schema({
+    userId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    applicationId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'InternshipApplication' },
     accountName: { type: String, required: true, trim: true },
     accountEmail: { type: String, required: true, trim: true, lowercase: true },
     accountPhoneNumber: { type: String, trim: true },
-    internshipSlug: { type: String, trim: true, lowercase: true },
+    internshipSlug: { type: String, required: true, trim: true, lowercase: true, index: true },
     internshipTitle: { type: String, required: true, trim: true },
-    internshipPrice: { type: Number, min: 0 },
-    internshipMode: { type: String, enum: ['remote', 'online', 'hybrid', 'onsite'], trim: true },
-    paymentGateway: { type: String, enum: ['razorpay', 'free'], trim: true },
-    paymentStatus: { type: String, trim: true },
-    paymentAmount: { type: Number, min: 0 },
-    paymentCurrency: { type: String, trim: true, uppercase: true },
-    paymentMethod: { type: String, trim: true },
-    razorpayOrderId: { type: String, trim: true, sparse: true },
-    razorpayPaymentId: { type: String, trim: true, sparse: true },
-    paidAt: { type: Date },
+    internshipPrice: { type: Number, required: true, min: 0 },
+    internshipMode: { type: String, enum: ['remote', 'online', 'hybrid', 'onsite'], required: true, trim: true },
+    amount: { type: Number, required: true, min: 1 },
+    currency: { type: String, required: true, trim: true, uppercase: true, default: 'INR' },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     dateOfBirth: { type: Date, required: true },
@@ -69,23 +62,33 @@ const InternshipApplicationSchema = new mongoose_1.Schema({
     resumeOriginalName: { type: String, required: true, trim: true },
     status: {
         type: String,
-        enum: ['submitted', 'accepted', 'rejected', 'reviewed', 'shortlisted'],
-        default: 'submitted',
+        enum: ['created', 'paid', 'failed', 'cancelled'],
+        default: 'created',
+        index: true,
     },
-    referenceCode: {
+    paymentGateway: {
         type: String,
+        enum: ['razorpay'],
+        default: 'razorpay',
         required: true,
-        unique: true,
-        default: generateReferenceCode,
     },
+    paymentStatus: { type: String, trim: true },
+    paymentMethod: { type: String, trim: true },
+    razorpayOrderId: { type: String, trim: true, index: true, sparse: true },
+    razorpayPaymentId: { type: String, trim: true, index: true, sparse: true },
+    razorpaySignature: { type: String, trim: true },
+    paymentEmail: { type: String, trim: true, lowercase: true },
+    paymentContact: { type: String, trim: true },
+    failureReason: { type: String, trim: true },
+    paymentErrorCode: { type: String, trim: true },
+    paymentErrorDescription: { type: String, trim: true },
+    paymentErrorSource: { type: String, trim: true },
+    paymentErrorStep: { type: String, trim: true },
+    paymentErrorReason: { type: String, trim: true },
+    lastWebhookEvent: { type: String, trim: true },
+    paidAt: { type: Date },
 }, {
     timestamps: true,
 });
-InternshipApplicationSchema.index({ userId: 1, internshipTitle: 1 }, { unique: true });
-InternshipApplicationSchema.index({ userId: 1, internshipSlug: 1 }, {
-    unique: true,
-    partialFilterExpression: {
-        internshipSlug: { $exists: true, $type: 'string' },
-    },
-});
-exports.default = mongoose_1.default.model('InternshipApplication', InternshipApplicationSchema);
+InternshipPaymentAttemptSchema.index({ userId: 1, internshipSlug: 1, status: 1, createdAt: -1 });
+exports.default = mongoose_1.default.model('InternshipPaymentAttempt', InternshipPaymentAttemptSchema);

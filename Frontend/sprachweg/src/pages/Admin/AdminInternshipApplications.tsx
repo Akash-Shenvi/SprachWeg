@@ -24,7 +24,7 @@ import {
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { getAssetUrl, internshipApplicationAPI } from '../../lib/api';
-import { formatInternshipMode } from '../../types/internship';
+import { formatInternshipMode, formatInternshipPrice } from '../../types/internship';
 
 type InternshipApplicationStatus = 'submitted' | 'accepted' | 'rejected' | 'reviewed' | 'shortlisted';
 type DisplayStatus = 'submitted' | 'accepted' | 'rejected';
@@ -41,11 +41,21 @@ interface InternshipApplicantUser {
 interface InternshipApplication {
     _id: string;
     userId?: InternshipApplicantUser;
+    paymentAttemptId?: string;
     accountName: string;
     accountEmail: string;
     accountPhoneNumber?: string;
     internshipTitle: string;
+    internshipPrice?: number;
     internshipMode?: string;
+    paymentGateway?: string;
+    paymentStatus?: string;
+    paymentAmount?: number;
+    paymentCurrency?: string;
+    paymentMethod?: string;
+    razorpayOrderId?: string;
+    razorpayPaymentId?: string;
+    paidAt?: string;
     firstName: string;
     lastName: string;
     dateOfBirth: string;
@@ -66,6 +76,39 @@ interface InternshipApplication {
     updatedAt: string;
 }
 
+interface LinkedInternshipApplication {
+    _id: string;
+    referenceCode: string;
+    status: InternshipApplicationStatus;
+    createdAt: string;
+}
+
+interface InternshipPaymentAttempt {
+    _id: string;
+    userId?: InternshipApplicantUser;
+    applicationId?: LinkedInternshipApplication;
+    internshipTitle: string;
+    internshipPrice: number;
+    internshipMode?: string;
+    amount: number;
+    currency: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    whatsapp: string;
+    paymentStatus?: string;
+    paymentMethod?: string;
+    razorpayOrderId?: string;
+    razorpayPaymentId?: string;
+    failureReason?: string;
+    paymentErrorDescription?: string;
+    paymentErrorReason?: string;
+    status: 'created' | 'paid' | 'failed' | 'cancelled';
+    paidAt?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
 const normalizeStatus = (status: InternshipApplicationStatus): DisplayStatus => {
     if (status === 'accepted') return 'accepted';
     if (status === 'rejected') return 'rejected';
@@ -80,6 +123,21 @@ const formatDate = (value: string) =>
         hour: '2-digit',
         minute: '2-digit',
     });
+
+const formatPaymentState = (value?: string) => {
+    const normalizedValue = String(value ?? '').trim().toLowerCase();
+
+    if (!normalizedValue) return 'Not available';
+    if (normalizedValue === 'paid') return 'Paid';
+    if (normalizedValue === 'created') return 'Created';
+    if (normalizedValue === 'failed') return 'Failed';
+    if (normalizedValue === 'cancelled') return 'Cancelled';
+    if (normalizedValue === 'captured') return 'Captured';
+    if (normalizedValue === 'authorized') return 'Authorized';
+    if (normalizedValue === 'refunded') return 'Refunded';
+
+    return normalizedValue.charAt(0).toUpperCase() + normalizedValue.slice(1);
+};
 
 const getStatusMeta = (status: DisplayStatus) => {
     if (status === 'accepted') {
@@ -105,9 +163,26 @@ const getStatusMeta = (status: DisplayStatus) => {
     };
 };
 
+const getPaymentAttemptStatusMeta = (status: InternshipPaymentAttempt['status']) => {
+    if (status === 'paid') {
+        return 'border-green-200 bg-green-50 text-green-700 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300';
+    }
+
+    if (status === 'failed') {
+        return 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300';
+    }
+
+    if (status === 'cancelled') {
+        return 'border-gray-200 bg-gray-100 text-gray-700 dark:border-gray-700 dark:bg-[#0a192f] dark:text-gray-300';
+    }
+
+    return 'border-[#d6b161]/30 bg-[#d6b161]/10 text-[#b38f3f] dark:text-[#d6b161]';
+};
+
 const AdminInternshipApplications: React.FC = () => {
     const APPLICATIONS_PER_PAGE = 10;
     const [applications, setApplications] = useState<InternshipApplication[]>([]);
+    const [paymentAttempts, setPaymentAttempts] = useState<InternshipPaymentAttempt[]>([]);
     const [selectedApplication, setSelectedApplication] = useState<InternshipApplication | null>(null);
     const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -129,8 +204,12 @@ const AdminInternshipApplications: React.FC = () => {
         try {
             setLoading(true);
             setError(null);
-            const response = await internshipApplicationAPI.getAllAdmin();
-            setApplications(response.applications || []);
+            const [applicationResponse, paymentAttemptResponse] = await Promise.all([
+                internshipApplicationAPI.getAllAdmin(),
+                internshipApplicationAPI.getAllPaymentAttemptsAdmin(),
+            ]);
+            setApplications(applicationResponse.applications || []);
+            setPaymentAttempts(paymentAttemptResponse.paymentAttempts || []);
         } catch (err: any) {
             console.error('Failed to fetch internship applications:', err);
             setError(err.response?.data?.message || 'Failed to load internship applications.');
@@ -214,6 +293,9 @@ const AdminInternshipApplications: React.FC = () => {
                 application.whatsapp,
                 application.internshipTitle,
                 application.internshipMode,
+                application.paymentStatus,
+                application.razorpayPaymentId,
+                application.razorpayOrderId,
                 application.college,
                 application.referenceCode,
             ]
@@ -244,6 +326,8 @@ const AdminInternshipApplications: React.FC = () => {
         accepted: applications.filter((application) => normalizeStatus(application.status) === 'accepted').length,
         rejected: applications.filter((application) => normalizeStatus(application.status) === 'rejected').length,
     };
+    const paymentIssueAttempts = paymentAttempts.filter((attempt) => attempt.status === 'failed' || attempt.status === 'cancelled');
+    const recentPaymentIssues = paymentIssueAttempts.slice(0, 8);
 
     const totalPages = Math.max(1, Math.ceil(filteredApplications.length / APPLICATIONS_PER_PAGE));
     const paginatedApplications = filteredApplications.slice(
@@ -287,7 +371,7 @@ const AdminInternshipApplications: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                     <div className="rounded-2xl border border-[#d6b161]/30 bg-[#d6b161]/10 p-5">
                         <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Pending Review</p>
                         <p className="mt-2 text-3xl font-bold text-[#0a192f] dark:text-white">{statusCounts.submitted}</p>
@@ -303,6 +387,10 @@ const AdminInternshipApplications: React.FC = () => {
                     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-[#112240]">
                         <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Applications</p>
                         <p className="mt-2 text-3xl font-bold text-[#0a192f] dark:text-white">{applications.length}</p>
+                    </div>
+                    <div className="rounded-2xl border border-orange-200 bg-orange-50 p-5 dark:border-orange-900/40 dark:bg-orange-900/10">
+                        <p className="text-sm font-medium text-orange-700 dark:text-orange-300">Payment Issues</p>
+                        <p className="mt-2 text-3xl font-bold text-[#0a192f] dark:text-white">{paymentIssueAttempts.length}</p>
                     </div>
                 </div>
 
@@ -339,6 +427,104 @@ const AdminInternshipApplications: React.FC = () => {
                         ))}
                     </div>
                 </div>
+
+                {!loading && !error && (
+                    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-[#112240]">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recent Payment Issues</h2>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    Failed and cancelled Razorpay attempts appear here even when no internship application was created.
+                                </p>
+                            </div>
+                            <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 dark:border-orange-900/40 dark:bg-orange-900/20 dark:text-orange-300">
+                                {paymentIssueAttempts.length} issue{paymentIssueAttempts.length === 1 ? '' : 's'}
+                            </span>
+                        </div>
+
+                        {recentPaymentIssues.length === 0 ? (
+                            <div className="mt-5 rounded-2xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                                No failed or cancelled payment attempts right now.
+                            </div>
+                        ) : (
+                            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                                {recentPaymentIssues.map((attempt) => (
+                                    <article
+                                        key={attempt._id}
+                                        className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#0a192f]"
+                                    >
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                            <div>
+                                                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                                                    {attempt.firstName} {attempt.lastName}
+                                                </h3>
+                                                <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                    {attempt.internshipTitle}
+                                                </p>
+                                            </div>
+                                            <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getPaymentAttemptStatusMeta(attempt.status)}`}>
+                                                {formatPaymentState(attempt.status)}
+                                            </span>
+                                        </div>
+
+                                        <div className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Contact</p>
+                                                <p className="font-semibold text-gray-900 dark:text-white">{attempt.email}</p>
+                                                <p className="text-gray-600 dark:text-gray-300">{attempt.whatsapp}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Amount</p>
+                                                <p className="font-semibold text-gray-900 dark:text-white">
+                                                    {formatInternshipPrice(attempt.amount / 100, attempt.currency)}
+                                                </p>
+                                                <p className="text-gray-600 dark:text-gray-300">{formatInternshipMode(attempt.internshipMode)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Order ID</p>
+                                                <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
+                                                    {attempt.razorpayOrderId || 'Not created'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Payment ID</p>
+                                                <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
+                                                    {attempt.razorpayPaymentId || 'Not available'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Gateway Status</p>
+                                                <p className="font-semibold text-gray-900 dark:text-white">
+                                                    {formatPaymentState(attempt.paymentStatus)}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Payment Method</p>
+                                                <p className="font-semibold text-gray-900 dark:text-white">
+                                                    {attempt.paymentMethod || 'Not available'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-4 space-y-2 text-sm">
+                                            <p className="text-gray-500 dark:text-gray-400">
+                                                Failure reason: <span className="font-semibold text-gray-900 dark:text-white">{attempt.failureReason || attempt.paymentErrorDescription || attempt.paymentErrorReason || 'Not available'}</span>
+                                            </p>
+                                            <p className="text-gray-500 dark:text-gray-400">
+                                                Recorded: <span className="font-semibold text-gray-900 dark:text-white">{formatDate(attempt.createdAt)}</span>
+                                            </p>
+                                            {attempt.applicationId && (
+                                                <p className="text-gray-500 dark:text-gray-400">
+                                                    Linked application: <span className="font-semibold text-gray-900 dark:text-white">{attempt.applicationId.referenceCode}</span>
+                                                </p>
+                                            )}
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {loading ? (
                     <div className="flex justify-center py-20">
@@ -386,6 +572,11 @@ const AdminInternshipApplications: React.FC = () => {
                                                 <span className="inline-flex items-center rounded-full border border-[#d6b161]/30 bg-[#d6b161]/10 px-3 py-1 text-xs font-semibold text-[#b38f3f] dark:text-[#d6b161]">
                                                     {formatInternshipMode(application.internshipMode)}
                                                 </span>
+                                                {application.paymentStatus && (
+                                                    <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-300">
+                                                        Payment {formatPaymentState(application.paymentStatus)}
+                                                    </span>
+                                                )}
                                             </div>
 
                                             <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
@@ -403,14 +594,24 @@ const AdminInternshipApplications: React.FC = () => {
                                                 </span>
                                             </div>
 
-                                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                                            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
                                                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-[#0a192f]">
                                                     <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Reference</p>
                                                     <p className="mt-1 font-semibold text-gray-900 dark:text-white">{application.referenceCode}</p>
                                                 </div>
                                                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-[#0a192f]">
-                                                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Mode</p>
-                                                    <p className="mt-1 font-semibold text-gray-900 dark:text-white">{formatInternshipMode(application.internshipMode)}</p>
+                                                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Fee Paid</p>
+                                                    <p className="mt-1 font-semibold text-gray-900 dark:text-white">
+                                                        {formatInternshipPrice(application.paymentAmount ?? application.internshipPrice, application.paymentCurrency || 'INR')}
+                                                    </p>
+                                                </div>
+                                                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-[#0a192f]">
+                                                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Payment</p>
+                                                    <p className="mt-1 font-semibold text-gray-900 dark:text-white">{formatPaymentState(application.paymentStatus)}</p>
+                                                </div>
+                                                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-[#0a192f]">
+                                                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Payment ID</p>
+                                                    <p className="mt-1 font-mono text-xs font-semibold text-gray-900 dark:text-white">{application.razorpayPaymentId || 'Not available'}</p>
                                                 </div>
                                                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-[#0a192f]">
                                                     <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">College</p>
@@ -597,6 +798,12 @@ const AdminInternshipApplications: React.FC = () => {
                                                     <Calendar className="w-4 h-4" />
                                                     Applied {formatDate(selectedApplication.createdAt)}
                                                 </span>
+                                                {selectedApplication.paidAt && (
+                                                    <span className="inline-flex items-center gap-1.5">
+                                                        <FileText className="w-4 h-4" />
+                                                        Paid {formatDate(selectedApplication.paidAt)}
+                                                    </span>
+                                                )}
                                                 <span className="inline-flex items-center gap-1.5">
                                                     <Hash className="w-4 h-4" />
                                                     {selectedApplication.referenceCode}
@@ -698,6 +905,47 @@ const AdminInternshipApplications: React.FC = () => {
                                             <div className="sm:col-span-2">
                                                 <p className="text-gray-500 dark:text-gray-400">Address</p>
                                                 <p className="font-semibold text-gray-900 dark:text-white">{selectedApplication.address}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-[#0a192f]">
+                                        <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-white">
+                                            <Hash className="w-5 h-5 text-[#d6b161]" />
+                                            Payment Details
+                                        </h3>
+                                        <div className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Amount</p>
+                                                <p className="font-semibold text-gray-900 dark:text-white">
+                                                    {formatInternshipPrice(selectedApplication.paymentAmount ?? selectedApplication.internshipPrice, selectedApplication.paymentCurrency || 'INR')}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Gateway Status</p>
+                                                <p className="font-semibold text-gray-900 dark:text-white">{formatPaymentState(selectedApplication.paymentStatus)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Method</p>
+                                                <p className="font-semibold text-gray-900 dark:text-white">{selectedApplication.paymentMethod || 'Not available'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Paid At</p>
+                                                <p className="font-semibold text-gray-900 dark:text-white">
+                                                    {selectedApplication.paidAt ? formatDate(selectedApplication.paidAt) : 'Not available'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Order ID</p>
+                                                <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
+                                                    {selectedApplication.razorpayOrderId || 'Not available'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-500 dark:text-gray-400">Payment ID</p>
+                                                <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
+                                                    {selectedApplication.razorpayPaymentId || 'Not available'}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>

@@ -18,7 +18,11 @@ app.use((0, cors_1.default)({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
-app.use(express_1.default.json());
+app.use(express_1.default.json({
+    verify: (req, _res, buf) => {
+        req.rawBody = Buffer.from(buf);
+    },
+}));
 const item_routes_1 = __importDefault(require("./routes/item.routes"));
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const skillCourse_routes_1 = __importDefault(require("./routes/skillCourse.routes"));
