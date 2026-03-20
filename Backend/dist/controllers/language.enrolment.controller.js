@@ -8,11 +8,22 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.demoteTrainer = exports.promoteToTrainer = exports.getTrainers = exports.assignTrainer = exports.deleteBatch = exports.removeStudentFromBatch = exports.getBatches = exports.rejectEnrollment = exports.approveEnrollment = exports.getEnrollments = exports.getMyEnrollments = exports.applyEnrollment = void 0;
+exports.demoteTrainer = exports.promoteToTrainer = exports.getTrainers = exports.assignTrainer = exports.deleteBatch = exports.removeStudentFromBatch = exports.getBatchStudents = exports.getBatches = exports.rejectEnrollment = exports.approveEnrollment = exports.getEnrollments = exports.getMyEnrollments = exports.applyEnrollment = void 0;
 const language_enrollment_model_1 = __importDefault(require("../models/language.enrollment.model"));
 const language_batch_model_1 = __importDefault(require("../models/language.batch.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
@@ -142,11 +153,121 @@ const rejectEnrollment = (req, res) => __awaiter(void 0, void 0, void 0, functio
 exports.rejectEnrollment = rejectEnrollment;
 // GET /api/language-training/admin/batches
 const getBatches = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const batches = yield language_batch_model_1.default.find()
-        .populate("students", "name email");
-    res.json(batches);
+    var _a, _b;
+    try {
+        const search = String((_a = req.query.search) !== null && _a !== void 0 ? _a : '').trim();
+        const course = String((_b = req.query.course) !== null && _b !== void 0 ? _b : '').trim();
+        const hasPaginationQuery = req.query.page !== undefined
+            || req.query.limit !== undefined
+            || search.length > 0
+            || course.length > 0;
+        const filter = {};
+        if (course && course !== 'All') {
+            filter.courseTitle = course;
+        }
+        if (search) {
+            filter.$or = [
+                { courseTitle: { $regex: search, $options: 'i' } },
+                { name: { $regex: search, $options: 'i' } },
+            ];
+        }
+        if (!hasPaginationQuery) {
+            const batches = yield language_batch_model_1.default.find(filter)
+                .populate('students', 'name email')
+                .sort({ createdAt: -1 });
+            return res.json(batches);
+        }
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 6));
+        const totalBatches = yield language_batch_model_1.default.countDocuments(filter);
+        const totalPages = Math.max(1, Math.ceil(totalBatches / limit));
+        const currentPage = Math.min(page, totalPages);
+        const batches = yield language_batch_model_1.default.find(filter)
+            .populate('trainerId', 'name email')
+            .sort({ createdAt: -1 })
+            .skip((currentPage - 1) * limit)
+            .limit(limit)
+            .lean();
+        const availableCourses = yield language_batch_model_1.default.distinct('courseTitle');
+        const serializedBatches = batches.map((batch) => {
+            const { students, trainerId } = batch, rest = __rest(batch, ["students", "trainerId"]);
+            return Object.assign(Object.assign({}, rest), { studentCount: Array.isArray(students) ? students.length : 0, trainer: trainerId || null });
+        });
+        return res.json({
+            batches: serializedBatches,
+            availableCourses: ['All', ...availableCourses],
+            pagination: {
+                currentPage,
+                totalPages,
+                totalBatches,
+                limit,
+                hasPreviousPage: currentPage > 1,
+                hasNextPage: currentPage < totalPages,
+            },
+        });
+    }
+    catch (error) {
+        console.error('Failed to fetch batches:', error);
+        return res.status(500).json({ message: 'Failed to fetch batches' });
+    }
 });
 exports.getBatches = getBatches;
+// GET /api/language-training/admin/batches/:batchId/students
+const getBatchStudents = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const { batchId } = req.params;
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 8));
+        const search = String((_a = req.query.search) !== null && _a !== void 0 ? _a : '').trim();
+        const batch = yield language_batch_model_1.default.findById(batchId).populate('trainerId', 'name email');
+        if (!batch) {
+            return res.status(404).json({ message: 'Batch not found' });
+        }
+        const studentFilter = {
+            _id: { $in: batch.students },
+            role: 'student',
+        };
+        if (search) {
+            studentFilter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+                { phoneNumber: { $regex: search, $options: 'i' } },
+            ];
+        }
+        const totalStudents = yield user_model_1.default.countDocuments(studentFilter);
+        const totalPages = Math.max(1, Math.ceil(totalStudents / limit));
+        const currentPage = Math.min(page, totalPages);
+        const students = yield user_model_1.default.find(studentFilter)
+            .select('-password -otp -otpExpires -lastOtpSent -googleRefreshToken')
+            .sort({ createdAt: -1 })
+            .skip((currentPage - 1) * limit)
+            .limit(limit);
+        return res.json({
+            batch: {
+                _id: batch._id,
+                courseTitle: batch.courseTitle,
+                name: batch.name,
+                trainer: batch.trainerId || null,
+                studentCount: batch.students.length,
+            },
+            students,
+            pagination: {
+                currentPage,
+                totalPages,
+                totalStudents,
+                limit,
+                hasPreviousPage: currentPage > 1,
+                hasNextPage: currentPage < totalPages,
+            },
+        });
+    }
+    catch (error) {
+        console.error('Failed to fetch batch students:', error);
+        return res.status(500).json({ message: 'Failed to fetch batch students' });
+    }
+});
+exports.getBatchStudents = getBatchStudents;
 // DELETE /api/language-training/admin/batches/:batchId/students/:studentId
 const removeStudentFromBatch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {

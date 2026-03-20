@@ -151,10 +151,138 @@ export const rejectEnrollment = async (req: Request, res: Response) => {
 
 // GET /api/language-training/admin/batches
 export const getBatches = async (req: Request, res: Response) => {
-  const batches = await Batch.find()
-    .populate("students", "name email");
+  try {
+    const search = String(req.query.search ?? '').trim();
+    const course = String(req.query.course ?? '').trim();
+    const hasPaginationQuery =
+      req.query.page !== undefined
+      || req.query.limit !== undefined
+      || search.length > 0
+      || course.length > 0;
 
-  res.json(batches);
+    const filter: any = {};
+
+    if (course && course !== 'All') {
+      filter.courseTitle = course;
+    }
+
+    if (search) {
+      filter.$or = [
+        { courseTitle: { $regex: search, $options: 'i' } },
+        { name: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    if (!hasPaginationQuery) {
+      const batches = await Batch.find(filter)
+        .populate('students', 'name email')
+        .sort({ createdAt: -1 });
+
+      return res.json(batches);
+    }
+
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 6));
+    const totalBatches = await Batch.countDocuments(filter);
+    const totalPages = Math.max(1, Math.ceil(totalBatches / limit));
+    const currentPage = Math.min(page, totalPages);
+
+    const batches = await Batch.find(filter)
+      .populate('trainerId', 'name email')
+      .sort({ createdAt: -1 })
+      .skip((currentPage - 1) * limit)
+      .limit(limit)
+      .lean();
+
+    const availableCourses = await Batch.distinct('courseTitle');
+
+    const serializedBatches = batches.map((batch: any) => {
+      const { students, trainerId, ...rest } = batch;
+
+      return {
+        ...rest,
+        studentCount: Array.isArray(students) ? students.length : 0,
+        trainer: trainerId || null,
+      };
+    });
+
+    return res.json({
+      batches: serializedBatches,
+      availableCourses: ['All', ...availableCourses],
+      pagination: {
+        currentPage,
+        totalPages,
+        totalBatches,
+        limit,
+        hasPreviousPage: currentPage > 1,
+        hasNextPage: currentPage < totalPages,
+      },
+    });
+  } catch (error) {
+    console.error('Failed to fetch batches:', error);
+    return res.status(500).json({ message: 'Failed to fetch batches' });
+  }
+};
+
+// GET /api/language-training/admin/batches/:batchId/students
+export const getBatchStudents = async (req: Request, res: Response) => {
+  try {
+    const { batchId } = req.params;
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 8));
+    const search = String(req.query.search ?? '').trim();
+
+    const batch = await Batch.findById(batchId).populate('trainerId', 'name email');
+
+    if (!batch) {
+      return res.status(404).json({ message: 'Batch not found' });
+    }
+
+    const studentFilter: any = {
+      _id: { $in: batch.students },
+      role: 'student',
+    };
+
+    if (search) {
+      studentFilter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phoneNumber: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const totalStudents = await User.countDocuments(studentFilter);
+    const totalPages = Math.max(1, Math.ceil(totalStudents / limit));
+    const currentPage = Math.min(page, totalPages);
+
+    const students = await User.find(studentFilter)
+      .select('-password -otp -otpExpires -lastOtpSent -googleRefreshToken')
+      .sort({ createdAt: -1 })
+      .skip((currentPage - 1) * limit)
+      .limit(limit);
+
+    return res.json({
+      batch: {
+        _id: batch._id,
+        courseTitle: batch.courseTitle,
+        name: batch.name,
+        trainer: batch.trainerId || null,
+        studentCount: batch.students.length,
+      },
+      students,
+      pagination: {
+        currentPage,
+        totalPages,
+        totalStudents,
+        limit,
+        hasPreviousPage: currentPage > 1,
+        hasNextPage: currentPage < totalPages,
+      },
+    });
+  } catch (error) {
+    console.error('Failed to fetch batch students:', error);
+    return res.status(500).json({ message: 'Failed to fetch batch students' });
+  }
 };
 
 // DELETE /api/language-training/admin/batches/:batchId/students/:studentId

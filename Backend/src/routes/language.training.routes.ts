@@ -6,6 +6,7 @@ import {
     approveEnrollment,
     rejectEnrollment,
     getBatches,
+    getBatchStudents,
     removeStudentFromBatch,
     deleteBatch,
     assignTrainer,
@@ -27,6 +28,7 @@ router.get("/admin/enrollments", isAuth, isAdmin, getEnrollments);
 router.post("/admin/enroll/:id/approve", isAuth, isAdmin, approveEnrollment);
 router.post("/admin/enroll/:id/reject", isAuth, isAdmin, rejectEnrollment);
 router.get("/admin/batches", isAuth, isAdmin, getBatches);
+router.get("/admin/batches/:batchId/students", isAuth, isAdmin, getBatchStudents);
 router.get("/admin/trainers", isAuth, isAdmin, getTrainers);
 router.put("/admin/batches/:batchId/assign-trainer", isAuth, isAdmin, assignTrainer);
 router.post("/admin/promote-trainer", isAuth, isAdmin, promoteToTrainer);

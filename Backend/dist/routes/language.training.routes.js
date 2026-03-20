@@ -13,6 +13,7 @@ router.get("/admin/enrollments", auth_middleware_1.isAuth, auth_middleware_1.isA
 router.post("/admin/enroll/:id/approve", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.approveEnrollment);
 router.post("/admin/enroll/:id/reject", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.rejectEnrollment);
 router.get("/admin/batches", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.getBatches);
+router.get("/admin/batches/:batchId/students", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.getBatchStudents);
 router.get("/admin/trainers", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.getTrainers);
 router.put("/admin/batches/:batchId/assign-trainer", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.assignTrainer);
 router.post("/admin/promote-trainer", auth_middleware_1.isAuth, auth_middleware_1.isAdmin, language_enrolment_controller_1.promoteToTrainer);
