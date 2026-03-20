@@ -2,6 +2,241 @@ import { Request, Response } from 'express';
 import User from '../models/user.model';
 import Enrollment from '../models/language.enrollment.model';
 import SkillEnrollment from '../models/enrollment.model';
+import SkillCourse from '../models/skillCourse.model';
+import TrainingPaymentAttempt from '../models/trainingPaymentAttempt.model';
+
+const buildLanguagePaymentKey = (params: {
+    userId: unknown;
+    courseTitle: unknown;
+    levelName: unknown;
+}) => [
+    String(params.userId ?? '').trim(),
+    String(params.courseTitle ?? '').trim().toLowerCase(),
+    String(params.levelName ?? '').trim().toLowerCase(),
+].join('::');
+
+const buildSkillPaymentKey = (params: {
+    userId: unknown;
+    skillCourseId: unknown;
+}) => [
+    String(params.userId ?? '').trim(),
+    String(params.skillCourseId ?? '').trim(),
+].join('::');
+
+const toDisplayAmount = (subunits?: number) => {
+    const numericValue = Number(subunits);
+    if (!Number.isFinite(numericValue)) {
+        return null;
+    }
+
+    return Number((numericValue / 100).toFixed(2));
+};
+
+const normalizeSkillStatusForAdmin = (status?: string) => {
+    const normalizedStatus = String(status ?? '').trim().toLowerCase();
+
+    if (normalizedStatus === 'pending') return 'PENDING';
+    if (normalizedStatus === 'active') return 'APPROVED';
+    if (normalizedStatus === 'dropped') return 'REJECTED';
+    if (normalizedStatus === 'completed') return 'COMPLETED';
+
+    return String(status ?? '').trim().toUpperCase();
+};
+
+const buildPaymentSnapshot = (attempt: any) => ({
+    status: String(attempt.paymentStatus || attempt.status || '').trim(),
+    amount: toDisplayAmount(attempt.amount),
+    currency: String(attempt.currency || 'INR').trim().toUpperCase(),
+    method: attempt.paymentMethod || null,
+    gateway: String(attempt.paymentGateway || 'razorpay').trim(),
+    razorpayOrderId: attempt.razorpayOrderId || null,
+    razorpayPaymentId: attempt.razorpayPaymentId || null,
+    paidAt: attempt.paidAt || attempt.createdAt || null,
+});
+
+export const getPendingAdminEnrollments = async (req: Request, res: Response) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 9));
+        const search = String(req.query.search ?? '').trim();
+        const level = String(req.query.level ?? '').trim();
+
+        const matchingUserIds = search
+            ? await User.find({
+                $or: [
+                    { name: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } },
+                    { phoneNumber: { $regex: search, $options: 'i' } },
+                ],
+            }).distinct('_id')
+            : [];
+
+        const languageFilter: any = { status: 'PENDING' };
+        if (level && level !== 'All') {
+            languageFilter.name = level;
+        }
+        if (search) {
+            languageFilter.$or = [
+                { courseTitle: { $regex: search, $options: 'i' } },
+                { name: { $regex: search, $options: 'i' } },
+                { userId: { $in: matchingUserIds } },
+            ];
+        }
+
+        const skillFilter: any = { status: 'pending' };
+        if (search) {
+            const matchingSkillCourseIds = await SkillCourse.find({
+                title: { $regex: search, $options: 'i' },
+            }).distinct('_id');
+
+            skillFilter.$or = [
+                { studentId: { $in: matchingUserIds } },
+                { courseId: { $in: matchingSkillCourseIds } },
+            ];
+        }
+
+        const [languageEnrollments, skillEnrollments, availableLevels] = await Promise.all([
+            Enrollment.find(languageFilter)
+                .populate('userId', 'name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role createdAt')
+                .sort({ createdAt: -1 }),
+            level && level !== 'All'
+                ? Promise.resolve([])
+                : SkillEnrollment.find(skillFilter)
+                    .populate('studentId', 'name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role createdAt')
+                    .populate('courseId', 'title')
+                    .sort({ createdAt: -1 }),
+            Enrollment.distinct('name', { status: 'PENDING' }),
+        ]);
+
+        const languagePaymentKeys = new Set(
+            languageEnrollments.map((enrollment: any) =>
+                buildLanguagePaymentKey({
+                    userId: enrollment.userId?._id ?? enrollment.userId,
+                    courseTitle: enrollment.courseTitle,
+                    levelName: enrollment.name,
+                })
+            )
+        );
+
+        const skillPaymentKeys = new Set(
+            (skillEnrollments as any[]).map((enrollment: any) =>
+                buildSkillPaymentKey({
+                    userId: enrollment.studentId?._id ?? enrollment.studentId,
+                    skillCourseId: enrollment.courseId?._id ?? enrollment.courseId,
+                })
+            )
+        );
+
+        const [languagePaymentAttempts, skillPaymentAttempts] = await Promise.all([
+            languageEnrollments.length > 0
+                ? TrainingPaymentAttempt.find({
+                    trainingType: 'language',
+                    status: 'paid',
+                    userId: {
+                        $in: languageEnrollments.map((enrollment: any) => enrollment.userId?._id ?? enrollment.userId),
+                    },
+                    courseTitle: {
+                        $in: [...new Set(languageEnrollments.map((enrollment: any) => enrollment.courseTitle))],
+                    },
+                    levelName: {
+                        $in: [...new Set(languageEnrollments.map((enrollment: any) => enrollment.name))],
+                    },
+                }).sort({ paidAt: -1, createdAt: -1 }).lean()
+                : Promise.resolve([]),
+            (skillEnrollments as any[]).length > 0
+                ? TrainingPaymentAttempt.find({
+                    trainingType: 'skill',
+                    status: 'paid',
+                    userId: {
+                        $in: (skillEnrollments as any[]).map((enrollment: any) => enrollment.studentId?._id ?? enrollment.studentId),
+                    },
+                    skillCourseId: {
+                        $in: (skillEnrollments as any[]).map((enrollment: any) => enrollment.courseId?._id ?? enrollment.courseId),
+                    },
+                }).sort({ paidAt: -1, createdAt: -1 }).lean()
+                : Promise.resolve([]),
+        ]);
+
+        const languagePaymentSnapshotByKey = new Map<string, ReturnType<typeof buildPaymentSnapshot>>();
+        for (const attempt of languagePaymentAttempts) {
+            const paymentKey = buildLanguagePaymentKey({
+                userId: attempt.userId,
+                courseTitle: attempt.courseTitle,
+                levelName: attempt.levelName,
+            });
+
+            if (!languagePaymentKeys.has(paymentKey) || languagePaymentSnapshotByKey.has(paymentKey)) {
+                continue;
+            }
+
+            languagePaymentSnapshotByKey.set(paymentKey, buildPaymentSnapshot(attempt));
+        }
+
+        const skillPaymentSnapshotByKey = new Map<string, ReturnType<typeof buildPaymentSnapshot>>();
+        for (const attempt of skillPaymentAttempts) {
+            const paymentKey = buildSkillPaymentKey({
+                userId: attempt.userId,
+                skillCourseId: attempt.skillCourseId,
+            });
+
+            if (!skillPaymentKeys.has(paymentKey) || skillPaymentSnapshotByKey.has(paymentKey)) {
+                continue;
+            }
+
+            skillPaymentSnapshotByKey.set(paymentKey, buildPaymentSnapshot(attempt));
+        }
+
+        const combinedEnrollments = [
+            ...languageEnrollments.map((enrollment: any) => ({
+                ...enrollment.toObject(),
+                trainingType: 'language' as const,
+                payment: languagePaymentSnapshotByKey.get(buildLanguagePaymentKey({
+                    userId: enrollment.userId?._id ?? enrollment.userId,
+                    courseTitle: enrollment.courseTitle,
+                    levelName: enrollment.name,
+                })) || null,
+            })),
+            ...(skillEnrollments as any[]).map((enrollment: any) => ({
+                _id: enrollment._id,
+                userId: enrollment.studentId || null,
+                courseTitle: enrollment.courseId?.title || 'Skill Training',
+                name: 'Skill Training',
+                status: normalizeSkillStatusForAdmin(enrollment.status),
+                createdAt: enrollment.createdAt,
+                trainingType: 'skill' as const,
+                payment: skillPaymentSnapshotByKey.get(buildSkillPaymentKey({
+                    userId: enrollment.studentId?._id ?? enrollment.studentId,
+                    skillCourseId: enrollment.courseId?._id ?? enrollment.courseId,
+                })) || null,
+            })),
+        ].sort((left: any, right: any) => {
+            const leftTime = new Date(left.createdAt || 0).getTime();
+            const rightTime = new Date(right.createdAt || 0).getTime();
+            return rightTime - leftTime;
+        });
+
+        const totalEnrollments = combinedEnrollments.length;
+        const totalPages = Math.max(1, Math.ceil(totalEnrollments / limit));
+        const currentPage = Math.min(page, totalPages);
+        const startIndex = (currentPage - 1) * limit;
+
+        return res.status(200).json({
+            enrollments: combinedEnrollments.slice(startIndex, startIndex + limit),
+            availableLevels: ['All', ...availableLevels],
+            pagination: {
+                currentPage,
+                totalPages,
+                totalEnrollments,
+                limit,
+                hasPreviousPage: currentPage > 1,
+                hasNextPage: currentPage < totalPages,
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching admin enrollments', error);
+        res.status(500).json({ message: 'Error fetching admin enrollments', error });
+    }
+};
 
 export const getStudents = async (req: Request, res: Response) => {
     try {
@@ -52,14 +287,24 @@ export const getStudentDetails = async (req: Request, res: Response) => {
             .sort({ createdAt: -1 });
 
         // Fetch Skill Enrollments
-        const skillEnrollments = await SkillEnrollment.find({ userId: id })
-            .populate('skillCourseId', 'title')
+        const skillEnrollments = await SkillEnrollment.find({ studentId: id })
+            .populate('courseId', 'title')
             .sort({ createdAt: -1 });
+
+        const normalizedSkillEnrollments = skillEnrollments.map((enrollment: any) => {
+            const enrollmentObject = enrollment.toObject();
+
+            return {
+                ...enrollmentObject,
+                status: normalizeSkillStatusForAdmin(enrollmentObject.status),
+                skillCourseId: enrollmentObject.courseId || null,
+            };
+        });
 
         res.status(200).json({
             student,
             languageEnrollments,
-            skillEnrollments
+            skillEnrollments: normalizedSkillEnrollments,
         });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching student details', error });

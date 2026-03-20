@@ -40,10 +40,11 @@ interface StudentProfile {
 
 interface Enrollment {
     _id: string;
+    trainingType: 'language' | 'skill';
     userId: StudentProfile | null;
     courseTitle: string;
     name: string;
-    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    status: string;
     createdAt?: string;
     payment: PaymentSnapshot | null;
 }
@@ -102,6 +103,36 @@ const formatDateTime = (value?: string | null) => {
     });
 };
 
+const formatEnrollmentStatus = (value?: string | null) => {
+    const normalizedValue = String(value ?? '').trim().toLowerCase();
+
+    if (!normalizedValue) return 'Unknown';
+    if (normalizedValue === 'approved' || normalizedValue === 'active') return 'Approved';
+    if (normalizedValue === 'pending') return 'Pending';
+    if (normalizedValue === 'rejected' || normalizedValue === 'dropped') return 'Rejected';
+    if (normalizedValue === 'completed') return 'Completed';
+
+    return normalizedValue.charAt(0).toUpperCase() + normalizedValue.slice(1);
+};
+
+const getEnrollmentStatusClasses = (value?: string | null) => {
+    const normalizedValue = String(value ?? '').trim().toLowerCase();
+
+    if (normalizedValue === 'approved' || normalizedValue === 'active') {
+        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+    }
+
+    if (normalizedValue === 'pending') {
+        return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400';
+    }
+
+    if (normalizedValue === 'completed') {
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+    }
+
+    return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+};
+
 const LanguageEnrollmentDetails: React.FC = () => {
     const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
     const [loading, setLoading] = useState(true);
@@ -142,9 +173,8 @@ const LanguageEnrollmentDetails: React.FC = () => {
             setLoading(true);
             setError('');
 
-            const response = await api.get('/language-training/admin/enrollments', {
+            const response = await api.get('/admin/enrollments/pending', {
                 params: {
-                    status: 'PENDING',
                     page: pagination.currentPage,
                     limit: ENROLLMENTS_PER_PAGE,
                     search: searchQuery || undefined,
@@ -181,14 +211,19 @@ const LanguageEnrollmentDetails: React.FC = () => {
         await fetchEnrollments();
     };
 
-    const handleApprove = async (id: string, event?: React.MouseEvent) => {
+    const handleApprove = async (enrollment: Enrollment, event?: React.MouseEvent) => {
         event?.stopPropagation();
         if (processingId) return;
-        setProcessingId(id);
+        setProcessingId(enrollment._id);
 
         try {
-            await api.post(`/language-training/admin/enroll/${id}/approve`);
-            if (selectedEnrollment?._id === id) {
+            if (enrollment.trainingType === 'skill') {
+                await api.post('/enrollment/accept', { enrollmentId: enrollment._id });
+            } else {
+                await api.post(`/language-training/admin/enroll/${enrollment._id}/approve`);
+            }
+
+            if (selectedEnrollment?._id === enrollment._id) {
                 setSelectedEnrollment(null);
                 setSelectedStudentProfile(null);
             }
@@ -201,15 +236,20 @@ const LanguageEnrollmentDetails: React.FC = () => {
         }
     };
 
-    const handleReject = async (id: string, event?: React.MouseEvent) => {
+    const handleReject = async (enrollment: Enrollment, event?: React.MouseEvent) => {
         event?.stopPropagation();
         if (processingId) return;
         if (!window.confirm('Are you sure you want to reject this enrollment?')) return;
-        setProcessingId(id);
+        setProcessingId(enrollment._id);
 
         try {
-            await api.post(`/language-training/admin/enroll/${id}/reject`);
-            if (selectedEnrollment?._id === id) {
+            if (enrollment.trainingType === 'skill') {
+                await api.post('/enrollment/reject', { enrollmentId: enrollment._id });
+            } else {
+                await api.post(`/language-training/admin/enroll/${enrollment._id}/reject`);
+            }
+
+            if (selectedEnrollment?._id === enrollment._id) {
                 setSelectedEnrollment(null);
                 setSelectedStudentProfile(null);
             }
@@ -267,7 +307,7 @@ const LanguageEnrollmentDetails: React.FC = () => {
                     <div>
                         <h1 className="text-3xl font-serif font-bold text-gray-900 dark:text-white">Verify Enrollments</h1>
                         <p className="text-gray-600 dark:text-gray-400 mt-1">
-                            Review language class enrollment requests with paginated loading and full student profiles.
+                            Review language and skill training requests with paginated loading and full student profiles.
                         </p>
                     </div>
                 </div>
@@ -286,7 +326,7 @@ const LanguageEnrollmentDetails: React.FC = () => {
 
                     <div className="flex items-center gap-2 w-full md:w-auto">
                         <Filter className="text-gray-500 dark:text-gray-400 w-5 h-5" />
-                        <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Filter by Level:</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">Filter by Language Level:</span>
                         <select
                             value={filterLevel}
                             onChange={(event) => {
@@ -387,7 +427,7 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                     </div>
                                     <div className="flex shrink-0 flex-col items-end gap-2">
                                         <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#1E3A8A] text-blue-300 border border-blue-900">
-                                            {enrollment.name}
+                                            {enrollment.trainingType === 'language' ? enrollment.name : 'Skill Training'}
                                         </span>
                                         {enrollment.payment?.status && (
                                             <span className="inline-flex items-center rounded-full border border-green-900/60 bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-300">
@@ -403,6 +443,9 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                         <p className="text-base font-medium text-white flex items-center gap-2">
                                             <BookOpen className="w-4 h-4 text-[#d6b161]" />
                                             {enrollment.courseTitle}
+                                        </p>
+                                        <p className="mt-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+                                            {enrollment.trainingType === 'language' ? 'Language Training' : 'Skill Training'}
                                         </p>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3 text-sm">
@@ -421,7 +464,7 @@ const LanguageEnrollmentDetails: React.FC = () => {
 
                                 <div className="flex gap-3 mt-auto">
                                     <button
-                                        onClick={(event) => handleApprove(enrollment._id, event)}
+                                        onClick={(event) => handleApprove(enrollment, event)}
                                         disabled={!!processingId}
                                         className={`flex-1 bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-colors shadow-lg ${processingId ? 'opacity-70 cursor-not-allowed' : ''}`}
                                     >
@@ -438,7 +481,7 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                         )}
                                     </button>
                                     <button
-                                        onClick={(event) => handleReject(enrollment._id, event)}
+                                        onClick={(event) => handleReject(enrollment, event)}
                                         disabled={!!processingId}
                                         className={`flex-1 bg-transparent border border-red-900/50 text-red-500 hover:bg-red-900/20 py-2.5 px-4 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-colors ${processingId ? 'opacity-70 cursor-not-allowed' : ''}`}
                                     >
@@ -520,9 +563,13 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                     <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#0a192f]">
                                         <div className="mb-2 flex items-center gap-3">
                                             <BookOpen className="h-5 w-5 text-blue-500" />
-                                            <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Level</span>
+                                            <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+                                                {selectedEnrollment.trainingType === 'language' ? 'Level' : 'Training Type'}
+                                            </span>
                                         </div>
-                                        <p className="pl-8 font-bold text-gray-900 dark:text-white">{selectedEnrollment.name}</p>
+                                        <p className="pl-8 font-bold text-gray-900 dark:text-white">
+                                            {selectedEnrollment.trainingType === 'language' ? selectedEnrollment.name : 'Skill Training'}
+                                        </p>
                                     </div>
                                     <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#0a192f]">
                                         <div className="mb-2 flex items-center gap-3">
@@ -649,13 +696,9 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                                                 <div className="flex items-center justify-between text-sm">
                                                                     <span className="text-gray-600 dark:text-gray-400">{enrollment.name}</span>
                                                                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                                                                        enrollment.status === 'APPROVED'
-                                                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                                            : enrollment.status === 'PENDING'
-                                                                                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                                                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                                                        getEnrollmentStatusClasses(enrollment.status)
                                                                     }`}>
-                                                                        {enrollment.status}
+                                                                        {formatEnrollmentStatus(enrollment.status)}
                                                                     </span>
                                                                 </div>
                                                                 {enrollment.batchId && (
@@ -681,13 +724,9 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                                                 <div className="flex items-center justify-between text-sm">
                                                                     <span className="text-gray-600 dark:text-gray-400">Skill Development</span>
                                                                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                                                                        enrollment.status === 'APPROVED'
-                                                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                                                            : enrollment.status === 'PENDING'
-                                                                                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                                                                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                                                        getEnrollmentStatusClasses(enrollment.status)
                                                                     }`}>
-                                                                        {enrollment.status}
+                                                                        {formatEnrollmentStatus(enrollment.status)}
                                                                     </span>
                                                                 </div>
                                                             </div>
@@ -707,7 +746,7 @@ const LanguageEnrollmentDetails: React.FC = () => {
 
                                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                                     <button
-                                        onClick={() => handleApprove(selectedEnrollment._id)}
+                                        onClick={() => handleApprove(selectedEnrollment)}
                                         disabled={!!processingId}
                                         className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#d6b161] px-6 py-3 font-bold text-[#0a192f] transition-colors hover:bg-[#c4a055] ${processingId ? 'cursor-not-allowed opacity-70' : ''}`}
                                     >
@@ -724,7 +763,7 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                         )}
                                     </button>
                                     <button
-                                        onClick={() => handleReject(selectedEnrollment._id)}
+                                        onClick={() => handleReject(selectedEnrollment)}
                                         disabled={!!processingId}
                                         className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-red-300 bg-red-50 px-6 py-3 font-bold text-red-700 transition-colors hover:bg-red-100 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30 ${processingId ? 'cursor-not-allowed opacity-70' : ''}`}
                                     >

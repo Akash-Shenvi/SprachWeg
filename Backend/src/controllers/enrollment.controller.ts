@@ -56,7 +56,9 @@ export const getPendingEnrollments = async (req: Request, res: Response) => {
 // 3. Trainer accepts enrollment -> Assigns to Batch
 export const acceptEnrollment = async (req: Request, res: Response) => {
     try {
-        const trainerId = (req as any).user._id;
+        const actingUser = (req as any).user;
+        const actingUserId = actingUser?._id;
+        const actingUserRole = String(actingUser?.role ?? '').trim().toLowerCase();
         const { enrollmentId } = req.body;
 
         const enrollment = await Enrollment.findById(enrollmentId);
@@ -71,28 +73,32 @@ export const acceptEnrollment = async (req: Request, res: Response) => {
         // Find a suitable batch (Same Course, Same Trainer, Active, < 20 students)
         // We fetch active batches for this course/trainer and check the size in application logic
         // because $where queries can be slow and unsafe.
-        const potentialBatches = await Batch.find({
+        const batchQuery: any = {
             courseId: enrollment.courseId,
-            trainerId: trainerId,
             isActive: true
-        });
+        };
+        if (actingUserRole === 'trainer') {
+            batchQuery.trainerId = actingUserId;
+        }
+
+        const potentialBatches = await Batch.find(batchQuery);
 
         // Find the first batch with < 20 students
         let batch = potentialBatches.find(b => b.students.length < 20) || null;
 
-        // If no suitable batch, create one
-        if (!batch) {
+        // If no suitable batch, trainers can create one immediately.
+        if (!batch && actingUserRole === 'trainer') {
             const course = await SkillCourse.findById(enrollment.courseId);
             const courseTitle = course ? course.title : 'Course';
 
             // Basic new batch name logic
-            const batchCount = await Batch.countDocuments({ courseId: enrollment.courseId, trainerId: trainerId });
+            const batchCount = await Batch.countDocuments({ courseId: enrollment.courseId, trainerId: actingUserId });
             const batchName = `${courseTitle} - Batch ${batchCount + 1}`;
 
             batch = new Batch({
                 name: batchName,
                 courseId: enrollment.courseId,
-                trainerId: trainerId,
+                trainerId: actingUserId,
                 students: [],
                 isActive: true,
                 startDate: new Date(),
@@ -102,16 +108,21 @@ export const acceptEnrollment = async (req: Request, res: Response) => {
             await batch.save();
         }
 
-        // Add student to batch
-        batch.students.push(enrollment.studentId);
-        await batch.save();
+        if (batch) {
+            // Add student to batch only when a batch is available.
+            if (!batch.students.some(studentId => studentId.equals(enrollment.studentId))) {
+                batch.students.push(enrollment.studentId);
+                await batch.save();
+            }
+
+            enrollment.batchId = batch._id as mongoose.Types.ObjectId;
+        }
 
         // Update enrollment
         enrollment.status = 'active';
-        enrollment.batchId = batch._id as mongoose.Types.ObjectId;
         await enrollment.save();
 
-        res.json({ message: 'Enrollment accepted', batch: batch.name, enrollment });
+        res.json({ message: 'Enrollment accepted', batch: batch?.name || null, enrollment });
 
     } catch (error) {
         console.error('Accept enrollment error:', error);

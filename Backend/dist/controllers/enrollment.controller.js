@@ -63,8 +63,11 @@ const getPendingEnrollments = (req, res) => __awaiter(void 0, void 0, void 0, fu
 exports.getPendingEnrollments = getPendingEnrollments;
 // 3. Trainer accepts enrollment -> Assigns to Batch
 const acceptEnrollment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const trainerId = req.user._id;
+        const actingUser = req.user;
+        const actingUserId = actingUser === null || actingUser === void 0 ? void 0 : actingUser._id;
+        const actingUserRole = String((_a = actingUser === null || actingUser === void 0 ? void 0 : actingUser.role) !== null && _a !== void 0 ? _a : '').trim().toLowerCase();
         const { enrollmentId } = req.body;
         const enrollment = yield enrollment_model_1.default.findById(enrollmentId);
         if (!enrollment) {
@@ -76,24 +79,27 @@ const acceptEnrollment = (req, res) => __awaiter(void 0, void 0, void 0, functio
         // Find a suitable batch (Same Course, Same Trainer, Active, < 20 students)
         // We fetch active batches for this course/trainer and check the size in application logic
         // because $where queries can be slow and unsafe.
-        const potentialBatches = yield batch_model_1.default.find({
+        const batchQuery = {
             courseId: enrollment.courseId,
-            trainerId: trainerId,
             isActive: true
-        });
+        };
+        if (actingUserRole === 'trainer') {
+            batchQuery.trainerId = actingUserId;
+        }
+        const potentialBatches = yield batch_model_1.default.find(batchQuery);
         // Find the first batch with < 20 students
         let batch = potentialBatches.find(b => b.students.length < 20) || null;
-        // If no suitable batch, create one
-        if (!batch) {
+        // If no suitable batch, trainers can create one immediately.
+        if (!batch && actingUserRole === 'trainer') {
             const course = yield skillCourse_model_1.default.findById(enrollment.courseId);
             const courseTitle = course ? course.title : 'Course';
             // Basic new batch name logic
-            const batchCount = yield batch_model_1.default.countDocuments({ courseId: enrollment.courseId, trainerId: trainerId });
+            const batchCount = yield batch_model_1.default.countDocuments({ courseId: enrollment.courseId, trainerId: actingUserId });
             const batchName = `${courseTitle} - Batch ${batchCount + 1}`;
             batch = new batch_model_1.default({
                 name: batchName,
                 courseId: enrollment.courseId,
-                trainerId: trainerId,
+                trainerId: actingUserId,
                 students: [],
                 isActive: true,
                 startDate: new Date(),
@@ -102,14 +108,18 @@ const acceptEnrollment = (req, res) => __awaiter(void 0, void 0, void 0, functio
             });
             yield batch.save();
         }
-        // Add student to batch
-        batch.students.push(enrollment.studentId);
-        yield batch.save();
+        if (batch) {
+            // Add student to batch only when a batch is available.
+            if (!batch.students.some(studentId => studentId.equals(enrollment.studentId))) {
+                batch.students.push(enrollment.studentId);
+                yield batch.save();
+            }
+            enrollment.batchId = batch._id;
+        }
         // Update enrollment
         enrollment.status = 'active';
-        enrollment.batchId = batch._id;
         yield enrollment.save();
-        res.json({ message: 'Enrollment accepted', batch: batch.name, enrollment });
+        res.json({ message: 'Enrollment accepted', batch: (batch === null || batch === void 0 ? void 0 : batch.name) || null, enrollment });
     }
     catch (error) {
         console.error('Accept enrollment error:', error);

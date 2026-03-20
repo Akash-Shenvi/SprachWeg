@@ -10,7 +10,7 @@ const router = express_1.default.Router();
 // Apply auth middleware to all routes
 router.use(auth_middleware_1.protect);
 router.post('/enroll', enrollment_controller_1.enrollStudent);
-router.get('/pending', enrollment_controller_1.getPendingEnrollments);
-router.post('/accept', enrollment_controller_1.acceptEnrollment);
-router.post('/reject', enrollment_controller_1.rejectEnrollment);
+router.get('/pending', (0, auth_middleware_1.authorize)('admin', 'trainer'), enrollment_controller_1.getPendingEnrollments);
+router.post('/accept', (0, auth_middleware_1.authorize)('admin', 'trainer'), enrollment_controller_1.acceptEnrollment);
+router.post('/reject', (0, auth_middleware_1.authorize)('admin', 'trainer'), enrollment_controller_1.rejectEnrollment);
 exports.default = router;
