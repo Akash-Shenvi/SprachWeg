@@ -336,6 +336,52 @@ const buildPaymentFailureReason = (payload: {
     || payload.errorReason
     || 'Payment failed before verification could complete.';
 
+const shouldSendPaymentFailureEmail = (attempt: IInternshipPaymentAttempt) => {
+    if (attempt.status !== 'failed' && attempt.status !== 'cancelled') {
+        return false;
+    }
+
+    if (attempt.paymentFailureEmailSentAt) {
+        return false;
+    }
+
+    const normalizedReason = String(attempt.failureReason ?? '').trim().toLowerCase();
+
+    if (normalizedReason === 'superseded by a newer checkout attempt.') {
+        return false;
+    }
+
+    return true;
+};
+
+const sendPaymentFailureEmailIfNeeded = async (attempt: IInternshipPaymentAttempt) => {
+    if (!shouldSendPaymentFailureEmail(attempt)) {
+        return;
+    }
+
+    const paymentIssueStatus = attempt.status === 'cancelled' ? 'cancelled' : 'failed';
+
+    const emailSent = await emailService.sendInternshipPaymentFailureEmail({
+        to: attempt.email,
+        name: `${attempt.firstName} ${attempt.lastName}`.trim(),
+        internshipTitle: attempt.internshipTitle,
+        internshipMode: attempt.internshipMode,
+        amount: toDisplayAmount(attempt.amount),
+        currency: attempt.currency,
+        paymentStatus: attempt.paymentStatus || 'Not available',
+        paymentMethod: attempt.paymentMethod,
+        failureReason: attempt.failureReason || attempt.paymentErrorDescription || attempt.paymentErrorReason,
+        status: paymentIssueStatus,
+    });
+
+    if (!emailSent) {
+        return;
+    }
+
+    attempt.paymentFailureEmailSentAt = new Date();
+    await attempt.save();
+};
+
 export const submitInternshipApplication = async (req: Request, res: Response) => {
     let createdAttempt: IInternshipPaymentAttempt | null = null;
 
@@ -638,6 +684,7 @@ export const verifyInternshipPayment = async (req: Request, res: Response) => {
                 failureReason: 'Payment signature verification failed.',
             });
             await attempt.save();
+            await sendPaymentFailureEmailIfNeeded(attempt);
             return res.status(400).json({ message: 'Payment signature verification failed.' });
         }
 
@@ -650,6 +697,7 @@ export const verifyInternshipPayment = async (req: Request, res: Response) => {
                 failureReason: 'Payment order mismatch received from Razorpay.',
             });
             await attempt.save();
+            await sendPaymentFailureEmailIfNeeded(attempt);
             return res.status(400).json({ message: 'Payment order mismatch received from Razorpay.' });
         }
 
@@ -664,6 +712,7 @@ export const verifyInternshipPayment = async (req: Request, res: Response) => {
                 }),
             });
             await attempt.save();
+            await sendPaymentFailureEmailIfNeeded(attempt);
             return res.status(400).json({ message: 'Payment was not completed successfully.' });
         }
 
@@ -681,7 +730,16 @@ export const verifyInternshipPayment = async (req: Request, res: Response) => {
                 `${application.firstName} ${application.lastName}`.trim(),
                 application.internshipTitle,
                 application.referenceCode,
-                application.internshipMode
+                application.internshipMode,
+                {
+                    amount: application.paymentAmount ?? application.internshipPrice,
+                    currency: application.paymentCurrency,
+                    paymentStatus: application.paymentStatus,
+                    paymentMethod: application.paymentMethod,
+                    razorpayOrderId: application.razorpayOrderId,
+                    razorpayPaymentId: application.razorpayPaymentId,
+                    paidAt: application.paidAt,
+                }
             );
         }
 
@@ -746,6 +804,7 @@ export const recordInternshipPaymentFailure = async (req: Request, res: Response
         );
 
         await attempt.save();
+        await sendPaymentFailureEmailIfNeeded(attempt);
 
         return res.status(200).json({
             message: `Payment attempt marked as ${normalizedStatus}.`,
@@ -795,6 +854,7 @@ export const handleInternshipPaymentWebhook = async (req: Request, res: Response
                 }),
             });
             await attempt.save();
+            await sendPaymentFailureEmailIfNeeded(attempt);
             return res.status(200).json({ received: true });
         }
 
@@ -813,7 +873,16 @@ export const handleInternshipPaymentWebhook = async (req: Request, res: Response
                     `${application.firstName} ${application.lastName}`.trim(),
                     application.internshipTitle,
                     application.referenceCode,
-                    application.internshipMode
+                    application.internshipMode,
+                    {
+                        amount: application.paymentAmount ?? application.internshipPrice,
+                        currency: application.paymentCurrency,
+                        paymentStatus: application.paymentStatus,
+                        paymentMethod: application.paymentMethod,
+                        razorpayOrderId: application.razorpayOrderId,
+                        razorpayPaymentId: application.razorpayPaymentId,
+                        paidAt: application.paidAt,
+                    }
                 );
             }
         }

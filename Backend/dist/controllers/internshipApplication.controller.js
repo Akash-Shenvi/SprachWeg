@@ -249,6 +249,43 @@ const buildPaymentFailureReason = (payload) => payload.reason
     || payload.errorDescription
     || payload.errorReason
     || 'Payment failed before verification could complete.';
+const shouldSendPaymentFailureEmail = (attempt) => {
+    var _a;
+    if (attempt.status !== 'failed' && attempt.status !== 'cancelled') {
+        return false;
+    }
+    if (attempt.paymentFailureEmailSentAt) {
+        return false;
+    }
+    const normalizedReason = String((_a = attempt.failureReason) !== null && _a !== void 0 ? _a : '').trim().toLowerCase();
+    if (normalizedReason === 'superseded by a newer checkout attempt.') {
+        return false;
+    }
+    return true;
+};
+const sendPaymentFailureEmailIfNeeded = (attempt) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!shouldSendPaymentFailureEmail(attempt)) {
+        return;
+    }
+    const paymentIssueStatus = attempt.status === 'cancelled' ? 'cancelled' : 'failed';
+    const emailSent = yield emailService.sendInternshipPaymentFailureEmail({
+        to: attempt.email,
+        name: `${attempt.firstName} ${attempt.lastName}`.trim(),
+        internshipTitle: attempt.internshipTitle,
+        internshipMode: attempt.internshipMode,
+        amount: toDisplayAmount(attempt.amount),
+        currency: attempt.currency,
+        paymentStatus: attempt.paymentStatus || 'Not available',
+        paymentMethod: attempt.paymentMethod,
+        failureReason: attempt.failureReason || attempt.paymentErrorDescription || attempt.paymentErrorReason,
+        status: paymentIssueStatus,
+    });
+    if (!emailSent) {
+        return;
+    }
+    attempt.paymentFailureEmailSentAt = new Date();
+    yield attempt.save();
+});
 const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     let createdAttempt = null;
     try {
@@ -449,6 +486,7 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
 });
 exports.submitInternshipApplication = submitInternshipApplication;
 const verifyInternshipPayment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         if (!req.user) {
             return res.status(401).json({ message: 'Please log in to verify payment.' });
@@ -487,6 +525,7 @@ const verifyInternshipPayment = (req, res) => __awaiter(void 0, void 0, void 0, 
                 failureReason: 'Payment signature verification failed.',
             });
             yield attempt.save();
+            yield sendPaymentFailureEmailIfNeeded(attempt);
             return res.status(400).json({ message: 'Payment signature verification failed.' });
         }
         const payment = yield (0, razorpay_1.fetchRazorpayPayment)(razorpayPaymentId);
@@ -497,6 +536,7 @@ const verifyInternshipPayment = (req, res) => __awaiter(void 0, void 0, void 0, 
                 failureReason: 'Payment order mismatch received from Razorpay.',
             });
             yield attempt.save();
+            yield sendPaymentFailureEmailIfNeeded(attempt);
             return res.status(400).json({ message: 'Payment order mismatch received from Razorpay.' });
         }
         if (!isSuccessfulPaymentStatus(payment.status)) {
@@ -510,6 +550,7 @@ const verifyInternshipPayment = (req, res) => __awaiter(void 0, void 0, void 0, 
                 }),
             });
             yield attempt.save();
+            yield sendPaymentFailureEmailIfNeeded(attempt);
             return res.status(400).json({ message: 'Payment was not completed successfully.' });
         }
         syncAttemptWithPayment(attempt, payment, {
@@ -519,7 +560,15 @@ const verifyInternshipPayment = (req, res) => __awaiter(void 0, void 0, void 0, 
         yield attempt.save();
         const { application, shouldSendApplicationEmail } = yield upsertApplicationFromPaidAttempt(attempt);
         if (shouldSendApplicationEmail) {
-            yield emailService.sendInternshipApplicationEmail(application.email, `${application.firstName} ${application.lastName}`.trim(), application.internshipTitle, application.referenceCode, application.internshipMode);
+            yield emailService.sendInternshipApplicationEmail(application.email, `${application.firstName} ${application.lastName}`.trim(), application.internshipTitle, application.referenceCode, application.internshipMode, {
+                amount: (_a = application.paymentAmount) !== null && _a !== void 0 ? _a : application.internshipPrice,
+                currency: application.paymentCurrency,
+                paymentStatus: application.paymentStatus,
+                paymentMethod: application.paymentMethod,
+                razorpayOrderId: application.razorpayOrderId,
+                razorpayPaymentId: application.razorpayPaymentId,
+                paidAt: application.paidAt,
+            });
         }
         return res.status(200).json({
             message: 'Payment verified and internship application submitted successfully.',
@@ -573,6 +622,7 @@ const recordInternshipPaymentFailure = (req, res) => __awaiter(void 0, void 0, v
             }),
         });
         yield attempt.save();
+        yield sendPaymentFailureEmailIfNeeded(attempt);
         return res.status(200).json({
             message: `Payment attempt marked as ${normalizedStatus}.`,
             paymentAttempt: attempt,
@@ -585,7 +635,7 @@ const recordInternshipPaymentFailure = (req, res) => __awaiter(void 0, void 0, v
 });
 exports.recordInternshipPaymentFailure = recordInternshipPaymentFailure;
 const handleInternshipPaymentWebhook = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     try {
         const signature = String((_a = req.headers['x-razorpay-signature']) !== null && _a !== void 0 ? _a : '').trim();
         if (!signature) {
@@ -615,6 +665,7 @@ const handleInternshipPaymentWebhook = (req, res) => __awaiter(void 0, void 0, v
                 }),
             });
             yield attempt.save();
+            yield sendPaymentFailureEmailIfNeeded(attempt);
             return res.status(200).json({ received: true });
         }
         if (event === 'payment.authorized' || event === 'payment.captured') {
@@ -625,7 +676,15 @@ const handleInternshipPaymentWebhook = (req, res) => __awaiter(void 0, void 0, v
             yield attempt.save();
             const { application, shouldSendApplicationEmail } = yield upsertApplicationFromPaidAttempt(attempt);
             if (shouldSendApplicationEmail) {
-                yield emailService.sendInternshipApplicationEmail(application.email, `${application.firstName} ${application.lastName}`.trim(), application.internshipTitle, application.referenceCode, application.internshipMode);
+                yield emailService.sendInternshipApplicationEmail(application.email, `${application.firstName} ${application.lastName}`.trim(), application.internshipTitle, application.referenceCode, application.internshipMode, {
+                    amount: (_h = application.paymentAmount) !== null && _h !== void 0 ? _h : application.internshipPrice,
+                    currency: application.paymentCurrency,
+                    paymentStatus: application.paymentStatus,
+                    paymentMethod: application.paymentMethod,
+                    razorpayOrderId: application.razorpayOrderId,
+                    razorpayPaymentId: application.razorpayPaymentId,
+                    paidAt: application.paidAt,
+                });
             }
         }
         return res.status(200).json({ received: true });

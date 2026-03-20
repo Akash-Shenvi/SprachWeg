@@ -45,6 +45,7 @@ export interface IInternshipPaymentAttempt extends Document {
     paymentErrorStep?: string;
     paymentErrorReason?: string;
     lastWebhookEvent?: string;
+    paymentFailureEmailSentAt?: Date;
     paidAt?: Date;
     createdAt: Date;
     updatedAt: Date;
@@ -102,6 +103,7 @@ const InternshipPaymentAttemptSchema = new Schema<IInternshipPaymentAttempt>({
     paymentErrorStep: { type: String, trim: true },
     paymentErrorReason: { type: String, trim: true },
     lastWebhookEvent: { type: String, trim: true },
+    paymentFailureEmailSentAt: { type: Date },
     paidAt: { type: Date },
 }, {
     timestamps: true,
