@@ -3,7 +3,8 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, Check, AlertCircle, GraduationCap, Phone, Mail, User, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../lib/api';
+import { trainingCheckoutAPI } from '../../lib/api';
+import { loadRazorpayCheckoutScript } from '../../lib/razorpay';
 
 // Tokens
 // --brand-navy: #0a192f
@@ -178,20 +179,126 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
         setIsSubmitting(true);
 
         try {
-            // Map form data to backend expected format
-            // Backend expects: { courseTitle, levelName }
-            const payload = {
-                courseTitle: origin.charAt(0).toUpperCase() + origin.slice(1), // e.g. "German", "English"
-                name: selectedLevel || 'Beginner',
+            const response = await trainingCheckoutAPI.create({
+                origin,
+                selectedLevel,
+            });
+
+            const checkout = response.checkout;
+
+            if (!checkout?.attemptId || !checkout?.orderId || !checkout?.keyId) {
+                throw new Error('Payment checkout details are incomplete.');
+            }
+
+            const scriptLoaded = await loadRazorpayCheckoutScript();
+
+            if (!scriptLoaded || !(window as any).Razorpay) {
+                await trainingCheckoutAPI.recordFailure({
+                    attemptId: checkout.attemptId,
+                    status: 'cancelled',
+                    reason: 'Razorpay checkout failed to load on the browser.',
+                }).catch(() => undefined);
+
+                throw new Error('Unable to load Razorpay checkout right now. Please try again.');
+            }
+
+            let failureHandled = false;
+
+            const handleCheckoutFailure = async (failure: {
+                status: 'failed' | 'cancelled';
+                reason?: string;
+                error?: Record<string, unknown>;
+                message: string;
+            }) => {
+                if (failureHandled) {
+                    return;
+                }
+
+                failureHandled = true;
+
+                await trainingCheckoutAPI.recordFailure({
+                    attemptId: checkout.attemptId,
+                    status: failure.status,
+                    reason: failure.reason,
+                    error: failure.error,
+                }).catch(() => undefined);
+
+                setIsSubmitting(false);
+                alert(failure.message);
             };
 
-            await api.post('/language-training/enroll', payload);
+            const razorpay = new (window as any).Razorpay({
+                key: checkout.keyId,
+                order_id: checkout.orderId,
+                amount: checkout.amount,
+                currency: checkout.currency,
+                name: 'Sovir Technologies',
+                description: selectedLevel
+                    ? `Course Enrollment - ${checkout.displayCourseTitle} (${selectedLevel})`
+                    : `Course Enrollment - ${checkout.displayCourseTitle}`,
+                prefill: {
+                    name: formData.name || checkout.applicant?.name || '',
+                    email: formData.email || checkout.applicant?.email || '',
+                    contact: formData.phone.replace(/\D/g, '') || checkout.applicant?.contact || '',
+                },
+                notes: {
+                    trainingType: checkout.trainingType,
+                    courseTitle: checkout.displayCourseTitle,
+                    levelName: selectedLevel || '',
+                },
+                theme: {
+                    color: '#d6b161',
+                },
+                modal: {
+                    ondismiss: () => {
+                        void handleCheckoutFailure({
+                            status: 'cancelled',
+                            reason: 'The user closed the Razorpay checkout before completing payment.',
+                            message: 'Payment was cancelled before completion.',
+                        });
+                    },
+                },
+                handler: async (paymentResponse: {
+                    razorpay_order_id: string;
+                    razorpay_payment_id: string;
+                    razorpay_signature: string;
+                }) => {
+                    failureHandled = true;
 
-            setShowSuccess(true);
+                    try {
+                        await trainingCheckoutAPI.verify({
+                            attemptId: checkout.attemptId,
+                            razorpay_order_id: paymentResponse.razorpay_order_id,
+                            razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                            razorpay_signature: paymentResponse.razorpay_signature,
+                        });
+
+                        setShowSuccess(true);
+                    } catch (error: any) {
+                        console.error('Enrollment verification error:', error);
+                        alert(
+                            error.response?.data?.message
+                            || 'Payment was completed, but enrollment verification is still pending. Please check your dashboard in a moment.'
+                        );
+                    } finally {
+                        setIsSubmitting(false);
+                    }
+                },
+            });
+
+            razorpay.on('payment.failed', (event: any) => {
+                void handleCheckoutFailure({
+                    status: 'failed',
+                    reason: event?.error?.description || event?.error?.reason || 'Razorpay reported a payment failure.',
+                    error: event?.error,
+                    message: event?.error?.description || 'Payment failed. Please try again with a different method.',
+                });
+            });
+
+            razorpay.open();
         } catch (error: any) {
             console.error('Enrollment error:', error);
-            alert(error.response?.data?.message || 'Enrollment failed');
-        } finally {
+            alert(error.response?.data?.message || error.message || 'Failed to start payment');
             setIsSubmitting(false);
         }
     };
@@ -272,7 +379,7 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
                                             <BookOpen className="h-6 w-6 text-[#d6b161]" />
                                         </div>
                                         <h3 className="mb-2 text-2xl font-bold">Start Your Journey</h3>
-                                        <p className="text-blue-100">Join thousands of students mastering new languages today.</p>
+                                        <p className="text-blue-100">Join thousands of students mastering new skills and languages today.</p>
                                     </div>
 
                                     <div className="relative z-10 space-y-4 text-sm text-blue-200">
@@ -468,7 +575,7 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
                                                     Processing...
                                                 </>
                                             ) : (
-                                                'Submit Enrollment'
+                                                'Proceed to Payment'
                                             )}
                                         </button>
                                     </div>
@@ -518,9 +625,9 @@ const SuccessView = ({ onClose }: { onClose: () => void }) => (
         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
             <Check className="h-10 w-10" />
         </div>
-        <h2 className="mb-2 text-3xl font-bold text-[#0a192f] dark:text-white">Enrollment Successful!</h2>
+        <h2 className="mb-2 text-3xl font-bold text-[#0a192f] dark:text-white">Payment Successful!</h2>
         <p className="mb-8 max-w-sm text-gray-600 dark:text-gray-300">
-            We have received your enrollment request. Our admissions team will contact you shortly to finalize your schedule.
+            Your payment is confirmed and your enrollment request has been received. Our admissions team will contact you shortly to finalize your schedule.
         </p>
         <button
             onClick={onClose}

@@ -60,4 +60,6 @@ const internshipApplication_routes_1 = __importDefault(require("./routes/interns
 app.use('/api/internship-applications', internshipApplication_routes_1.default);
 const internshipListing_routes_1 = __importDefault(require("./routes/internshipListing.routes"));
 app.use('/api/internships', internshipListing_routes_1.default);
+const trainingCheckout_routes_1 = __importDefault(require("./routes/trainingCheckout.routes"));
+app.use('/api/training-checkout', trainingCheckout_routes_1.default);
 exports.default = app;
