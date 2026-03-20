@@ -30,6 +30,62 @@ export interface InternshipPayload {
     isActive: boolean;
 }
 
+export type InternshipMode = 'remote' | 'online' | 'hybrid' | 'onsite';
+
+type CanonicalInternshipMode = Exclude<InternshipMode, 'online'>;
+
+const INTERNSHIP_MODE_DEFINITIONS: Array<{
+    value: CanonicalInternshipMode;
+    label: string;
+    aliases: string[];
+}> = [
+    { value: 'remote', label: 'Remote', aliases: ['remote', 'online'] },
+    { value: 'hybrid', label: 'Hybrid', aliases: ['hybrid'] },
+    { value: 'onsite', label: 'Onsite', aliases: ['onsite', 'on-site', 'on site'] },
+];
+
+export const normalizeInternshipMode = (value?: string): CanonicalInternshipMode | '' => {
+    const normalizedValue = String(value ?? '').trim().toLowerCase();
+
+    if (INTERNSHIP_MODE_DEFINITIONS[0].aliases.includes(normalizedValue)) {
+        return 'remote';
+    }
+
+    if (INTERNSHIP_MODE_DEFINITIONS[1].aliases.includes(normalizedValue)) {
+        return 'hybrid';
+    }
+
+    if (INTERNSHIP_MODE_DEFINITIONS[2].aliases.includes(normalizedValue)) {
+        return 'onsite';
+    }
+
+    return '';
+};
+
+export const formatInternshipMode = (mode?: string) => {
+    const normalizedMode = normalizeInternshipMode(mode);
+
+    if (!normalizedMode) {
+        return 'Not specified';
+    }
+
+    return INTERNSHIP_MODE_DEFINITIONS.find(({ value }) => value === normalizedMode)?.label || 'Not specified';
+};
+
+export const getInternshipModeOptions = (location?: string) => {
+    const normalizedLocation = String(location ?? '').trim().toLowerCase();
+
+    const matchedOptions = INTERNSHIP_MODE_DEFINITIONS.filter(({ aliases }) =>
+        aliases.some((alias) => normalizedLocation.includes(alias))
+    ).map(({ value, label }) => ({ value, label }));
+
+    if (matchedOptions.length > 0) {
+        return matchedOptions;
+    }
+
+    return INTERNSHIP_MODE_DEFINITIONS.map(({ value, label }) => ({ value, label }));
+};
+
 export const formatInternshipPrice = (price?: number, currency: string = 'INR') => {
     if (typeof price !== 'number' || Number.isNaN(price)) {
         return 'Contact for pricing';

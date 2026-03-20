@@ -72,11 +72,16 @@ const CareersPage: React.FC = () => {
 
     // Prevent body scroll when modal is open
     useEffect(() => {
-        if (selectedInternship) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
+        if (!selectedInternship) {
+            return undefined;
         }
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
     }, [selectedInternship]);
 
     return (
@@ -382,6 +387,7 @@ const CareersPage: React.FC = () => {
                             <div className="sticky bottom-0 z-20 border-t border-gray-100 dark:border-white/10 p-5 md:p-6 bg-white dark:bg-[#0a192f] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.2)]">
                                 <Link
                                     to={`/internship-application?slug=${encodeURIComponent(selectedInternship.slug)}`}
+                                    onClick={() => setSelectedInternship(null)}
                                     className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0a192f] dark:bg-[#d6b161] px-6 py-4 text-base font-bold text-white dark:text-[#0a192f] transition-all hover:bg-[#122a4e] dark:hover:bg-[#c9a653] hover:shadow-[0_0_20px_rgba(10,25,47,0.3)] dark:hover:shadow-[0_0_20px_rgba(214,177,97,0.4)]"
                                 >
                                     Apply for Internship

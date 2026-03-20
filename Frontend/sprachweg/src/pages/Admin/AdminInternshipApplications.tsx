@@ -24,6 +24,7 @@ import {
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { getAssetUrl, internshipApplicationAPI } from '../../lib/api';
+import { formatInternshipMode } from '../../types/internship';
 
 type InternshipApplicationStatus = 'submitted' | 'accepted' | 'rejected' | 'reviewed' | 'shortlisted';
 type DisplayStatus = 'submitted' | 'accepted' | 'rejected';
@@ -79,11 +80,6 @@ const formatDate = (value: string) =>
         hour: '2-digit',
         minute: '2-digit',
     });
-
-const formatInternshipMode = (mode?: string) => {
-    if (!mode) return 'Not specified';
-    return mode.charAt(0).toUpperCase() + mode.slice(1);
-};
 
 const getStatusMeta = (status: DisplayStatus) => {
     if (status === 'accepted') {

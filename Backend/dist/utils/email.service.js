@@ -15,6 +15,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EmailService = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const env_1 = require("../config/env");
+const formatInternshipMode = (mode) => {
+    const normalizedMode = String(mode !== null && mode !== void 0 ? mode : '').trim().toLowerCase();
+    if (normalizedMode === 'remote' || normalizedMode === 'online') {
+        return 'Remote';
+    }
+    if (normalizedMode === 'hybrid') {
+        return 'Hybrid';
+    }
+    if (normalizedMode === 'onsite' || normalizedMode === 'on-site' || normalizedMode === 'on site') {
+        return 'Onsite';
+    }
+    return 'Not specified';
+};
 class EmailService {
     constructor() {
         this.transporter = nodemailer_1.default.createTransport({
@@ -640,9 +653,7 @@ class EmailService {
     sendInternshipApplicationEmail(to, name, internshipTitle, referenceCode, internshipMode) {
         return __awaiter(this, void 0, void 0, function* () {
             const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
-            const formattedMode = internshipMode
-                ? internshipMode.charAt(0).toUpperCase() + internshipMode.slice(1)
-                : 'Not specified';
+            const formattedMode = formatInternshipMode(internshipMode);
             const subject = `Internship Application Received - ${internshipTitle}`;
             const html = this.getProgramEmailTemplate({
                 name,
@@ -683,9 +694,7 @@ class EmailService {
             const isAccepted = status === 'accepted';
             const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
             const careersLink = 'https://training.sovirtechnologies.in/careers';
-            const formattedMode = internshipMode
-                ? internshipMode.charAt(0).toUpperCase() + internshipMode.slice(1)
-                : 'Not specified';
+            const formattedMode = formatInternshipMode(internshipMode);
             const subject = isAccepted
                 ? `Internship Application Accepted - ${internshipTitle}`
                 : `Internship Application Update - ${internshipTitle}`;

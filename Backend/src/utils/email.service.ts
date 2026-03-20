@@ -1,6 +1,24 @@
 import nodemailer from 'nodemailer';
 import { env } from '../config/env';
 
+const formatInternshipMode = (mode?: string) => {
+    const normalizedMode = String(mode ?? '').trim().toLowerCase();
+
+    if (normalizedMode === 'remote' || normalizedMode === 'online') {
+        return 'Remote';
+    }
+
+    if (normalizedMode === 'hybrid') {
+        return 'Hybrid';
+    }
+
+    if (normalizedMode === 'onsite' || normalizedMode === 'on-site' || normalizedMode === 'on site') {
+        return 'Onsite';
+    }
+
+    return 'Not specified';
+};
+
 export class EmailService {
     private transporter;
 
@@ -657,9 +675,7 @@ export class EmailService {
         internshipMode?: string
     ): Promise<void> {
         const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
-        const formattedMode = internshipMode
-            ? internshipMode.charAt(0).toUpperCase() + internshipMode.slice(1)
-            : 'Not specified';
+        const formattedMode = formatInternshipMode(internshipMode);
         const subject = `Internship Application Received - ${internshipTitle}`;
         const html = this.getProgramEmailTemplate({
             name,
@@ -707,9 +723,7 @@ export class EmailService {
         const isAccepted = status === 'accepted';
         const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
         const careersLink = 'https://training.sovirtechnologies.in/careers';
-        const formattedMode = internshipMode
-            ? internshipMode.charAt(0).toUpperCase() + internshipMode.slice(1)
-            : 'Not specified';
+        const formattedMode = formatInternshipMode(internshipMode);
         const subject = isAccepted
             ? `Internship Application Accepted - ${internshipTitle}`
             : `Internship Application Update - ${internshipTitle}`;

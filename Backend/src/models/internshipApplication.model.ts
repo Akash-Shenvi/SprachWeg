@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export type InternshipMode = 'online' | 'hybrid' | 'onsite';
+export type InternshipMode = 'remote' | 'online' | 'hybrid' | 'onsite';
 
 export interface IInternshipApplication extends Document {
     userId: mongoose.Types.ObjectId;
@@ -42,7 +42,7 @@ const InternshipApplicationSchema = new Schema<IInternshipApplication>({
     internshipSlug: { type: String, trim: true, lowercase: true },
     internshipTitle: { type: String, required: true, trim: true },
     internshipPrice: { type: Number, min: 0 },
-    internshipMode: { type: String, enum: ['online', 'hybrid', 'onsite'], trim: true },
+    internshipMode: { type: String, enum: ['remote', 'online', 'hybrid', 'onsite'], trim: true },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     dateOfBirth: { type: Date, required: true },

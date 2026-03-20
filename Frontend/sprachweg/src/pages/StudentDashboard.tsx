@@ -19,6 +19,7 @@ import Footer from '../components/layout/Footer';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import ProfileCompletionModal from '../components/auth/ProfileCompletionModal';
+import { formatInternshipMode } from '../types/internship';
 
 // ============================================================================
 // COMPONENTS
@@ -32,11 +33,6 @@ interface EnrolledInternship {
     status: string;
     createdAt: string;
 }
-
-const formatInternshipMode = (mode?: string) => {
-    if (!mode) return 'Not specified';
-    return mode.charAt(0).toUpperCase() + mode.slice(1);
-};
 
 const CourseCard: React.FC<{ course: any }> = ({ course }) => {
     const navigate = useNavigate();

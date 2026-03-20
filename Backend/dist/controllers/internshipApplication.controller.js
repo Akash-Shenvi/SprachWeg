@@ -20,7 +20,7 @@ const internshipListing_model_1 = __importDefault(require("../models/internshipL
 const email_service_1 = require("../utils/email.service");
 const fileServeRoot = '/home/sovirtraining/file_serve';
 const adminDecisionStatuses = ['accepted', 'rejected'];
-const internshipModes = ['online', 'hybrid', 'onsite'];
+const internshipModes = ['remote', 'hybrid', 'onsite'];
 const emailService = new email_service_1.EmailService();
 const toStoredResumeUrl = (filename) => `/uploads/internship_resumes/${filename}`;
 const removeStoredResume = (resumeUrl) => {
@@ -31,6 +31,19 @@ const removeStoredResume = (resumeUrl) => {
     if (fs_1.default.existsSync(absolutePath)) {
         fs_1.default.unlinkSync(absolutePath);
     }
+};
+const normalizeInternshipMode = (mode) => {
+    const normalizedValue = String(mode !== null && mode !== void 0 ? mode : '').trim().toLowerCase();
+    if (normalizedValue === 'remote' || normalizedValue === 'online') {
+        return 'remote';
+    }
+    if (normalizedValue === 'hybrid') {
+        return 'hybrid';
+    }
+    if (normalizedValue === 'onsite' || normalizedValue === 'on-site' || normalizedValue === 'on site') {
+        return 'onsite';
+    }
+    return '';
 };
 const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -81,9 +94,9 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
         if (!selectedInternship) {
             return res.status(404).json({ message: 'Selected internship is no longer available.' });
         }
-        const normalizedMode = String(internshipMode).trim().toLowerCase();
+        const normalizedMode = normalizeInternshipMode(internshipMode);
         if (!internshipModes.includes(normalizedMode)) {
-            return res.status(400).json({ message: 'Internship mode must be online, hybrid, or onsite.' });
+            return res.status(400).json({ message: 'Internship mode must be remote, hybrid, or onsite.' });
         }
         if (!req.file) {
             return res.status(400).json({ message: 'Please upload your resume to continue.' });

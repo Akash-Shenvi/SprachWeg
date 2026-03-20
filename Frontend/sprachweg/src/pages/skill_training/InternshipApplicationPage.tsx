@@ -4,10 +4,14 @@ import { useAuth } from '../../context/AuthContext';
 import { internshipApplicationAPI, internshipCatalogAPI } from '../../lib/api';
 import {
   formatInternshipPrice,
+  formatInternshipMode,
   getInternshipBenefits,
+  getInternshipModeOptions,
   getInternshipResponsibilities,
+  normalizeInternshipMode,
   slugifyInternshipTitle,
   type InternshipListing,
+  type InternshipMode,
 } from '../../types/internship';
 
 // ─── Icon Components ──────────────────────────────────────────────────────────
@@ -105,7 +109,6 @@ interface FormData {
 
 type UploadState = 'idle' | 'uploading' | 'done';
 type ApplicationStatus = 'submitted' | 'accepted' | 'rejected' | 'reviewed' | 'shortlisted';
-type InternshipMode = 'online' | 'hybrid' | 'onsite';
 
 interface ExistingApplication {
   _id: string;
@@ -141,12 +144,6 @@ const SOURCES = [
   'Social Media', 'Internet Search', 'Other',
 ];
 
-const INTERNSHIP_MODES: { value: InternshipMode; label: string }[] = [
-  { value: 'online', label: 'Online' },
-  { value: 'hybrid', label: 'Hybrid' },
-  { value: 'onsite', label: 'Onsite' },
-];
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatBytes(bytes: number): string {
@@ -157,11 +154,6 @@ function formatBytes(bytes: number): string {
 
 function generateRef(): string {
   return 'SOV-' + Math.random().toString(36).substr(2, 8).toUpperCase();
-}
-
-function formatInternshipMode(mode?: string): string {
-  if (!mode) return 'Not specified';
-  return mode.charAt(0).toUpperCase() + mode.slice(1);
 }
 
 function getStatusText(status: ApplicationStatus): string {
@@ -250,9 +242,8 @@ const InternshipApplicationPage: React.FC = () => {
   const internshipResponsibilities = internship ? getInternshipResponsibilities(internship).slice(0, 3) : [];
   const internshipBenefits = internship ? getInternshipBenefits(internship).slice(0, 3) : [];
   const requestedMode = searchParams.get('mode')?.trim().toLowerCase();
-  const initialInternshipMode = INTERNSHIP_MODES.some(({ value }) => value === requestedMode)
-    ? requestedMode as InternshipMode
-    : '';
+  const initialInternshipMode = normalizeInternshipMode(requestedMode);
+  const availableInternshipModes = getInternshipModeOptions(internship?.location);
 
   const [form, setForm] = useState<FormData>({
     internshipMode: initialInternshipMode,
@@ -324,6 +315,40 @@ const InternshipApplicationPage: React.FC = () => {
       whatsapp: current.whatsapp || user.phoneNumber || '',
     }));
   }, [user]);
+
+  useEffect(() => {
+    if (!internship) {
+      return;
+    }
+
+    const modeOptions = getInternshipModeOptions(internship.location);
+    const matchedRequestedMode = normalizeInternshipMode(requestedMode);
+
+    setForm((currentForm) => {
+      const currentMode = normalizeInternshipMode(currentForm.internshipMode);
+      const currentModeIsAvailable = !!currentMode && modeOptions.some(({ value }) => value === currentMode);
+
+      if (currentModeIsAvailable) {
+        return currentMode === currentForm.internshipMode
+          ? currentForm
+          : { ...currentForm, internshipMode: currentMode };
+      }
+
+      if (matchedRequestedMode && modeOptions.some(({ value }) => value === matchedRequestedMode)) {
+        return currentForm.internshipMode === matchedRequestedMode
+          ? currentForm
+          : { ...currentForm, internshipMode: matchedRequestedMode };
+      }
+
+      if (!currentForm.internshipMode && modeOptions.length === 1) {
+        return { ...currentForm, internshipMode: modeOptions[0].value };
+      }
+
+      return currentForm.internshipMode
+        ? { ...currentForm, internshipMode: '' }
+        : currentForm;
+    });
+  }, [internship, requestedMode]);
 
   useEffect(() => {
     if (internshipLoading) {
@@ -731,7 +756,7 @@ const InternshipApplicationPage: React.FC = () => {
             Internship <span className="text-[#d6b161]">Application</span>
           </h1>
           <p className="mt-1 text-[13px] tracking-wide text-gray-500 dark:text-gray-400">
-            Industrial Training Portal · 2025
+            Industrial Training Portal
           </p>
 
           <div className="mt-4 inline-flex items-center justify-center rounded-full border border-[#d6b161]/30 bg-[#d6b161]/10 px-4 py-2 text-xs font-semibold text-[#b38f3f] dark:text-[#d6b161]">
@@ -844,7 +869,7 @@ const InternshipApplicationPage: React.FC = () => {
                     onChange={e => set('internshipMode', e.target.value)}
                   >
                     <option value="" disabled>Select internship mode</option>
-                    {INTERNSHIP_MODES.map((mode) => (
+                    {availableInternshipModes.map((mode) => (
                       <option key={mode.value} value={mode.value}>{mode.label}</option>
                     ))}
                   </SelectField>

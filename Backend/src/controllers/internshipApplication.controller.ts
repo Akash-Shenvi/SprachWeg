@@ -7,7 +7,7 @@ import { EmailService } from '../utils/email.service';
 
 const fileServeRoot = '/home/sovirtraining/file_serve';
 const adminDecisionStatuses = ['accepted', 'rejected'] as const;
-const internshipModes = ['online', 'hybrid', 'onsite'] as const;
+const internshipModes = ['remote', 'hybrid', 'onsite'] as const;
 const emailService = new EmailService();
 
 const toStoredResumeUrl = (filename: string) => `/uploads/internship_resumes/${filename}`;
@@ -21,6 +21,24 @@ const removeStoredResume = (resumeUrl?: string) => {
     if (fs.existsSync(absolutePath)) {
         fs.unlinkSync(absolutePath);
     }
+};
+
+const normalizeInternshipMode = (mode: unknown) => {
+    const normalizedValue = String(mode ?? '').trim().toLowerCase();
+
+    if (normalizedValue === 'remote' || normalizedValue === 'online') {
+        return 'remote' as const;
+    }
+
+    if (normalizedValue === 'hybrid') {
+        return 'hybrid' as const;
+    }
+
+    if (normalizedValue === 'onsite' || normalizedValue === 'on-site' || normalizedValue === 'on site') {
+        return 'onsite' as const;
+    }
+
+    return '';
 };
 
 export const submitInternshipApplication = async (req: Request, res: Response) => {
@@ -96,9 +114,9 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
             return res.status(404).json({ message: 'Selected internship is no longer available.' });
         }
 
-        const normalizedMode = String(internshipMode).trim().toLowerCase();
+        const normalizedMode = normalizeInternshipMode(internshipMode);
         if (!internshipModes.includes(normalizedMode as (typeof internshipModes)[number])) {
-            return res.status(400).json({ message: 'Internship mode must be online, hybrid, or onsite.' });
+            return res.status(400).json({ message: 'Internship mode must be remote, hybrid, or onsite.' });
         }
 
         if (!req.file) {
