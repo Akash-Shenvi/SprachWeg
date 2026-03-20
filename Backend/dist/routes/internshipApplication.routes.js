@@ -30,6 +30,7 @@ router.get('/me', auth_middleware_1.protect, internshipApplication_controller_1.
 router.get('/me/enrolled', auth_middleware_1.protect, internshipApplication_controller_1.getMyEnrolledInternships);
 router.get('/admin', auth_middleware_1.protect, auth_middleware_1.isAdmin, internshipApplication_controller_1.getAllInternshipApplications);
 router.get('/admin/payment-attempts', auth_middleware_1.protect, auth_middleware_1.isAdmin, internshipApplication_controller_1.getAllInternshipPaymentAttempts);
+router.delete('/admin/payment-attempts/:id', auth_middleware_1.protect, auth_middleware_1.isAdmin, internshipApplication_controller_1.deleteInternshipPaymentAttempt);
 router.patch('/admin/:id/status', auth_middleware_1.protect, auth_middleware_1.isAdmin, internshipApplication_controller_1.updateInternshipApplicationStatus);
 router.delete('/admin/:id', auth_middleware_1.protect, auth_middleware_1.isAdmin, internshipApplication_controller_1.deleteRejectedInternshipApplication);
 exports.default = router;

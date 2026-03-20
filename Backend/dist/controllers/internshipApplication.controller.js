@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteRejectedInternshipApplication = exports.updateInternshipApplicationStatus = exports.getAllInternshipPaymentAttempts = exports.getAllInternshipApplications = exports.getMyEnrolledInternships = exports.getMyInternshipApplications = exports.handleInternshipPaymentWebhook = exports.recordInternshipPaymentFailure = exports.verifyInternshipPayment = exports.submitInternshipApplication = void 0;
+exports.deleteRejectedInternshipApplication = exports.updateInternshipApplicationStatus = exports.deleteInternshipPaymentAttempt = exports.getAllInternshipPaymentAttempts = exports.getAllInternshipApplications = exports.getMyEnrolledInternships = exports.getMyInternshipApplications = exports.handleInternshipPaymentWebhook = exports.recordInternshipPaymentFailure = exports.verifyInternshipPayment = exports.submitInternshipApplication = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const env_1 = require("../config/env");
@@ -682,13 +682,40 @@ const getAllInternshipApplications = (req, res) => __awaiter(void 0, void 0, voi
     }
 });
 exports.getAllInternshipApplications = getAllInternshipApplications;
-const getAllInternshipPaymentAttempts = (_req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getAllInternshipPaymentAttempts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     try {
-        const paymentAttempts = yield internshipPaymentAttempt_model_1.default.find()
+        const rawPage = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 6));
+        const issuesOnly = String((_a = req.query.issuesOnly) !== null && _a !== void 0 ? _a : '').trim().toLowerCase() === 'true';
+        const status = String((_b = req.query.status) !== null && _b !== void 0 ? _b : '').trim().toLowerCase();
+        const filters = {};
+        if (issuesOnly || status === 'issues') {
+            filters.status = { $in: paymentAttemptStatuses };
+        }
+        else if (['created', 'paid', ...paymentAttemptStatuses].includes(status)) {
+            filters.status = status;
+        }
+        const totalItems = yield internshipPaymentAttempt_model_1.default.countDocuments(filters);
+        const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+        const page = Math.min(rawPage, totalPages);
+        const paymentAttempts = yield internshipPaymentAttempt_model_1.default.find(filters)
             .populate('userId', 'name email phoneNumber role avatar')
             .populate('applicationId', 'referenceCode status createdAt')
+            .skip((page - 1) * limit)
+            .limit(limit)
             .sort({ createdAt: -1 });
-        return res.status(200).json({ paymentAttempts });
+        return res.status(200).json({
+            paymentAttempts,
+            pagination: {
+                page,
+                limit,
+                totalItems,
+                totalPages,
+                hasPreviousPage: page > 1,
+                hasNextPage: page < totalPages,
+            },
+        });
     }
     catch (error) {
         console.error('Fetching internship payment attempts failed:', error);
@@ -696,6 +723,30 @@ const getAllInternshipPaymentAttempts = (_req, res) => __awaiter(void 0, void 0,
     }
 });
 exports.getAllInternshipPaymentAttempts = getAllInternshipPaymentAttempts;
+const deleteInternshipPaymentAttempt = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const paymentAttempt = yield internshipPaymentAttempt_model_1.default.findById(id);
+        if (!paymentAttempt) {
+            return res.status(404).json({ message: 'Internship payment attempt not found.' });
+        }
+        if (paymentAttempt.status !== 'failed' && paymentAttempt.status !== 'cancelled') {
+            return res.status(400).json({ message: 'Only failed or cancelled payment attempts can be deleted.' });
+        }
+        const resumeUrl = paymentAttempt.resumeUrl;
+        const hasLinkedApplication = !!paymentAttempt.applicationId;
+        yield paymentAttempt.deleteOne();
+        if (!hasLinkedApplication) {
+            removeStoredResume(resumeUrl);
+        }
+        return res.status(200).json({ message: 'Internship payment attempt deleted successfully.' });
+    }
+    catch (error) {
+        console.error('Deleting internship payment attempt failed:', error);
+        return res.status(500).json({ message: 'Failed to delete internship payment attempt.' });
+    }
+});
+exports.deleteInternshipPaymentAttempt = deleteInternshipPaymentAttempt;
 const updateInternshipApplicationStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {

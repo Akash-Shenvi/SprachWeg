@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import {
+    deleteInternshipPaymentAttempt,
     deleteRejectedInternshipApplication,
     getAllInternshipApplications,
     getAllInternshipPaymentAttempts,
@@ -41,6 +42,7 @@ router.get('/me', protect, getMyInternshipApplications);
 router.get('/me/enrolled', protect, getMyEnrolledInternships);
 router.get('/admin', protect, isAdmin, getAllInternshipApplications);
 router.get('/admin/payment-attempts', protect, isAdmin, getAllInternshipPaymentAttempts);
+router.delete('/admin/payment-attempts/:id', protect, isAdmin, deleteInternshipPaymentAttempt);
 router.patch('/admin/:id/status', protect, isAdmin, updateInternshipApplicationStatus);
 router.delete('/admin/:id', protect, isAdmin, deleteRejectedInternshipApplication);
 

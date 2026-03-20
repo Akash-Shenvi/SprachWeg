@@ -109,6 +109,15 @@ interface InternshipPaymentAttempt {
     updatedAt: string;
 }
 
+interface PaymentAttemptPagination {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
 const normalizeStatus = (status: InternshipApplicationStatus): DisplayStatus => {
     if (status === 'accepted') return 'accepted';
     if (status === 'rejected') return 'rejected';
@@ -181,13 +190,26 @@ const getPaymentAttemptStatusMeta = (status: InternshipPaymentAttempt['status'])
 
 const AdminInternshipApplications: React.FC = () => {
     const APPLICATIONS_PER_PAGE = 10;
+    const PAYMENT_ISSUES_PAGE_SIZE = 6;
     const [applications, setApplications] = useState<InternshipApplication[]>([]);
-    const [paymentAttempts, setPaymentAttempts] = useState<InternshipPaymentAttempt[]>([]);
+    const [paymentIssueItems, setPaymentIssueItems] = useState<InternshipPaymentAttempt[]>([]);
+    const [paymentIssuePagination, setPaymentIssuePagination] = useState<PaymentAttemptPagination>({
+        page: 1,
+        limit: PAYMENT_ISSUES_PAGE_SIZE,
+        totalItems: 0,
+        totalPages: 1,
+        hasPreviousPage: false,
+        hasNextPage: false,
+    });
     const [selectedApplication, setSelectedApplication] = useState<InternshipApplication | null>(null);
     const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
+    const [isPaymentIssuesOpen, setIsPaymentIssuesOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [paymentIssuesLoading, setPaymentIssuesLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [paymentIssuesError, setPaymentIssuesError] = useState<string | null>(null);
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [paymentIssueDeletingId, setPaymentIssueDeletingId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | DisplayStatus>('submitted');
     const [currentPage, setCurrentPage] = useState(1);
@@ -200,16 +222,68 @@ const AdminInternshipApplications: React.FC = () => {
         setCurrentPage(1);
     }, [searchTerm, statusFilter]);
 
+    const syncPaymentIssueState = (
+        paymentAttempts: InternshipPaymentAttempt[],
+        pagination?: Partial<PaymentAttemptPagination>,
+        fallbackPage = 1
+    ) => {
+        setPaymentIssueItems(paymentAttempts);
+        setPaymentIssuePagination({
+            page: pagination?.page ?? fallbackPage,
+            limit: pagination?.limit ?? PAYMENT_ISSUES_PAGE_SIZE,
+            totalItems: pagination?.totalItems ?? paymentAttempts.length,
+            totalPages: pagination?.totalPages ?? 1,
+            hasPreviousPage: pagination?.hasPreviousPage ?? false,
+            hasNextPage: pagination?.hasNextPage ?? false,
+        });
+    };
+
+    const fetchPaymentIssues = async (page = 1, options?: { showLoader?: boolean }) => {
+        try {
+            if (options?.showLoader) {
+                setPaymentIssuesLoading(true);
+            }
+
+            setPaymentIssuesError(null);
+
+            const paymentAttemptResponse = await internshipApplicationAPI.getAllPaymentAttemptsAdmin({
+                page,
+                limit: PAYMENT_ISSUES_PAGE_SIZE,
+                issuesOnly: true,
+            });
+
+            syncPaymentIssueState(
+                paymentAttemptResponse.paymentAttempts || [],
+                paymentAttemptResponse.pagination,
+                page
+            );
+        } catch (err: any) {
+            console.error('Failed to fetch internship payment issues:', err);
+            setPaymentIssuesError(err.response?.data?.message || 'Failed to load payment issues.');
+        } finally {
+            if (options?.showLoader) {
+                setPaymentIssuesLoading(false);
+            }
+        }
+    };
+
     const fetchApplications = async () => {
         try {
             setLoading(true);
             setError(null);
             const [applicationResponse, paymentAttemptResponse] = await Promise.all([
                 internshipApplicationAPI.getAllAdmin(),
-                internshipApplicationAPI.getAllPaymentAttemptsAdmin(),
+                internshipApplicationAPI.getAllPaymentAttemptsAdmin({
+                    page: 1,
+                    limit: PAYMENT_ISSUES_PAGE_SIZE,
+                    issuesOnly: true,
+                }),
             ]);
             setApplications(applicationResponse.applications || []);
-            setPaymentAttempts(paymentAttemptResponse.paymentAttempts || []);
+            syncPaymentIssueState(
+                paymentAttemptResponse.paymentAttempts || [],
+                paymentAttemptResponse.pagination
+            );
         } catch (err: any) {
             console.error('Failed to fetch internship applications:', err);
             setError(err.response?.data?.message || 'Failed to load internship applications.');
@@ -282,6 +356,34 @@ const AdminInternshipApplications: React.FC = () => {
         }
     };
 
+    const handleOpenPaymentIssues = async () => {
+        setIsPaymentIssuesOpen(true);
+        await fetchPaymentIssues(1, { showLoader: true });
+    };
+
+    const handleDeletePaymentIssue = async (attempt: InternshipPaymentAttempt) => {
+        if (!window.confirm('Delete this payment issue record? If no application was created, its uploaded resume will also be deleted.')) {
+            return;
+        }
+
+        try {
+            setPaymentIssueDeletingId(attempt._id);
+            await internshipApplicationAPI.deletePaymentAttemptAdmin(attempt._id);
+
+            const nextPage =
+                paymentIssueItems.length === 1 && paymentIssuePagination.page > 1
+                    ? paymentIssuePagination.page - 1
+                    : paymentIssuePagination.page;
+
+            await fetchPaymentIssues(nextPage, { showLoader: true });
+        } catch (err: any) {
+            console.error('Failed to delete internship payment issue:', err);
+            window.alert(err.response?.data?.message || 'Failed to delete payment issue.');
+        } finally {
+            setPaymentIssueDeletingId(null);
+        }
+    };
+
     const filteredApplications = [...applications]
         .filter((application) => {
             const normalizedStatus = normalizeStatus(application.status);
@@ -326,8 +428,18 @@ const AdminInternshipApplications: React.FC = () => {
         accepted: applications.filter((application) => normalizeStatus(application.status) === 'accepted').length,
         rejected: applications.filter((application) => normalizeStatus(application.status) === 'rejected').length,
     };
-    const paymentIssueAttempts = paymentAttempts.filter((attempt) => attempt.status === 'failed' || attempt.status === 'cancelled');
-    const recentPaymentIssues = paymentIssueAttempts.slice(0, 8);
+    const paymentIssueCount = paymentIssuePagination.totalItems;
+    const paymentIssueStart =
+        paymentIssueCount === 0
+            ? 0
+            : (paymentIssuePagination.page - 1) * paymentIssuePagination.limit + 1;
+    const paymentIssueEnd =
+        paymentIssueCount === 0
+            ? 0
+            : Math.min(
+                paymentIssuePagination.page * paymentIssuePagination.limit,
+                paymentIssueCount
+            );
 
     const totalPages = Math.max(1, Math.ceil(filteredApplications.length / APPLICATIONS_PER_PAGE));
     const paginatedApplications = filteredApplications.slice(
@@ -390,7 +502,7 @@ const AdminInternshipApplications: React.FC = () => {
                     </div>
                     <div className="rounded-2xl border border-orange-200 bg-orange-50 p-5 dark:border-orange-900/40 dark:bg-orange-900/10">
                         <p className="text-sm font-medium text-orange-700 dark:text-orange-300">Payment Issues</p>
-                        <p className="mt-2 text-3xl font-bold text-[#0a192f] dark:text-white">{paymentIssueAttempts.length}</p>
+                        <p className="mt-2 text-3xl font-bold text-[#0a192f] dark:text-white">{paymentIssueCount}</p>
                     </div>
                 </div>
 
@@ -430,99 +542,57 @@ const AdminInternshipApplications: React.FC = () => {
 
                 {!loading && !error && (
                     <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-[#112240]">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                             <div>
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recent Payment Issues</h2>
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Payment Issue Center</h2>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                                    Failed and cancelled Razorpay attempts appear here even when no internship application was created.
+                                    Keep failed and cancelled Razorpay attempts out of the main list. Open the dedicated view to review, paginate, and delete issue records.
                                 </p>
                             </div>
-                            <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 dark:border-orange-900/40 dark:bg-orange-900/20 dark:text-orange-300">
-                                {paymentIssueAttempts.length} issue{paymentIssueAttempts.length === 1 ? '' : 's'}
-                            </span>
+                            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+                                <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 dark:border-orange-900/40 dark:bg-orange-900/20 dark:text-orange-300">
+                                    {paymentIssueCount} issue{paymentIssueCount === 1 ? '' : 's'}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => void handleOpenPaymentIssues()}
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#d6b161]/30 bg-[#d6b161]/10 px-4 py-2 text-sm font-semibold text-[#d6b161] transition-colors hover:bg-[#d6b161]/20"
+                                >
+                                    <Eye className="h-4 w-4" />
+                                    View Payment Issues
+                                </button>
+                            </div>
                         </div>
 
-                        {recentPaymentIssues.length === 0 ? (
-                            <div className="mt-5 rounded-2xl border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                                No failed or cancelled payment attempts right now.
+                        <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                            <div className="rounded-2xl border border-orange-200 bg-orange-50/70 p-4 dark:border-orange-900/40 dark:bg-orange-900/10">
+                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-700 dark:text-orange-300">
+                                    Queue Size
+                                </p>
+                                <p className="mt-2 text-2xl font-bold text-[#0a192f] dark:text-white">{paymentIssueCount}</p>
+                                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                    Failed and cancelled attempts waiting for admin review.
+                                </p>
                             </div>
-                        ) : (
-                            <div className="mt-5 grid gap-4 lg:grid-cols-2">
-                                {recentPaymentIssues.map((attempt) => (
-                                    <article
-                                        key={attempt._id}
-                                        className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#0a192f]"
-                                    >
-                                        <div className="flex flex-wrap items-start justify-between gap-3">
-                                            <div>
-                                                <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                                                    {attempt.firstName} {attempt.lastName}
-                                                </h3>
-                                                <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
-                                                    {attempt.internshipTitle}
-                                                </p>
-                                            </div>
-                                            <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getPaymentAttemptStatusMeta(attempt.status)}`}>
-                                                {formatPaymentState(attempt.status)}
-                                            </span>
-                                        </div>
-
-                                        <div className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
-                                            <div>
-                                                <p className="text-gray-500 dark:text-gray-400">Contact</p>
-                                                <p className="font-semibold text-gray-900 dark:text-white">{attempt.email}</p>
-                                                <p className="text-gray-600 dark:text-gray-300">{attempt.whatsapp}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500 dark:text-gray-400">Amount</p>
-                                                <p className="font-semibold text-gray-900 dark:text-white">
-                                                    {formatInternshipPrice(attempt.amount / 100, attempt.currency)}
-                                                </p>
-                                                <p className="text-gray-600 dark:text-gray-300">{formatInternshipMode(attempt.internshipMode)}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500 dark:text-gray-400">Order ID</p>
-                                                <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
-                                                    {attempt.razorpayOrderId || 'Not created'}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500 dark:text-gray-400">Payment ID</p>
-                                                <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
-                                                    {attempt.razorpayPaymentId || 'Not available'}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500 dark:text-gray-400">Gateway Status</p>
-                                                <p className="font-semibold text-gray-900 dark:text-white">
-                                                    {formatPaymentState(attempt.paymentStatus)}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500 dark:text-gray-400">Payment Method</p>
-                                                <p className="font-semibold text-gray-900 dark:text-white">
-                                                    {attempt.paymentMethod || 'Not available'}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-4 space-y-2 text-sm">
-                                            <p className="text-gray-500 dark:text-gray-400">
-                                                Failure reason: <span className="font-semibold text-gray-900 dark:text-white">{attempt.failureReason || attempt.paymentErrorDescription || attempt.paymentErrorReason || 'Not available'}</span>
-                                            </p>
-                                            <p className="text-gray-500 dark:text-gray-400">
-                                                Recorded: <span className="font-semibold text-gray-900 dark:text-white">{formatDate(attempt.createdAt)}</span>
-                                            </p>
-                                            {attempt.applicationId && (
-                                                <p className="text-gray-500 dark:text-gray-400">
-                                                    Linked application: <span className="font-semibold text-gray-900 dark:text-white">{attempt.applicationId.referenceCode}</span>
-                                                </p>
-                                            )}
-                                        </div>
-                                    </article>
-                                ))}
+                            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#0a192f]">
+                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
+                                    Page Size
+                                </p>
+                                <p className="mt-2 text-2xl font-bold text-[#0a192f] dark:text-white">{PAYMENT_ISSUES_PAGE_SIZE}</p>
+                                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                    Each page in the modal shows a compact batch of payment issues.
+                                </p>
                             </div>
-                        )}
+                            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#0a192f]">
+                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
+                                    Cleanup
+                                </p>
+                                <p className="mt-2 text-2xl font-bold text-[#0a192f] dark:text-white">Delete</p>
+                                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                    Remove old failed or cancelled attempts without cluttering the main application feed.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -727,6 +797,216 @@ const AdminInternshipApplications: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            <AnimatePresence>
+                {isPaymentIssuesOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                            onClick={() => {
+                                setIsPaymentIssuesOpen(false);
+                                setPaymentIssuesError(null);
+                            }}
+                        />
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 24, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 24, scale: 0.98 }}
+                            className="relative z-10 flex w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl dark:border-gray-800 dark:bg-[#112240]"
+                        >
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsPaymentIssuesOpen(false);
+                                    setPaymentIssuesError(null);
+                                }}
+                                className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-gray-200 dark:bg-[#0a192f] dark:text-gray-300 dark:hover:bg-gray-800"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+
+                            <div className="border-b border-gray-200 px-6 py-5 dark:border-gray-800">
+                                <div className="pr-12">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Payment Issues</h2>
+                                            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                                                Review failed or cancelled checkout attempts and delete stale records when needed.
+                                            </p>
+                                        </div>
+                                        <span className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 dark:border-orange-900/40 dark:bg-orange-900/20 dark:text-orange-300">
+                                            {paymentIssueCount} total
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="max-h-[70vh] overflow-y-auto p-6">
+                                {paymentIssuesLoading ? (
+                                    <div className="flex justify-center py-16">
+                                        <Loader2 className="h-8 w-8 animate-spin text-[#d6b161]" />
+                                    </div>
+                                ) : paymentIssuesError ? (
+                                    <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-8 text-center text-red-700 dark:border-red-900/40 dark:bg-red-900/10 dark:text-red-300">
+                                        {paymentIssuesError}
+                                    </div>
+                                ) : paymentIssueItems.length === 0 ? (
+                                    <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-12 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                                        No failed or cancelled payment attempts right now.
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-4 lg:grid-cols-2">
+                                        {paymentIssueItems.map((attempt) => {
+                                            const isDeleting = paymentIssueDeletingId === attempt._id;
+
+                                            return (
+                                                <article
+                                                    key={attempt._id}
+                                                    className="rounded-2xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-[#0a192f]"
+                                                >
+                                                    <div className="flex flex-wrap items-start justify-between gap-3">
+                                                        <div>
+                                                            <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                                                                {attempt.firstName} {attempt.lastName}
+                                                            </h3>
+                                                            <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                                                                {attempt.internshipTitle}
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${getPaymentAttemptStatusMeta(attempt.status)}`}>
+                                                                {formatPaymentState(attempt.status)}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => void handleDeletePaymentIssue(attempt)}
+                                                                disabled={isDeleting}
+                                                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30"
+                                                            >
+                                                                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
+                                                        <div>
+                                                            <p className="text-gray-500 dark:text-gray-400">Contact</p>
+                                                            <p className="font-semibold text-gray-900 dark:text-white">{attempt.email}</p>
+                                                            <p className="text-gray-600 dark:text-gray-300">{attempt.whatsapp}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-500 dark:text-gray-400">Amount</p>
+                                                            <p className="font-semibold text-gray-900 dark:text-white">
+                                                                {formatInternshipPrice(attempt.amount / 100, attempt.currency)}
+                                                            </p>
+                                                            <p className="text-gray-600 dark:text-gray-300">
+                                                                {formatInternshipMode(attempt.internshipMode)}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-500 dark:text-gray-400">Order ID</p>
+                                                            <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
+                                                                {attempt.razorpayOrderId || 'Not created'}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-500 dark:text-gray-400">Payment ID</p>
+                                                            <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
+                                                                {attempt.razorpayPaymentId || 'Not available'}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-500 dark:text-gray-400">Gateway Status</p>
+                                                            <p className="font-semibold text-gray-900 dark:text-white">
+                                                                {formatPaymentState(attempt.paymentStatus)}
+                                                            </p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-gray-500 dark:text-gray-400">Payment Method</p>
+                                                            <p className="font-semibold text-gray-900 dark:text-white">
+                                                                {attempt.paymentMethod || 'Not available'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-4 space-y-2 text-sm">
+                                                        <p className="text-gray-500 dark:text-gray-400">
+                                                            Failure reason:{' '}
+                                                            <span className="font-semibold text-gray-900 dark:text-white">
+                                                                {attempt.failureReason || attempt.paymentErrorDescription || attempt.paymentErrorReason || 'Not available'}
+                                                            </span>
+                                                        </p>
+                                                        <p className="text-gray-500 dark:text-gray-400">
+                                                            Recorded:{' '}
+                                                            <span className="font-semibold text-gray-900 dark:text-white">{formatDate(attempt.createdAt)}</span>
+                                                        </p>
+                                                        {attempt.applicationId && (
+                                                            <p className="text-gray-500 dark:text-gray-400">
+                                                                Linked application:{' '}
+                                                                <span className="font-semibold text-gray-900 dark:text-white">
+                                                                    {attempt.applicationId.referenceCode}
+                                                                </span>
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </article>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="border-t border-gray-200 px-6 py-4 dark:border-gray-800">
+                                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        Showing{' '}
+                                        <span className="font-semibold text-gray-900 dark:text-white">{paymentIssueStart}</span>{' '}
+                                        to{' '}
+                                        <span className="font-semibold text-gray-900 dark:text-white">{paymentIssueEnd}</span>{' '}
+                                        of{' '}
+                                        <span className="font-semibold text-gray-900 dark:text-white">{paymentIssueCount}</span>{' '}
+                                        issues
+                                    </p>
+
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => void fetchPaymentIssues(paymentIssuePagination.page - 1, { showLoader: true })}
+                                            disabled={!paymentIssuePagination.hasPreviousPage || paymentIssuesLoading}
+                                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-[#0a192f] dark:text-gray-300 dark:hover:bg-gray-800"
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                            Previous
+                                        </button>
+
+                                        <span className="px-3 text-sm font-medium text-gray-600 dark:text-gray-400">
+                                            Page{' '}
+                                            <span className="text-gray-900 dark:text-white">{paymentIssuePagination.page}</span>{' '}
+                                            of{' '}
+                                            <span className="text-gray-900 dark:text-white">{paymentIssuePagination.totalPages}</span>
+                                        </span>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => void fetchPaymentIssues(paymentIssuePagination.page + 1, { showLoader: true })}
+                                            disabled={!paymentIssuePagination.hasNextPage || paymentIssuesLoading}
+                                            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-[#0a192f] dark:text-gray-300 dark:hover:bg-gray-800"
+                                        >
+                                            Next
+                                            <ChevronRight className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             <AnimatePresence>
                 {selectedApplication && (

@@ -201,8 +201,33 @@ export const internshipApplicationAPI = {
         const response = await api.get('/internship-applications/admin');
         return response.data;
     },
-    async getAllPaymentAttemptsAdmin() {
-        const response = await api.get('/internship-applications/admin/payment-attempts');
+    async getAllPaymentAttemptsAdmin(params?: { page?: number; limit?: number; issuesOnly?: boolean; status?: string }) {
+        const searchParams = new URLSearchParams();
+
+        if (params?.page) {
+            searchParams.set('page', String(params.page));
+        }
+
+        if (params?.limit) {
+            searchParams.set('limit', String(params.limit));
+        }
+
+        if (params?.issuesOnly) {
+            searchParams.set('issuesOnly', 'true');
+        }
+
+        if (params?.status) {
+            searchParams.set('status', params.status);
+        }
+
+        const queryString = searchParams.toString();
+        const response = await api.get(
+            `/internship-applications/admin/payment-attempts${queryString ? `?${queryString}` : ''}`
+        );
+        return response.data;
+    },
+    async deletePaymentAttemptAdmin(paymentAttemptId: string) {
+        const response = await api.delete(`/internship-applications/admin/payment-attempts/${paymentAttemptId}`);
         return response.data;
     },
     async updateStatus(applicationId: string, status: 'accepted' | 'rejected') {
