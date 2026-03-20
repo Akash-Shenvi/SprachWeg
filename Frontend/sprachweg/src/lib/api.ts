@@ -162,6 +162,31 @@ export const skillTrainingDetailAPI = {
     }
 };
 
+export const trainingCheckoutAPI = {
+    async create(data: { origin: string; selectedLevel?: string }) {
+        const response = await api.post('/training-checkout/create', data);
+        return response.data;
+    },
+    async verify(data: {
+        attemptId: string;
+        razorpay_order_id: string;
+        razorpay_payment_id: string;
+        razorpay_signature: string;
+    }) {
+        const response = await api.post('/training-checkout/verify', data);
+        return response.data;
+    },
+    async recordFailure(data: {
+        attemptId: string;
+        status: 'failed' | 'cancelled';
+        reason?: string;
+        error?: Record<string, unknown>;
+    }) {
+        const response = await api.post('/training-checkout/failure', data);
+        return response.data;
+    },
+};
+
 export const internshipApplicationAPI = {
     async createCheckout(data: FormData) {
         const response = await api.post('/internship-applications', data, {

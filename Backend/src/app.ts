@@ -75,4 +75,7 @@ app.use('/api/internship-applications', internshipApplicationRoutes);
 import internshipListingRoutes from './routes/internshipListing.routes';
 app.use('/api/internships', internshipListingRoutes);
 
+import trainingCheckoutRoutes from './routes/trainingCheckout.routes';
+app.use('/api/training-checkout', trainingCheckoutRoutes);
+
 export default app;
