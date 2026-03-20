@@ -5,6 +5,7 @@ export interface SkillCourse {
     level?: string;
     description: string;
     price?: string;
+    startingPrice?: number;
     originalPrice?: string;
     rating?: string;
     students?: string;

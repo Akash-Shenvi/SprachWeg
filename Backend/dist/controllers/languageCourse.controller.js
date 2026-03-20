@@ -14,6 +14,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteLanguage = exports.updateLanguage = exports.createLanguage = exports.getLanguageById = exports.getAllLanguages = void 0;
 const languageCourse_model_1 = __importDefault(require("../models/languageCourse.model"));
+const parseStartingPrice = (value) => {
+    if (typeof value === 'undefined' || value === null) {
+        return undefined;
+    }
+    const trimmedValue = String(value).trim();
+    if (!trimmedValue) {
+        return undefined;
+    }
+    const numericValue = Number(trimmedValue);
+    if (!Number.isFinite(numericValue) || numericValue < 0) {
+        return null;
+    }
+    return numericValue;
+};
 const getAllLanguages = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const languages = yield languageCourse_model_1.default.find().sort({ createdAt: -1 });
@@ -40,7 +54,7 @@ const getLanguageById = (req, res) => __awaiter(void 0, void 0, void 0, function
 exports.getLanguageById = getLanguageById;
 const createLanguage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { title, subtitle, description, popular, levels, image } = req.body;
+        const { title, subtitle, description, popular, levels, image, startingPrice } = req.body;
         let parsedLevels = levels;
         // If levels are sent as a JSON string (e.g. from FormData), parse them
         if (typeof levels === 'string') {
@@ -51,11 +65,16 @@ const createLanguage = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 // keep as is if not json
             }
         }
+        const normalizedStartingPrice = parseStartingPrice(startingPrice);
+        if (normalizedStartingPrice === null) {
+            return res.status(400).json({ message: 'Please provide a valid language starting price.' });
+        }
         const newLanguage = new languageCourse_model_1.default({
             title,
             subtitle,
             description,
             popular,
+            startingPrice: normalizedStartingPrice,
             levels: parsedLevels,
             image // Assuming image handling/upload is done via middleware or passed as string path
         });
@@ -80,6 +99,9 @@ const updateLanguage = (req, res) => __awaiter(void 0, void 0, void 0, function*
     try {
         const { id } = req.params;
         const updates = Object.assign({}, req.body);
+        const rawStartingPrice = Object.prototype.hasOwnProperty.call(req.body, 'startingPrice')
+            ? req.body.startingPrice
+            : undefined;
         if (typeof updates.levels === 'string') {
             try {
                 updates.levels = JSON.parse(updates.levels);
@@ -90,6 +112,18 @@ const updateLanguage = (req, res) => __awaiter(void 0, void 0, void 0, function*
         }
         if (req.file) {
             updates.image = req.file.filename;
+        }
+        if (typeof rawStartingPrice !== 'undefined') {
+            const normalizedStartingPrice = parseStartingPrice(rawStartingPrice);
+            if (normalizedStartingPrice === null) {
+                return res.status(400).json({ message: 'Please provide a valid language starting price.' });
+            }
+            if (typeof normalizedStartingPrice === 'undefined') {
+                delete updates.startingPrice;
+            }
+            else {
+                updates.startingPrice = normalizedStartingPrice;
+            }
         }
         const updatedLanguage = yield languageCourse_model_1.default.findByIdAndUpdate(id, updates, { new: true });
         if (!updatedLanguage) {

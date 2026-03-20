@@ -6,6 +6,7 @@ import Header from '../../components/layout/Header';
 import Footer from '../../components/layout/Footer';
 import EnrollmentModal from '../../components/ui/EnrollmentModal';
 import { skillAPI, skillTrainingDetailAPI } from '../../lib/api';
+import { formatTrainingPrice } from '../../lib/trainingPricing';
 
 // --- Premium Animation Variants ---
 const fadeInUp = {
@@ -103,6 +104,9 @@ const AdvancedIndustry4Page: React.FC = () => {
                         }
                     } catch (err) {
                         console.error("Error fetching flexible details", err);
+                    }
+                    if (course.price) {
+                        details.fees = formatTrainingPrice(course.price);
                     }
                     setCourseDetails(details);
                 }
@@ -269,7 +273,7 @@ const AdvancedIndustry4Page: React.FC = () => {
                                 className="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg dark:border-gray-800 dark:bg-gray-800/95"
                             >
                                 <Award className="mb-4 h-10 w-10 text-[#d6b161]" />
-                                <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Fees</h3>
+                                <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Price</h3>
                                 <p className="text-xl font-bold text-gray-900 dark:text-white">{courseDetails.fees}</p>
                             </motion.div>
                         </div>

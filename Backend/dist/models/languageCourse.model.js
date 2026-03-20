@@ -40,6 +40,7 @@ const LanguageCourseSchema = new mongoose_1.Schema({
     description: { type: String, required: true },
     image: { type: String, required: false },
     popular: { type: Boolean, default: false },
+    startingPrice: { type: Number, min: 0 },
     levels: [{
             name: { type: String, required: true },
             duration: { type: String, required: true },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -14,6 +14,8 @@ import {
 import Button from '../components/ui/Button';
 import { Header, Footer } from '../components/layout';
 import UnifiedBookingForm from '../components/ui/UnifiedBookingForm';
+import { skillAPI } from '../lib/api';
+import { formatTrainingPrice } from '../lib/trainingPricing';
 
 // Animation variants
 const fadeInUp = {
@@ -63,6 +65,24 @@ interface SkillCourseStatic {
 interface SkillCardProps {
     course: SkillCourseStatic;
 }
+
+const matchesSkillCard = (card: SkillCourseStatic, title?: string) => {
+    const normalizedTitle = String(title || '').trim().toLowerCase();
+
+    if (card.link === '/skill-training/scada') {
+        return normalizedTitle.includes('scada');
+    }
+
+    if (card.link === '/skill-training/plc') {
+        return normalizedTitle.includes('plc');
+    }
+
+    if (card.link === '/skill-training/drives') {
+        return normalizedTitle.includes('drives') || normalizedTitle.includes('motion');
+    }
+
+    return false;
+};
 
 const SkillCard: React.FC<SkillCardProps> = ({ course }) => {
     return (
@@ -126,7 +146,7 @@ const SkillCard: React.FC<SkillCardProps> = ({ course }) => {
                 <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-300 dark:border-gray-600">
                     <div>
                         <span className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-1">Starting at</span>
-                        <span className="text-2xl font-bold text-[#0a192f] dark:text-white">₹{Number(course.price).toLocaleString('en-IN')}</span>
+                        <span className="text-2xl font-bold text-[#0a192f] dark:text-white">{formatTrainingPrice(course.price)}</span>
                     </div>
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                         <Link
@@ -145,9 +165,7 @@ const SkillCard: React.FC<SkillCardProps> = ({ course }) => {
 
 const LandingPage: React.FC = () => {
     const [isBookingFormOpen, setIsBookingFormOpen] = useState(false);
-
-    // Static skill courses with premium images
-    const skillCourses: SkillCourseStatic[] = [
+    const [skillCourses, setSkillCourses] = useState<SkillCourseStatic[]>([
         {
             _id: '1',
             title: 'SCADA & HMI Training',
@@ -190,7 +208,34 @@ const LandingPage: React.FC = () => {
             bgColor: 'bg-green-50 dark:bg-green-950/30',
             borderColor: 'border-green-200 dark:border-green-800'
         }
-    ];
+    ]);
+
+    useEffect(() => {
+        const syncSkillPrices = async () => {
+            try {
+                const apiCourses = await skillAPI.getAll();
+
+                setSkillCourses((currentCourses) =>
+                    currentCourses.map((card) => {
+                        const matchedCourse = apiCourses.find((course: any) => matchesSkillCard(card, course?.title));
+
+                        if (!matchedCourse?.price) {
+                            return card;
+                        }
+
+                        return {
+                            ...card,
+                            price: matchedCourse.price,
+                        };
+                    })
+                );
+            } catch (error) {
+                console.error('Failed to sync landing page skill prices:', error);
+            }
+        };
+
+        syncSkillPrices();
+    }, []);
 
     return (
         <div className="min-h-screen bg-white dark:bg-[#0a192f] transition-colors duration-300 font-sans">

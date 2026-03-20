@@ -1,6 +1,24 @@
 import { Request, Response } from 'express';
 import LanguageCourse from '../models/languageCourse.model';
 
+const parseStartingPrice = (value: unknown) => {
+    if (typeof value === 'undefined' || value === null) {
+        return undefined;
+    }
+
+    const trimmedValue = String(value).trim();
+    if (!trimmedValue) {
+        return undefined;
+    }
+
+    const numericValue = Number(trimmedValue);
+    if (!Number.isFinite(numericValue) || numericValue < 0) {
+        return null;
+    }
+
+    return numericValue;
+};
+
 export const getAllLanguages = async (req: Request, res: Response) => {
     try {
         const languages = await LanguageCourse.find().sort({ createdAt: -1 });
@@ -25,7 +43,7 @@ export const getLanguageById = async (req: Request, res: Response) => {
 
 export const createLanguage = async (req: Request, res: Response) => {
     try {
-        const { title, subtitle, description, popular, levels, image } = req.body;
+        const { title, subtitle, description, popular, levels, image, startingPrice } = req.body;
 
         let parsedLevels = levels;
         // If levels are sent as a JSON string (e.g. from FormData), parse them
@@ -37,11 +55,17 @@ export const createLanguage = async (req: Request, res: Response) => {
             }
         }
 
+        const normalizedStartingPrice = parseStartingPrice(startingPrice);
+        if (normalizedStartingPrice === null) {
+            return res.status(400).json({ message: 'Please provide a valid language starting price.' });
+        }
+
         const newLanguage = new LanguageCourse({
             title,
             subtitle,
             description,
             popular,
+            startingPrice: normalizedStartingPrice,
             levels: parsedLevels,
             image // Assuming image handling/upload is done via middleware or passed as string path
         });
@@ -67,6 +91,9 @@ export const updateLanguage = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const updates = { ...req.body };
+        const rawStartingPrice = Object.prototype.hasOwnProperty.call(req.body, 'startingPrice')
+            ? req.body.startingPrice
+            : undefined;
 
         if (typeof updates.levels === 'string') {
             try {
@@ -78,6 +105,20 @@ export const updateLanguage = async (req: Request, res: Response) => {
 
         if (req.file) {
             updates.image = req.file.filename;
+        }
+
+        if (typeof rawStartingPrice !== 'undefined') {
+            const normalizedStartingPrice = parseStartingPrice(rawStartingPrice);
+
+            if (normalizedStartingPrice === null) {
+                return res.status(400).json({ message: 'Please provide a valid language starting price.' });
+            }
+
+            if (typeof normalizedStartingPrice === 'undefined') {
+                delete updates.startingPrice;
+            } else {
+                updates.startingPrice = normalizedStartingPrice;
+            }
         }
 
         const updatedLanguage = await LanguageCourse.findByIdAndUpdate(id, updates, { new: true });
