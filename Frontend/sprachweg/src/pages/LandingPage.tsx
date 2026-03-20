@@ -233,19 +233,11 @@ const LandingPage: React.FC = () => {
                             <span>Training Center</span>
                         </h1>
 
-<<<<<<< HEAD
-                        <p className="text-base md:text-lg lg:text-xl font-medium text-gray-700 dark:text-gray-200 max-w-4xl mx-auto">
-                            A Training & Career Services Division of SoVir Technologies LLP
-                        </p>
-
-                        <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-400 leading-relaxed max-w-4xl mx-auto">
-=======
                         <p className="text-base md:text-lg lg:text-xl font-medium text-gray-700 dark:text-gray-200 max-w-3xl mx-auto">
                             A Training & Career Services Division of SoVir Technologies LLP
                         </p>
 
                         <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-400 leading-relaxed max-w-3xl mx-auto">
->>>>>>> 412d1eae91aac4dd98420d31cd4bf6fb0f43d736
                             A professional training academy empowering individuals with industry-ready skills and global career opportunities through specialized skill development and abroad placement support.
                         </p>
 
