@@ -3,13 +3,21 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, Check, AlertCircle, GraduationCap, Phone, Mail, User, BookOpen, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { trainingCheckoutAPI } from '../../lib/api';
+import { trainingCheckoutAPI, webinarRegistrationAPI } from '../../lib/api';
 import { loadRazorpayCheckoutScript } from '../../lib/razorpay';
 
 // Tokens
 // --brand-navy: #0a192f
 // --brand-gold: #d6b161
 // --brand-white: #ffffff
+
+type EnrollmentMode = 'training' | 'webinar';
+
+interface WebinarRegistrationContext {
+    webinarId: string;
+    webinarTitle: string;
+    scheduledAt?: string;
+}
 
 interface EnrollmentModalProps {
     isOpen: boolean;
@@ -18,6 +26,11 @@ interface EnrollmentModalProps {
     originPath?: string;
     selectedLevel?: string;
     paymentAmount?: string;
+    mode?: EnrollmentMode;
+    webinar?: WebinarRegistrationContext;
+    successTitle?: string;
+    successDescription?: string;
+    onPaymentVerified?: () => void;
 }
 
 
@@ -46,7 +59,19 @@ const initialFormData: FormData = {
     guardianPhone: '',
 };
 
-const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, origin, originPath, selectedLevel, paymentAmount }) => {
+const EnrollmentModal: React.FC<EnrollmentModalProps> = ({
+    isOpen,
+    onClose,
+    origin,
+    originPath,
+    selectedLevel,
+    paymentAmount,
+    mode = 'training',
+    webinar,
+    successTitle,
+    successDescription,
+    onPaymentVerified,
+}) => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const shouldReduceMotion = useReducedMotion();
@@ -55,6 +80,13 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
     const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const isWebinarMode = mode === 'webinar';
+    const resolvedSuccessTitle = successTitle || (isWebinarMode ? 'Registration Submitted!' : 'Payment Successful!');
+    const resolvedSuccessDescription = successDescription || (
+        isWebinarMode
+            ? 'Your payment is confirmed and your webinar registration is pending admin approval. The calendar invite will be sent after approval.'
+            : 'Your payment is confirmed and your enrollment request has been received. Our admissions team will contact you shortly to finalize your schedule.'
+    );
 
 
     // Autofill from User Context
@@ -84,6 +116,14 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
             }));
         }
     }, [user, isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setErrors({});
+            setIsSubmitting(false);
+            setShowSuccess(false);
+        }
+    }, [isOpen]);
 
     // Focus trap
     useEffect(() => {
@@ -180,10 +220,18 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
         setIsSubmitting(true);
 
         try {
-            const response = await trainingCheckoutAPI.create({
-                origin,
-                selectedLevel,
-            });
+            if (isWebinarMode && !webinar?.webinarId) {
+                throw new Error('A valid webinar selection is required before payment.');
+            }
+
+            const response = isWebinarMode
+                ? await webinarRegistrationAPI.createCheckout({
+                    webinarId: webinar!.webinarId,
+                })
+                : await trainingCheckoutAPI.create({
+                    origin,
+                    selectedLevel,
+                });
 
             const checkout = response.checkout;
 
@@ -194,11 +242,16 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
             const scriptLoaded = await loadRazorpayCheckoutScript();
 
             if (!scriptLoaded || !(window as any).Razorpay) {
-                await trainingCheckoutAPI.recordFailure({
+                const failurePayload = {
                     attemptId: checkout.attemptId,
-                    status: 'cancelled',
+                    status: 'cancelled' as const,
                     reason: 'Razorpay checkout failed to load on the browser.',
-                }).catch(() => undefined);
+                };
+
+                await (isWebinarMode
+                    ? webinarRegistrationAPI.recordPaymentFailure(failurePayload)
+                    : trainingCheckoutAPI.recordFailure(failurePayload)
+                ).catch(() => undefined);
 
                 throw new Error('Unable to load Razorpay checkout right now. Please try again.');
             }
@@ -217,12 +270,17 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
 
                 failureHandled = true;
 
-                await trainingCheckoutAPI.recordFailure({
+                const failurePayload = {
                     attemptId: checkout.attemptId,
                     status: failure.status,
                     reason: failure.reason,
                     error: failure.error,
-                }).catch(() => undefined);
+                };
+
+                await (isWebinarMode
+                    ? webinarRegistrationAPI.recordPaymentFailure(failurePayload)
+                    : trainingCheckoutAPI.recordFailure(failurePayload)
+                ).catch(() => undefined);
 
                 setIsSubmitting(false);
                 alert(failure.message);
@@ -234,19 +292,26 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
                 amount: checkout.amount,
                 currency: checkout.currency,
                 name: 'Sovir Technologies',
-                description: selectedLevel
-                    ? `Course Enrollment - ${checkout.displayCourseTitle} (${selectedLevel})`
-                    : `Course Enrollment - ${checkout.displayCourseTitle}`,
+                description: isWebinarMode
+                    ? `Webinar Registration - ${checkout.webinarTitle || webinar?.webinarTitle || 'Webinar'}`
+                    : selectedLevel
+                        ? `Course Enrollment - ${checkout.displayCourseTitle} (${selectedLevel})`
+                        : `Course Enrollment - ${checkout.displayCourseTitle}`,
                 prefill: {
                     name: formData.name || checkout.applicant?.name || '',
                     email: formData.email || checkout.applicant?.email || '',
                     contact: formData.phone.replace(/\D/g, '') || checkout.applicant?.contact || '',
                 },
-                notes: {
-                    trainingType: checkout.trainingType,
-                    courseTitle: checkout.displayCourseTitle,
-                    levelName: selectedLevel || '',
-                },
+                notes: isWebinarMode
+                    ? {
+                        webinarTitle: checkout.webinarTitle || webinar?.webinarTitle || '',
+                        scheduledAt: checkout.scheduledAt || webinar?.scheduledAt || '',
+                    }
+                    : {
+                        trainingType: checkout.trainingType,
+                        courseTitle: checkout.displayCourseTitle,
+                        levelName: selectedLevel || '',
+                    },
                 theme: {
                     color: '#d6b161',
                 },
@@ -267,19 +332,27 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
                     failureHandled = true;
 
                     try {
-                        await trainingCheckoutAPI.verify({
+                        const verificationPayload = {
                             attemptId: checkout.attemptId,
                             razorpay_order_id: paymentResponse.razorpay_order_id,
                             razorpay_payment_id: paymentResponse.razorpay_payment_id,
                             razorpay_signature: paymentResponse.razorpay_signature,
-                        });
+                        };
 
+                        await (isWebinarMode
+                            ? webinarRegistrationAPI.verifyPayment(verificationPayload)
+                            : trainingCheckoutAPI.verify(verificationPayload)
+                        );
+
+                        onPaymentVerified?.();
                         setShowSuccess(true);
                     } catch (error: any) {
                         console.error('Enrollment verification error:', error);
                         alert(
                             error.response?.data?.message
-                            || 'Payment was completed, but enrollment verification is still pending. Please check your dashboard in a moment.'
+                            || (isWebinarMode
+                                ? 'Payment was completed, but webinar verification is still pending. Please check your dashboard in a moment.'
+                                : 'Payment was completed, but enrollment verification is still pending. Please check your dashboard in a moment.')
                         );
                     } finally {
                         setIsSubmitting(false);
@@ -350,7 +423,11 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
                     className="relative flex h-full w-full flex-col overflow-y-auto bg-white dark:bg-[#0a192f] md:h-auto md:max-h-[90vh] md:w-full md:max-w-4xl md:rounded-2xl shadow-2xl"
                 >
                     {showSuccess ? (
-                        <SuccessView onClose={handleBack} />
+                        <SuccessView
+                            onClose={handleBack}
+                            title={resolvedSuccessTitle}
+                            description={resolvedSuccessDescription}
+                        />
                     ) : (
                         <>
                             {/* Sticky Mobile Header / Desktop Header */}
@@ -364,7 +441,7 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
                                     Back
                                 </button>
                                 <h2 id="modal-title" className="text-lg font-bold text-[#0a192f] dark:text-white">
-                                    Enrollment
+                                    {isWebinarMode ? 'Webinar Registration' : 'Enrollment'}
                                 </h2>
                                 <div className="w-16" /> {/* Spacer for balance */}
                             </div>
@@ -379,8 +456,12 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
                                         <div className="mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md">
                                             <BookOpen className="h-6 w-6 text-[#d6b161]" />
                                         </div>
-                                        <h3 className="mb-2 text-2xl font-bold">Start Your Journey</h3>
-                                        <p className="text-blue-100">Join thousands of students mastering new skills and languages today.</p>
+                                        <h3 className="mb-2 text-2xl font-bold">{isWebinarMode ? 'Reserve Your Webinar Seat' : 'Start Your Journey'}</h3>
+                                        <p className="text-blue-100">
+                                            {isWebinarMode
+                                                ? 'Use the same verified registration form to secure your webinar seat and complete payment safely.'
+                                                : 'Join thousands of students mastering new skills and languages today.'}
+                                        </p>
                                     </div>
 
                                     <div className="relative z-10 space-y-4 text-sm text-blue-200">
@@ -549,6 +630,21 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ isOpen, onClose, orig
                                                     <CreditCard className="h-4 w-4" /> Payment Summary
                                                 </h4>
                                                 <div className="grid gap-4 md:grid-cols-2">
+                                                    {isWebinarMode && webinar?.webinarTitle && (
+                                                        <div className="md:col-span-2">
+                                                            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                                Webinar
+                                                            </p>
+                                                            <p className="text-base font-bold text-[#0a192f] dark:text-white">
+                                                                {webinar.webinarTitle}
+                                                            </p>
+                                                            {webinar.scheduledAt && (
+                                                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                                    Scheduled for {new Date(webinar.scheduledAt).toLocaleString()}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                     {selectedLevel && (
                                                         <div>
                                                             <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -648,7 +744,15 @@ const InputField = ({ label, type = 'text', required, error, value, onChange, ic
 );
 
 // Success View
-const SuccessView = ({ onClose }: { onClose: () => void }) => (
+const SuccessView = ({
+    onClose,
+    title,
+    description,
+}: {
+    onClose: () => void;
+    title: string;
+    description: string;
+}) => (
     <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -657,15 +761,15 @@ const SuccessView = ({ onClose }: { onClose: () => void }) => (
         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
             <Check className="h-10 w-10" />
         </div>
-        <h2 className="mb-2 text-3xl font-bold text-[#0a192f] dark:text-white">Payment Successful!</h2>
+        <h2 className="mb-2 text-3xl font-bold text-[#0a192f] dark:text-white">{title}</h2>
         <p className="mb-8 max-w-sm text-gray-600 dark:text-gray-300">
-            Your payment is confirmed and your enrollment request has been received. Our admissions team will contact you shortly to finalize your schedule.
+            {description}
         </p>
         <button
             onClick={onClose}
             className="rounded-lg bg-[#0a192f] px-8 py-3 font-semibold text-white transition-transform hover:scale-105 hover:shadow-lg dark:bg-gray-700"
         >
-            Return to Course Page
+            Return
         </button>
     </motion.div>
 );

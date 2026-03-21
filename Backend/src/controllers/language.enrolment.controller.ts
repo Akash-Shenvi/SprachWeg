@@ -527,8 +527,18 @@ export const assignTrainer = async (req: Request, res: Response) => {
 // GET /api/language-training/admin/trainers
 export const getTrainers = async (req: Request, res: Response) => {
   try {
-    const trainers = await User.find({ role: 'trainer' }).select('name email _id');
-    res.json(trainers);
+    const trainers = await User.find({ role: 'trainer' })
+      .select('name email _id +googleRefreshToken')
+      .lean();
+
+    res.json(
+      trainers.map((trainer: any) => ({
+        _id: trainer._id,
+        name: trainer.name,
+        email: trainer.email,
+        googleCalendarConnected: !!trainer.googleRefreshToken,
+      }))
+    );
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch trainers", error });
   }

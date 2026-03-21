@@ -78,4 +78,10 @@ app.use('/api/internships', internshipListingRoutes);
 import trainingCheckoutRoutes from './routes/trainingCheckout.routes';
 app.use('/api/training-checkout', trainingCheckoutRoutes);
 
+import webinarRoutes from './routes/webinar.routes';
+app.use('/api/webinars', webinarRoutes);
+
+import webinarRegistrationRoutes from './routes/webinarRegistration.routes';
+app.use('/api/webinar-registrations', webinarRegistrationRoutes);
+
 export default app;

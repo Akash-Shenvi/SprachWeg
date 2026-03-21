@@ -31,6 +31,14 @@ export class GoogleCalendarService {
         this.oauth2Client.setCredentials({ refresh_token: refreshToken });
     }
 
+    private extractMeetLink(eventData: any): string {
+        return (
+            eventData?.hangoutLink
+            || eventData?.conferenceData?.entryPoints?.find((entryPoint: any) => entryPoint?.entryPointType === 'video')?.uri
+            || ''
+        );
+    }
+
     public async createMeeting(
         summary: string,
         description: string,
@@ -72,8 +80,47 @@ export class GoogleCalendarService {
         });
 
         return {
-            meetLink: response.data.hangoutLink || '',
+            meetLink: this.extractMeetLink(response.data),
             eventId: response.data.id || '',
+        };
+    }
+
+    public async updateMeeting(
+        eventId: string,
+        summary: string,
+        description: string,
+        startTime: Date,
+        durationMinutes: number = 60,
+        attendees: string[] = []
+    ): Promise<{ meetLink: string; eventId: string }> {
+        const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
+        const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
+
+        const response = await calendar.events.patch({
+            calendarId: 'primary',
+            eventId,
+            requestBody: {
+                summary,
+                description,
+                start: {
+                    dateTime: startTime.toISOString(),
+                    timeZone: 'UTC',
+                },
+                end: {
+                    dateTime: endTime.toISOString(),
+                    timeZone: 'UTC',
+                },
+                attendees: attendees.map((email) => ({ email })),
+                guestsCanInviteOthers: false,
+                guestsCanSeeOtherGuests: false,
+            },
+            conferenceDataVersion: 1,
+            sendUpdates: 'all',
+        });
+
+        return {
+            meetLink: this.extractMeetLink(response.data),
+            eventId: response.data.id || eventId,
         };
     }
 

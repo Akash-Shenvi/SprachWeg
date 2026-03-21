@@ -50,6 +50,9 @@ import ManageStudents from './pages/Admin/ManageStudents';
 import ChatPage from './pages/ChatPage';
 import VerificationPage from './pages/VerificationPage';
 import CareersPage from './pages/CareersPage';
+import WebinarsPage from './pages/WebinarsPage';
+import AdminWebinarCatalog from './pages/Admin/AdminWebinarCatalog';
+import AdminWebinarRegistrations from './pages/Admin/AdminWebinarRegistrations';
 
 
 
@@ -157,6 +160,7 @@ const AppContent = () => {
         <Route path="/feedback" element={<FeedbackPage />} />
         <Route path="/verify" element={<VerificationPage />} />
         <Route path="/careers" element={<CareersPage />} />
+        <Route path="/webinars" element={<WebinarsPage />} />
 
 
         {/* Skill Training Routes */}
@@ -314,6 +318,22 @@ const AppContent = () => {
           element={
             <AdminRoute>
               <AdminInternshipCatalog />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/webinars"
+          element={
+            <AdminRoute>
+              <AdminWebinarCatalog />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/webinar-registrations"
+          element={
+            <AdminRoute>
+              <AdminWebinarRegistrations />
             </AdminRoute>
           }
         />

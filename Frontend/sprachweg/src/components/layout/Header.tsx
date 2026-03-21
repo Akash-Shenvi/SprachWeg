@@ -263,6 +263,12 @@ const Header: React.FC = () => {
 
 
                         <Link
+                            to="/webinars"
+                            className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-3 py-2"
+                        >
+                            Webinars
+                        </Link>
+                        <Link
                             to="/about"
                             className="text-gray-700 dark:text-gray-300 hover:text-[#d6b161] font-medium transition-colors text-sm px-3 py-2"
                         >
@@ -530,6 +536,7 @@ const Header: React.FC = () => {
                                 </div>
                             )}
 
+                            <Link to="/webinars" className="block text-gray-700 dark:text-gray-300 font-medium py-2 text-sm" onClick={() => setIsMenuOpen(false)}>Webinars</Link>
                             <Link to="/about" className="block text-gray-700 dark:text-gray-300 font-medium py-2 text-sm" onClick={() => setIsMenuOpen(false)}>About</Link>
                             <Link to="/contact" className="block text-gray-700 dark:text-gray-300 font-medium py-2 text-sm" onClick={() => setIsMenuOpen(false)}>Contact</Link>
 

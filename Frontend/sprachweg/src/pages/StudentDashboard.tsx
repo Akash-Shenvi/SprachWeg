@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import api from '../lib/api';
-import { getAssetUrl, internshipApplicationAPI } from '../lib/api';
+import { getAssetUrl, internshipApplicationAPI, webinarRegistrationAPI } from '../lib/api';
 import {
     BookOpen,
     Briefcase,
@@ -14,7 +14,9 @@ import {
     CalendarDays,
     MessageCircle,
     LogOut,
-    Layers
+    Layers,
+    ExternalLink,
+    Video
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -22,6 +24,7 @@ import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
 import ProfileCompletionModal from '../components/auth/ProfileCompletionModal';
 import { formatInternshipMode } from '../types/internship';
+import { formatWebinarDateTime, formatWebinarPrice, type ApprovedWebinar } from '../types/webinar';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -209,6 +212,55 @@ const EnrolledInternshipCard: React.FC<{ internship: EnrolledInternship }> = ({ 
     </motion.div>
 );
 
+const ApprovedWebinarCard: React.FC<{ webinar: ApprovedWebinar }> = ({ webinar }) => (
+    <motion.div
+        variants={itemVariants}
+        whileHover={{ y: -3, transition: { duration: 0.2 } }}
+        className="group relative rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-lg dark:border-gray-700 dark:bg-gray-800 overflow-hidden transition-shadow"
+    >
+        <div className="absolute top-0 left-0 h-1 w-full bg-gradient-to-r from-[#d6b161] to-orange-400 rounded-t-2xl" />
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex-1">
+                <p className="text-xs font-bold uppercase tracking-widest text-[#d6b161] mb-2">Approved Webinar</p>
+                <h3 className="text-xl font-bold text-[#0a192f] dark:text-white leading-snug">{webinar.title}</h3>
+                <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
+                    <span className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                        <CalendarDays className="h-3.5 w-3.5 text-[#d6b161]" />
+                        <span>{formatWebinarDateTime(webinar.scheduledAt)}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                        <span>Price:</span>
+                        <span className="font-medium text-gray-800 dark:text-gray-200">{formatWebinarPrice(webinar.price, webinar.currency)}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                        <span>Ref:</span>
+                        <code className="font-mono text-xs font-semibold text-[#0a192f] dark:text-white bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{webinar.referenceCode}</code>
+                    </span>
+                </div>
+            </div>
+            {webinar.joinLink ? (
+                <a
+                    href={webinar.joinLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-[#0a192f] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 dark:bg-[#d6b161] dark:text-[#0a192f] transition-opacity"
+                >
+                    <ExternalLink className="h-4 w-4" />
+                    Join Webinar
+                </a>
+            ) : (
+                <button
+                    type="button"
+                    disabled
+                    className="shrink-0 inline-flex items-center justify-center rounded-xl bg-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-500 dark:bg-gray-700 dark:text-gray-300 cursor-not-allowed"
+                >
+                    Join link pending
+                </button>
+            )}
+        </div>
+    </motion.div>
+);
+
 // ============================================================================
 // PROFILE FIELD ROW
 // ============================================================================
@@ -268,24 +320,29 @@ const StudentDashboard: React.FC = () => {
     const navigate = useNavigate();
     const [courses, setCourses] = useState<any[]>([]);
     const [enrolledInternships, setEnrolledInternships] = useState<EnrolledInternship[]>([]);
+    const [approvedWebinars, setApprovedWebinars] = useState<ApprovedWebinar[]>([]);
     const [coursesLoading, setCoursesLoading] = useState(true);
     const [internshipsLoading, setInternshipsLoading] = useState(true);
+    const [webinarsLoading, setWebinarsLoading] = useState(true);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [batchesResponse, enrolledInternshipsResponse] = await Promise.all([
+                const [batchesResponse, enrolledInternshipsResponse, approvedWebinarsResponse] = await Promise.all([
                     api.get('/language-trainer/student/batches'),
                     internshipApplicationAPI.getMyEnrolled(),
+                    webinarRegistrationAPI.getApprovedMine(),
                 ]);
                 setCourses(batchesResponse.data);
                 setEnrolledInternships(enrolledInternshipsResponse.internships || []);
+                setApprovedWebinars(approvedWebinarsResponse.registrations || []);
             } catch (error) {
                 console.error("Failed to fetch student dashboard data", error);
             } finally {
                 setCoursesLoading(false);
                 setInternshipsLoading(false);
+                setWebinarsLoading(false);
             }
         };
         if (user) { fetchDashboardData(); }
@@ -418,6 +475,41 @@ const StudentDashboard: React.FC = () => {
                                 </motion.section>
                             )}
                         </AnimatePresence>
+
+                        {/* Approved Webinars */}
+                        <motion.section
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.08, duration: 0.5 }}
+                        >
+                            <SectionHeader
+                                icon={<Video className="h-4 w-4 text-[#d6b161]" />}
+                                title="Approved Webinars"
+                                count={!webinarsLoading ? approvedWebinars.length : undefined}
+                            />
+                            {webinarsLoading ? (
+                                <div className="grid gap-5">
+                                    <SkeletonCourseCard />
+                                </div>
+                            ) : approvedWebinars.length > 0 ? (
+                                <motion.div
+                                    variants={containerVariants}
+                                    initial="hidden"
+                                    animate="visible"
+                                    className="space-y-4"
+                                >
+                                    {approvedWebinars.map((webinar) => (
+                                        <ApprovedWebinarCard key={webinar._id} webinar={webinar} />
+                                    ))}
+                                </motion.div>
+                            ) : (
+                                <EmptyState
+                                    icon={<Video className="h-6 w-6 text-gray-400" />}
+                                    title="No approved webinars yet"
+                                    description="Once your webinar payment is reviewed and accepted by admin, it will appear here with the join link."
+                                />
+                            )}
+                        </motion.section>
 
                         {/* Enrolled Courses */}
                         <motion.section

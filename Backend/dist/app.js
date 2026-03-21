@@ -62,4 +62,8 @@ const internshipListing_routes_1 = __importDefault(require("./routes/internshipL
 app.use('/api/internships', internshipListing_routes_1.default);
 const trainingCheckout_routes_1 = __importDefault(require("./routes/trainingCheckout.routes"));
 app.use('/api/training-checkout', trainingCheckout_routes_1.default);
+const webinar_routes_1 = __importDefault(require("./routes/webinar.routes"));
+app.use('/api/webinars', webinar_routes_1.default);
+const webinarRegistration_routes_1 = __importDefault(require("./routes/webinarRegistration.routes"));
+app.use('/api/webinar-registrations', webinarRegistration_routes_1.default);
 exports.default = app;

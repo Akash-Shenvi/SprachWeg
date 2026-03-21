@@ -32,6 +32,12 @@ class GoogleCalendarService {
     setCredentials(refreshToken) {
         this.oauth2Client.setCredentials({ refresh_token: refreshToken });
     }
+    extractMeetLink(eventData) {
+        var _a, _b, _c;
+        return ((eventData === null || eventData === void 0 ? void 0 : eventData.hangoutLink)
+            || ((_c = (_b = (_a = eventData === null || eventData === void 0 ? void 0 : eventData.conferenceData) === null || _a === void 0 ? void 0 : _a.entryPoints) === null || _b === void 0 ? void 0 : _b.find((entryPoint) => (entryPoint === null || entryPoint === void 0 ? void 0 : entryPoint.entryPointType) === 'video')) === null || _c === void 0 ? void 0 : _c.uri)
+            || '');
+    }
     createMeeting(summary_1, description_1, startTime_1) {
         return __awaiter(this, arguments, void 0, function* (summary, description, startTime, durationMinutes = 60, attendees = []) {
             const calendar = googleapis_1.google.calendar({ version: 'v3', auth: this.oauth2Client });
@@ -64,8 +70,39 @@ class GoogleCalendarService {
                 sendUpdates: 'all', // Send emails to attendees
             });
             return {
-                meetLink: response.data.hangoutLink || '',
+                meetLink: this.extractMeetLink(response.data),
                 eventId: response.data.id || '',
+            };
+        });
+    }
+    updateMeeting(eventId_1, summary_1, description_1, startTime_1) {
+        return __awaiter(this, arguments, void 0, function* (eventId, summary, description, startTime, durationMinutes = 60, attendees = []) {
+            const calendar = googleapis_1.google.calendar({ version: 'v3', auth: this.oauth2Client });
+            const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
+            const response = yield calendar.events.patch({
+                calendarId: 'primary',
+                eventId,
+                requestBody: {
+                    summary,
+                    description,
+                    start: {
+                        dateTime: startTime.toISOString(),
+                        timeZone: 'UTC',
+                    },
+                    end: {
+                        dateTime: endTime.toISOString(),
+                        timeZone: 'UTC',
+                    },
+                    attendees: attendees.map((email) => ({ email })),
+                    guestsCanInviteOthers: false,
+                    guestsCanSeeOtherGuests: false,
+                },
+                conferenceDataVersion: 1,
+                sendUpdates: 'all',
+            });
+            return {
+                meetLink: this.extractMeetLink(response.data),
+                eventId: response.data.id || eventId,
             };
         });
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import api from '../lib/api';
+import { webinarCatalogAPI } from '../lib/api';
 import {
     BookOpen,
     Users,
@@ -10,11 +11,15 @@ import {
     LogOut,
     Layers,
     ChevronRight,
-    GraduationCap
+    GraduationCap,
+    ExternalLink,
+    Video
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { useAuth } from '../context/AuthContext';
+import type { WebinarListing } from '../types/webinar';
+import { formatWebinarDateTime, formatWebinarPrice } from '../types/webinar';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -25,6 +30,11 @@ interface Batch {
     courseTitle: string;
     name: string;
     students: any[];
+}
+
+interface TrainerWebinarFeed {
+    trainerCalendarConnected: boolean;
+    webinars: WebinarListing[];
 }
 
 // ============================================================================
@@ -200,31 +210,142 @@ const EmptyState: React.FC = () => (
     </motion.div>
 );
 
+const WebinarCard: React.FC<{ webinar: WebinarListing }> = ({ webinar }) => (
+    <motion.div
+        variants={itemVariants}
+        whileHover={{ y: -5, transition: { duration: 0.2 } }}
+        className="group relative flex flex-col rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-xl dark:border-gray-700 dark:bg-gray-800 overflow-hidden transition-shadow"
+    >
+        <div className="h-1 w-full bg-gradient-to-r from-[#d6b161] to-orange-400" />
+        <div className="flex flex-1 flex-col p-6">
+            <div className="mb-5">
+                <div className="mb-2 inline-flex items-center rounded-md bg-[#d6b161]/10 px-2.5 py-1 text-xs font-bold text-[#b38f3f] dark:text-[#f0d28a] uppercase tracking-wide">
+                    Webinar
+                </div>
+                <h3 className="mt-1.5 text-lg font-bold leading-snug text-[#0a192f] dark:text-white line-clamp-2">
+                    {webinar.title}
+                </h3>
+            </div>
+
+            <div className="mb-5 space-y-2.5">
+                <div className="flex items-center gap-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 px-3.5 py-2.5">
+                    <div className="h-7 w-7 rounded-lg bg-[#d6b161]/10 flex items-center justify-center shrink-0">
+                        <Calendar className="h-3.5 w-3.5 text-[#d6b161]" />
+                    </div>
+                    <div>
+                        <p className="text-xs text-gray-400">Scheduled</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">{formatWebinarDateTime(webinar.scheduledAt)}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 px-3.5 py-2.5">
+                    <div className="h-7 w-7 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+                        <Users className="h-3.5 w-3.5 text-green-500" />
+                    </div>
+                    <div>
+                        <p className="text-xs text-gray-400">Approved Students</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">
+                            {webinar.approvedRegistrationsCount || 0} <span className="font-normal text-gray-500">approved</span>
+                        </p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50 px-3.5 py-2.5">
+                    <div className="h-7 w-7 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                        <Video className="h-3.5 w-3.5 text-blue-500" />
+                    </div>
+                    <div>
+                        <p className="text-xs text-gray-400">Calendar Status</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">
+                            {webinar.calendarSyncStatus === 'scheduled'
+                                ? 'Google Meet ready'
+                                : webinar.calendarSyncStatus === 'needs_trainer_connection'
+                                    ? 'Needs Google Calendar'
+                                    : webinar.calendarSyncStatus === 'sync_error'
+                                        ? 'Sync error'
+                                        : 'Draft'}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-auto flex items-center justify-between gap-3">
+                <div>
+                    <p className="text-xs text-gray-400">Price</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                        {formatWebinarPrice(webinar.price, webinar.currency || 'INR')}
+                    </p>
+                </div>
+                {webinar.joinLink ? (
+                    <a
+                        href={webinar.joinLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-xl bg-[#d6b161] px-4 py-3 text-sm font-bold text-[#0a192f] hover:bg-[#c4a055] transition-colors"
+                    >
+                        <ExternalLink className="h-4 w-4" />
+                        Open Meet
+                    </a>
+                ) : (
+                    <span className="rounded-xl border border-dashed border-gray-300 px-4 py-3 text-xs font-semibold text-gray-500 dark:border-gray-600 dark:text-gray-400">
+                        Waiting for sync
+                    </span>
+                )}
+            </div>
+        </div>
+    </motion.div>
+);
+
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
 const TrainerDashboard: React.FC = () => {
     const [batches, setBatches] = useState<Batch[]>([]);
+    const [assignedWebinars, setAssignedWebinars] = useState<WebinarListing[]>([]);
     const [loading, setLoading] = useState(true);
+    const [webinarsLoading, setWebinarsLoading] = useState(true);
+    const [trainerCalendarConnected, setTrainerCalendarConnected] = useState(true);
     const navigate = useNavigate();
     const { logout } = useAuth();
 
     useEffect(() => {
-        const fetchBatches = async () => {
+        const fetchDashboardData = async () => {
             try {
-                const response = await api.get('/language-trainer/batches');
-                setBatches(response.data);
+                const [batchResponse, webinarResponse] = await Promise.all([
+                    api.get('/language-trainer/batches'),
+                    webinarCatalogAPI.getAssignedTrainer() as Promise<TrainerWebinarFeed>,
+                ]);
+                setBatches(batchResponse.data);
+                setAssignedWebinars(webinarResponse.webinars || []);
+                setTrainerCalendarConnected(webinarResponse.trainerCalendarConnected !== false);
             } catch (error) {
-                console.error("Failed to fetch batches", error);
+                console.error("Failed to fetch trainer dashboard data", error);
             } finally {
                 setLoading(false);
+                setWebinarsLoading(false);
             }
         };
-        fetchBatches();
+        fetchDashboardData();
+    }, []);
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('googleConnected') === 'true') {
+            alert('Google Calendar successfully connected. Webinar events and meet links will now stay in sync.');
+            window.history.replaceState({}, '', window.location.pathname);
+        }
     }, []);
 
     const handleBatchClick = (batchId: string) => { navigate(`/language-batch/${batchId}`); };
+    const handleConnectGoogle = async () => {
+        try {
+            sessionStorage.setItem('googleOAuthReturnUrl', window.location.pathname);
+            const response = await api.get('/auth/google/url');
+            window.location.href = response.data.url;
+        } catch (error) {
+            console.error('Failed to get Google Auth URL', error);
+            alert('Failed to initiate Google Calendar connection');
+        }
+    };
 
     const totalStudents = batches.reduce((acc, batch) => acc + (batch.students?.length || 0), 0);
 
@@ -274,6 +395,76 @@ const TrainerDashboard: React.FC = () => {
                         Logout
                     </button>
                 </div>
+
+                <section className="mb-10">
+                    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#d6b161]/10">
+                                <Video className="h-5 w-5 text-[#d6b161]" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold tracking-tight text-[#0a192f] dark:text-white">Upcoming Webinars</h2>
+                                {!webinarsLoading && (
+                                    <p className="text-xs text-gray-400 mt-0.5">{assignedWebinars.length} webinar{assignedWebinars.length !== 1 ? 's' : ''} assigned</p>
+                                )}
+                            </div>
+                        </div>
+                        {!trainerCalendarConnected && (
+                            <button
+                                type="button"
+                                onClick={handleConnectGoogle}
+                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0a192f] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#112240] dark:bg-[#d6b161] dark:text-[#0a192f]"
+                            >
+                                <Video className="h-4 w-4" />
+                                Connect Google Calendar
+                            </button>
+                        )}
+                    </div>
+
+                    {!trainerCalendarConnected && (
+                        <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
+                            Google Calendar is not connected on your trainer account. New webinar events cannot be synced until you reconnect it.
+                        </div>
+                    )}
+
+                    <AnimatePresence mode="wait">
+                        {webinarsLoading ? (
+                            <motion.div
+                                key="webinar-skeleton"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+                            >
+                                {Array.from({ length: 2 }).map((_, i) => <SkeletonBatchCard key={i} />)}
+                            </motion.div>
+                        ) : assignedWebinars.length === 0 ? (
+                            <motion.div key="webinar-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                                <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-16 px-6 text-center">
+                                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
+                                        <Video className="h-7 w-7 text-gray-400" />
+                                    </div>
+                                    <p className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-2">No webinars assigned yet</p>
+                                    <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
+                                        Assigned webinars will appear here once admin schedules them for your account.
+                                    </p>
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="webinar-grid"
+                                variants={containerVariants}
+                                initial="hidden"
+                                animate="visible"
+                                className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+                            >
+                                {assignedWebinars.map((webinar) => (
+                                    <WebinarCard key={webinar._id} webinar={webinar} />
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </section>
 
                 {/* Batch Grid */}
                 <AnimatePresence mode="wait">

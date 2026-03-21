@@ -1,5 +1,6 @@
 import axios from 'axios';
 import type { InternshipPayload } from '../types/internship';
+import type { WebinarPayload } from '../types/webinar';
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -317,6 +318,89 @@ export const internshipCatalogAPI = {
     },
     async delete(id: string) {
         const response = await api.delete(`/internships/admin/${id}`);
+        return response.data;
+    },
+};
+
+export const webinarCatalogAPI = {
+    async getAll() {
+        const response = await api.get('/webinars');
+        return response.data;
+    },
+    async getBySlug(slug: string) {
+        const response = await api.get(`/webinars/${slug}`);
+        return response.data;
+    },
+    async getAllAdmin() {
+        const response = await api.get('/webinars/admin');
+        return response.data;
+    },
+    async getAssignedTrainer() {
+        const response = await api.get('/webinars/trainer/assigned');
+        return response.data;
+    },
+    async create(data: WebinarPayload) {
+        const response = await api.post('/webinars/admin', data);
+        return response.data;
+    },
+    async update(id: string, data: WebinarPayload) {
+        const response = await api.put(`/webinars/admin/${id}`, data);
+        return response.data;
+    },
+};
+
+export const webinarRegistrationAPI = {
+    async createCheckout(data: { webinarId: string }) {
+        const response = await api.post('/webinar-registrations/checkout', data);
+        return response.data;
+    },
+    async verifyPayment(data: {
+        attemptId: string;
+        razorpay_order_id: string;
+        razorpay_payment_id: string;
+        razorpay_signature: string;
+    }) {
+        const response = await api.post('/webinar-registrations/verify-payment', data);
+        return response.data;
+    },
+    async recordPaymentFailure(data: {
+        attemptId: string;
+        status: 'failed' | 'cancelled';
+        reason?: string;
+        error?: Record<string, unknown>;
+    }) {
+        const response = await api.post('/webinar-registrations/payment-failure', data);
+        return response.data;
+    },
+    async getApprovedMine() {
+        const response = await api.get('/webinar-registrations/me/approved');
+        return response.data;
+    },
+    async getAllAdmin(params?: { page?: number; limit?: number; search?: string; status?: string }) {
+        const searchParams = new URLSearchParams();
+
+        if (params?.page) {
+            searchParams.set('page', String(params.page));
+        }
+
+        if (params?.limit) {
+            searchParams.set('limit', String(params.limit));
+        }
+
+        if (params?.search) {
+            searchParams.set('search', params.search);
+        }
+
+        if (params?.status) {
+            searchParams.set('status', params.status);
+        }
+
+        const queryString = searchParams.toString();
+        const response = await api.get(`/webinar-registrations/admin${queryString ? `?${queryString}` : ''}`);
+        return response.data;
+    },
+    async updateStatus(id: string, status: 'accepted' | 'rejected') {
+        const response = await api.patch(`/webinar-registrations/admin/${id}/status`, { status });
         return response.data;
     },
 };

@@ -18,6 +18,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         { path: '/admin-dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { path: '/admin/internship-applications', icon: Briefcase, label: 'Internship Requests' },
         { path: '/admin/internships', icon: Plus, label: 'Add Internships' },
+        { path: '/admin/webinars', icon: BookOpen, label: 'Webinars' },
+        { path: '/admin/webinar-registrations', icon: Users, label: 'Webinar Registrations' },
         { path: '/admin/users', icon: Users, label: 'Users' },
         { path: '/admin/language-enrollment-details', icon: BookOpen, label: 'Class Enrollments' },
         { path: '/admin/language-batches', icon: Users, label: 'Active Classes' },

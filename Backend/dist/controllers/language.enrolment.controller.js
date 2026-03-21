@@ -468,8 +468,15 @@ exports.assignTrainer = assignTrainer;
 // GET /api/language-training/admin/trainers
 const getTrainers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const trainers = yield user_model_1.default.find({ role: 'trainer' }).select('name email _id');
-        res.json(trainers);
+        const trainers = yield user_model_1.default.find({ role: 'trainer' })
+            .select('name email _id +googleRefreshToken')
+            .lean();
+        res.json(trainers.map((trainer) => ({
+            _id: trainer._id,
+            name: trainer.name,
+            email: trainer.email,
+            googleCalendarConnected: !!trainer.googleRefreshToken,
+        })));
     }
     catch (error) {
         res.status(500).json({ message: "Failed to fetch trainers", error });
