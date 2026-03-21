@@ -240,35 +240,41 @@ export const getPendingAdminEnrollments = async (req: Request, res: Response) =>
 
 export const getStudents = async (req: Request, res: Response) => {
     try {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
+        const page = parseInt(req.query.page as string, 10) || 1;
+        const limit = parseInt(req.query.limit as string, 10) || 10;
         const skip = (page - 1) * limit;
-        const search = req.query.search as string || '';
+        const search = String(req.query.search ?? '').trim();
 
-        const query: any = { role: 'student' };
-        
+        const query: Record<string, unknown> = {};
+
         if (search) {
             query.$or = [
                 { name: { $regex: search, $options: 'i' } },
-                { email: { $regex: search, $options: 'i' } }
+                { email: { $regex: search, $options: 'i' } },
+                { phoneNumber: { $regex: search, $options: 'i' } },
+                { role: { $regex: search, $options: 'i' } },
             ];
         }
 
-        const totalStudents = await User.countDocuments(query);
-        const students = await User.find(query)
-            .select('-password -otp -otpExpires -lastOtpSent')
-            .skip(skip)
-            .limit(limit)
-            .sort({ createdAt: -1 });
+        const [totalUsers, users] = await Promise.all([
+            User.countDocuments(query),
+            User.find(query)
+                .select('-password -otp -otpExpires -lastOtpSent -googleRefreshToken')
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 }),
+        ]);
 
         res.status(200).json({
-            students,
-            totalPages: Math.ceil(totalStudents / limit),
+            users,
+            students: users,
+            totalPages: Math.ceil(totalUsers / limit),
             currentPage: page,
-            totalStudents
+            totalUsers,
+            totalStudents: totalUsers,
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching students', error });
+        res.status(500).json({ message: 'Error fetching users', error });
     }
 };
 
@@ -276,9 +282,9 @@ export const getStudentDetails = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
-        const student = await User.findById(id).select('-password -otp -otpExpires -lastOtpSent -googleRefreshToken');
-        if (!student) {
-            return res.status(404).json({ message: 'Student not found' });
+        const user = await User.findById(id).select('-password -otp -otpExpires -lastOtpSent -googleRefreshToken');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
         // Fetch Language Enrollments
@@ -302,11 +308,12 @@ export const getStudentDetails = async (req: Request, res: Response) => {
         });
 
         res.status(200).json({
-            student,
+            user,
+            student: user,
             languageEnrollments,
             skillEnrollments: normalizedSkillEnrollments,
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching student details', error });
+        res.status(500).json({ message: 'Error fetching user details', error });
     }
 };

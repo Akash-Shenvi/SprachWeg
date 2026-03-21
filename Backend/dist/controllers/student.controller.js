@@ -232,42 +232,49 @@ const getPendingAdminEnrollments = (req, res) => __awaiter(void 0, void 0, void 
 });
 exports.getPendingAdminEnrollments = getPendingAdminEnrollments;
 const getStudents = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
         const skip = (page - 1) * limit;
-        const search = req.query.search || '';
-        const query = { role: 'student' };
+        const search = String((_a = req.query.search) !== null && _a !== void 0 ? _a : '').trim();
+        const query = {};
         if (search) {
             query.$or = [
                 { name: { $regex: search, $options: 'i' } },
-                { email: { $regex: search, $options: 'i' } }
+                { email: { $regex: search, $options: 'i' } },
+                { phoneNumber: { $regex: search, $options: 'i' } },
+                { role: { $regex: search, $options: 'i' } },
             ];
         }
-        const totalStudents = yield user_model_1.default.countDocuments(query);
-        const students = yield user_model_1.default.find(query)
-            .select('-password -otp -otpExpires -lastOtpSent')
-            .skip(skip)
-            .limit(limit)
-            .sort({ createdAt: -1 });
+        const [totalUsers, users] = yield Promise.all([
+            user_model_1.default.countDocuments(query),
+            user_model_1.default.find(query)
+                .select('-password -otp -otpExpires -lastOtpSent -googleRefreshToken')
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 }),
+        ]);
         res.status(200).json({
-            students,
-            totalPages: Math.ceil(totalStudents / limit),
+            users,
+            students: users,
+            totalPages: Math.ceil(totalUsers / limit),
             currentPage: page,
-            totalStudents
+            totalUsers,
+            totalStudents: totalUsers,
         });
     }
     catch (error) {
-        res.status(500).json({ message: 'Error fetching students', error });
+        res.status(500).json({ message: 'Error fetching users', error });
     }
 });
 exports.getStudents = getStudents;
 const getStudentDetails = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
-        const student = yield user_model_1.default.findById(id).select('-password -otp -otpExpires -lastOtpSent -googleRefreshToken');
-        if (!student) {
-            return res.status(404).json({ message: 'Student not found' });
+        const user = yield user_model_1.default.findById(id).select('-password -otp -otpExpires -lastOtpSent -googleRefreshToken');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
         // Fetch Language Enrollments
         const languageEnrollments = yield language_enrollment_model_1.default.find({ userId: id })
@@ -282,13 +289,14 @@ const getStudentDetails = (req, res) => __awaiter(void 0, void 0, void 0, functi
             return Object.assign(Object.assign({}, enrollmentObject), { status: normalizeSkillStatusForAdmin(enrollmentObject.status), skillCourseId: enrollmentObject.courseId || null });
         });
         res.status(200).json({
-            student,
+            user,
+            student: user,
             languageEnrollments,
             skillEnrollments: normalizedSkillEnrollments,
         });
     }
     catch (error) {
-        res.status(500).json({ message: 'Error fetching student details', error });
+        res.status(500).json({ message: 'Error fetching user details', error });
     }
 });
 exports.getStudentDetails = getStudentDetails;

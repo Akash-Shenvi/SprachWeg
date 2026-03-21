@@ -326,13 +326,14 @@ const AppContent = () => {
           }
         />
         <Route
-          path="/admin/students"
+          path="/admin/users"
           element={
             <AdminRoute>
               <ManageStudents />
             </AdminRoute>
           }
         />
+        <Route path="/admin/students" element={<Navigate to="/admin/users" replace />} />
         <Route
           path="/admin/feedback"
           element={
