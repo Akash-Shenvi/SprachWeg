@@ -73,6 +73,7 @@ const ManageUsers: React.FC = () => {
     const [userDetailsLoading, setUserDetailsLoading] = useState(false);
     const [languageEnrollments, setLanguageEnrollments] = useState<LanguageEnrollment[]>([]);
     const [skillEnrollments, setSkillEnrollments] = useState<SkillEnrollment[]>([]);
+    const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
 
     useEffect(() => {
         void fetchUsers();
@@ -122,6 +123,7 @@ const ManageUsers: React.FC = () => {
     const closeViewModal = () => {
         setIsViewModalOpen(false);
         setSelectedUser(null);
+        setIsAvatarFullScreen(false);
     };
 
     return (
@@ -226,7 +228,15 @@ const ManageUsers: React.FC = () => {
                             <div className="p-8">
                                 <div className="mb-8 flex flex-col items-center gap-6 text-center sm:flex-row sm:items-start sm:text-left">
                                     <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-[#d6b161] text-4xl font-bold text-[#0a192f] shadow-lg dark:border-[#0a192f] sm:h-32 sm:w-32 sm:text-5xl">
-                                        {selectedUser.avatar ? <img src={getAssetUrl(selectedUser.avatar)} alt={selectedUser.name} className="h-full w-full object-cover" /> : selectedUser.name.charAt(0).toUpperCase()}
+                                        {selectedUser.avatar ? (
+                                            <img
+                                                src={getAssetUrl(selectedUser.avatar)}
+                                                alt={selectedUser.name}
+                                                className="h-full w-full cursor-pointer object-cover transition-opacity hover:opacity-80"
+                                                onClick={() => setIsAvatarFullScreen(true)}
+                                                title="Click to view full screen"
+                                            />
+                                        ) : selectedUser.name.charAt(0).toUpperCase()}
                                     </div>
                                     <div className="flex-1 space-y-3">
                                         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -305,6 +315,27 @@ const ManageUsers: React.FC = () => {
                     </div>
                 )}
             </AnimatePresence>
+
+            {isAvatarFullScreen && selectedUser?.avatar && (
+                <div
+                    className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-4 backdrop-blur-sm"
+                    onClick={() => setIsAvatarFullScreen(false)}
+                >
+                    <button
+                        type="button"
+                        className="absolute right-4 top-4 p-2 text-white transition-colors hover:text-gray-300"
+                        onClick={() => setIsAvatarFullScreen(false)}
+                    >
+                        <X className="h-8 w-8" />
+                    </button>
+                    <img
+                        src={getAssetUrl(selectedUser.avatar)}
+                        alt="Full Screen Avatar"
+                        className="max-h-[90vh] max-w-full rounded-lg object-contain shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
         </AdminLayout>
     );
 };
