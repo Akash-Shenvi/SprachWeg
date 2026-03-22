@@ -90,4 +90,7 @@ app.use('/api/institutions', institutionRoutes);
 import adminInstitutionRoutes from './routes/adminInstitution.routes';
 app.use('/api/admin/institutions', adminInstitutionRoutes);
 
+import skillBatchRoutes from './routes/skill.batch.routes';
+app.use('/api/skill-batches', skillBatchRoutes);
+
 export default app;

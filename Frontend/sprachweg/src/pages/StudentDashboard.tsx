@@ -45,6 +45,7 @@ interface EnrolledInternship {
 
 interface ApprovedSkillCourse {
     id: string;
+    batchId?: string | null;
     title: string;
     progress?: number;
     totalLessons?: number;
@@ -216,7 +217,7 @@ const CourseCard: React.FC<{ course: any }> = ({ course }) => {
 
 const SkillCourseCard: React.FC<{ course: ApprovedSkillCourse }> = ({ course }) => {
     const navigate = useNavigate();
-    const targetRoute = getSkillCourseRoute(course.title);
+    const targetRoute = course.batchId ? `/skill-batch/${course.batchId}` : getSkillCourseRoute(course.title);
     const hasImageThumbnail =
         typeof course.thumbnail === 'string'
         && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('/'));

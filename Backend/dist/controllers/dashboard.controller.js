@@ -51,6 +51,7 @@ const getStudentDashboard = (req, res) => __awaiter(void 0, void 0, void 0, func
             user: yield user_model_1.default.findById(studentId).select('name email avatar'),
             courses: validEnrollments.map(e => ({
                 id: e.courseId._id,
+                batchId: e.batchId ? String(e.batchId) : null,
                 title: e.courseId.title,
                 progress: e.progress,
                 totalLessons: 24, // Placeholder

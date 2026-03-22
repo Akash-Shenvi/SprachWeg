@@ -46,6 +46,7 @@ export const getStudentDashboard = async (req: Request, res: Response): Promise<
             user: await User.findById(studentId).select('name email avatar'),
             courses: validEnrollments.map(e => ({
                 id: (e.courseId as any)._id,
+                batchId: e.batchId ? String(e.batchId) : null,
                 title: (e.courseId as any).title,
                 progress: e.progress,
                 totalLessons: 24, // Placeholder
