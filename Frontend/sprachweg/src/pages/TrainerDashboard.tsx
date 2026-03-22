@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
-import api from '../lib/api';
-import { webinarCatalogAPI } from '../lib/api';
+import api, { dashboardAPI, webinarCatalogAPI } from '../lib/api';
 import {
     BookOpen,
     Users,
@@ -29,12 +28,20 @@ interface Batch {
     _id: string;
     courseTitle: string;
     name: string;
-    students: any[];
+    studentCount: number;
+    trainingType: 'language' | 'skill';
 }
 
 interface TrainerWebinarFeed {
     trainerCalendarConnected: boolean;
     webinars: WebinarListing[];
+}
+
+interface TrainerSkillBatchResponse {
+    id: string;
+    name: string;
+    course: string;
+    students: number;
 }
 
 // ============================================================================
@@ -127,7 +134,7 @@ const HeroStat: React.FC<{ value: string | number; label: string; loading?: bool
 // BATCH CARD
 // ============================================================================
 
-const BatchCard: React.FC<{ batch: Batch; onManage: (id: string) => void }> = ({ batch, onManage }) => (
+const BatchCard: React.FC<{ batch: Batch; onManage: (batch: Batch) => void }> = ({ batch, onManage }) => (
     <motion.div
         variants={itemVariants}
         whileHover={{ y: -5, transition: { duration: 0.2 } }}
@@ -139,7 +146,13 @@ const BatchCard: React.FC<{ batch: Batch; onManage: (id: string) => void }> = ({
         <div className="flex flex-col flex-1 p-6">
             {/* Header */}
             <div className="mb-5">
-                <div className="mb-2 inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1 text-xs font-bold text-blue-600 dark:text-blue-300 uppercase tracking-wide">
+                <div className={`mb-2 inline-flex items-center rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${batch.trainingType === 'skill'
+                    ? 'bg-[#d6b161]/10 text-[#b38f3f] dark:text-[#f0d28a]'
+                    : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300'
+                    }`}>
+                    {batch.trainingType === 'skill' ? 'Skill Batch' : 'Language Batch'}
+                </div>
+                <div className="mb-2 inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-700/70 px-2.5 py-1 text-xs font-semibold text-slate-600 dark:text-slate-200">
                     {batch.name}
                 </div>
                 <h3 className="mt-1.5 text-lg font-bold leading-snug text-[#0a192f] dark:text-white line-clamp-2" title={batch.courseTitle}>
@@ -156,7 +169,7 @@ const BatchCard: React.FC<{ batch: Batch; onManage: (id: string) => void }> = ({
                     <div>
                         <p className="text-xs text-gray-400">Enrolled</p>
                         <p className="text-sm font-bold text-gray-900 dark:text-white">
-                            {batch.students?.length || 0} <span className="font-normal text-gray-500">students</span>
+                            {batch.studentCount || 0} <span className="font-normal text-gray-500">students</span>
                         </p>
                     </div>
                 </div>
@@ -173,11 +186,11 @@ const BatchCard: React.FC<{ batch: Batch; onManage: (id: string) => void }> = ({
 
             {/* CTA */}
             <button
-                onClick={() => onManage(batch._id)}
+                onClick={() => onManage(batch)}
                 className="group/btn w-full flex items-center justify-center gap-2 rounded-xl bg-[#d6b161] px-4 py-3 text-sm font-bold text-[#0a192f] hover:bg-[#c4a055] active:scale-[0.98] transition-all"
             >
                 <Upload className="h-4 w-4" />
-                Manage Batch
+                Open Batch
                 <ChevronRight className="h-4 w-4 ml-auto opacity-50 group-hover/btn:translate-x-0.5 transition-transform" />
             </button>
         </div>
@@ -310,11 +323,33 @@ const TrainerDashboard: React.FC = () => {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [batchResponse, webinarResponse] = await Promise.all([
+                const [batchResponse, trainerDashboardResponse, webinarResponse] = await Promise.all([
                     api.get('/language-trainer/batches'),
+                    dashboardAPI.getTrainerData(),
                     webinarCatalogAPI.getAssignedTrainer() as Promise<TrainerWebinarFeed>,
                 ]);
-                setBatches(batchResponse.data);
+
+                const languageBatches: Batch[] = Array.isArray(batchResponse.data)
+                    ? batchResponse.data.map((batch: any) => ({
+                        _id: String(batch._id),
+                        courseTitle: String(batch.courseTitle || '').trim(),
+                        name: String(batch.name || '').trim(),
+                        studentCount: Array.isArray(batch.students) ? batch.students.length : 0,
+                        trainingType: 'language' as const,
+                    }))
+                    : [];
+
+                const skillBatches: Batch[] = Array.isArray(trainerDashboardResponse?.batches)
+                    ? trainerDashboardResponse.batches.map((batch: TrainerSkillBatchResponse) => ({
+                        _id: String(batch.id),
+                        courseTitle: String(batch.course || 'Skill Training').trim(),
+                        name: String(batch.name || '').trim(),
+                        studentCount: Number(batch.students || 0),
+                        trainingType: 'skill' as const,
+                    }))
+                    : [];
+
+                setBatches([...languageBatches, ...skillBatches]);
                 setAssignedWebinars(webinarResponse.webinars || []);
                 setTrainerCalendarConnected(webinarResponse.trainerCalendarConnected !== false);
             } catch (error) {
@@ -335,7 +370,9 @@ const TrainerDashboard: React.FC = () => {
         }
     }, []);
 
-    const handleBatchClick = (batchId: string) => { navigate(`/language-batch/${batchId}`); };
+    const handleBatchClick = (batch: Batch) => {
+        navigate(batch.trainingType === 'skill' ? `/skill-batch/${batch._id}` : `/language-batch/${batch._id}`);
+    };
     const handleConnectGoogle = async () => {
         try {
             sessionStorage.setItem('googleOAuthReturnUrl', window.location.pathname);
@@ -347,7 +384,7 @@ const TrainerDashboard: React.FC = () => {
         }
     };
 
-    const totalStudents = batches.reduce((acc, batch) => acc + (batch.students?.length || 0), 0);
+    const totalStudents = batches.reduce((acc, batch) => acc + (batch.studentCount || 0), 0);
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -363,7 +400,7 @@ const TrainerDashboard: React.FC = () => {
                             <span className="text-xs font-semibold uppercase tracking-widest text-[#d6b161]">Trainer Portal</span>
                         </div>
                         <h1 className="mb-3 text-4xl font-bold font-sans md:text-5xl text-white">Trainer Dashboard</h1>
-                        <p className="text-lg text-gray-400 mb-10">Manage your ongoing language classes and teaching materials.</p>
+                        <p className="text-lg text-gray-400 mb-10">Manage your ongoing language and skill batches from one place.</p>
                         <div className="flex justify-center gap-4 flex-wrap">
                             <HeroStat value={batches.length} label="Active Batches" loading={loading} />
                             <HeroStat value={totalStudents} label="Total Students" loading={loading} />
@@ -491,7 +528,7 @@ const TrainerDashboard: React.FC = () => {
                             className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
                         >
                             {batches.map((batch) => (
-                                <BatchCard key={batch._id} batch={batch} onManage={handleBatchClick} />
+                                <BatchCard key={`${batch.trainingType}-${batch._id}`} batch={batch} onManage={handleBatchClick} />
                             ))}
                         </motion.div>
                     )}
