@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteRejectedInstitutionRequest = exports.rejectInstitutionRequest = exports.approveInstitutionRequest = exports.getAdminInstitutionRequests = exports.createInstitutionSubmission = exports.getInstitutionSubmissions = exports.getInstitutionDashboard = void 0;
+exports.deleteResolvedInstitutionRequest = exports.rejectInstitutionRequest = exports.approveInstitutionRequest = exports.getAdminInstitutionRequests = exports.createInstitutionSubmission = exports.getInstitutionSubmissions = exports.getInstitutionDashboard = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const class_transformer_1 = require("class-transformer");
@@ -570,7 +570,7 @@ const rejectInstitutionRequest = (req, res) => __awaiter(void 0, void 0, void 0,
     }
 });
 exports.rejectInstitutionRequest = rejectInstitutionRequest;
-const deleteRejectedInstitutionRequest = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const deleteResolvedInstitutionRequest = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const requestId = String(req.params.id || '').trim();
     if (!requestId) {
         return res.status(400).json({ message: 'Institution request id is required' });
@@ -580,15 +580,15 @@ const deleteRejectedInstitutionRequest = (req, res) => __awaiter(void 0, void 0,
         if (!request) {
             return res.status(404).json({ message: 'Institution request not found' });
         }
-        if (request.status !== 'REJECTED') {
-            return res.status(400).json({ message: 'Only rejected institution requests can be deleted' });
+        if (request.status === 'PENDING') {
+            return res.status(400).json({ message: 'Pending institution requests cannot be deleted' });
         }
         yield institutionEnrollmentRequest_model_1.default.deleteOne({ _id: requestId });
-        return res.status(200).json({ message: 'Rejected institution request deleted successfully.' });
+        return res.status(200).json({ message: 'Institution request deleted successfully.' });
     }
     catch (error) {
-        console.error('Failed to delete rejected institution request:', error);
-        return res.status(500).json({ message: 'Failed to delete rejected institution request' });
+        console.error('Failed to delete institution request:', error);
+        return res.status(500).json({ message: 'Failed to delete institution request' });
     }
 });
-exports.deleteRejectedInstitutionRequest = deleteRejectedInstitutionRequest;
+exports.deleteResolvedInstitutionRequest = deleteResolvedInstitutionRequest;

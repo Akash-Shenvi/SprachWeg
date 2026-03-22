@@ -457,7 +457,7 @@ export const institutionAPI = {
         const response = await api.post(`/admin/institutions/requests/${id}/reject`, reason ? { reason } : {});
         return response.data;
     },
-    async deleteRejectedRequest(id: string) {
+    async deleteRequest(id: string) {
         const response = await api.delete(`/admin/institutions/requests/${id}`);
         return response.data;
     },

@@ -4,8 +4,10 @@ import {
     Building2,
     Calendar,
     CheckCircle2,
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
+    ChevronUp,
     Loader2,
     Mail,
     Phone,
@@ -125,6 +127,7 @@ const AdminInstitutionRequests: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [processingId, setProcessingId] = useState<string | null>(null);
+    const [expandedRequestIds, setExpandedRequestIds] = useState<string[]>([]);
 
     const fetchRequests = async (page = pagination.currentPage) => {
         try {
@@ -139,6 +142,7 @@ const AdminInstitutionRequests: React.FC = () => {
             }) as InstitutionRequestResponse;
 
             setRequests(response.requests || []);
+            setExpandedRequestIds([]);
             setAvailableStatuses(response.availableStatuses || ['All', 'PENDING', 'APPROVED', 'REJECTED']);
             setSummary(response.summary || { pending: 0, approved: 0, rejected: 0, total: 0 });
             setPagination({
@@ -204,22 +208,34 @@ const AdminInstitutionRequests: React.FC = () => {
         }
     };
 
-    const handleDeleteRejectedRequest = async (request: InstitutionRequest) => {
-        if (request.status !== 'REJECTED') {
-            window.alert('Only rejected institution requests can be deleted.');
+    const toggleStudents = (requestId: string) => {
+        setExpandedRequestIds((current) =>
+            current.includes(requestId)
+                ? current.filter((currentRequestId) => currentRequestId !== requestId)
+                : [...current, requestId]
+        );
+    };
+
+    const handleDeleteRequest = async (request: InstitutionRequest) => {
+        if (request.status === 'PENDING') {
+            window.alert('Pending institution requests cannot be deleted.');
             return;
         }
 
-        if (!window.confirm('Delete this rejected institution request? This cannot be undone.')) {
+        const confirmationMessage = request.status === 'APPROVED'
+            ? 'Delete this approved institution request from the list? Student accounts and enrollments created during approval will remain active.'
+            : 'Delete this rejected institution request? This cannot be undone.';
+
+        if (!window.confirm(confirmationMessage)) {
             return;
         }
 
         try {
             setProcessingId(request._id);
-            await institutionAPI.deleteRejectedRequest(request._id);
+            await institutionAPI.deleteRequest(request._id);
             await refreshAfterAction();
         } catch (err: any) {
-            console.error('Failed to delete rejected institution request:', err);
+            console.error('Failed to delete institution request:', err);
             window.alert(err.response?.data?.message || 'Failed to delete institution request.');
         } finally {
             setProcessingId(null);
@@ -334,10 +350,9 @@ const AdminInstitutionRequests: React.FC = () => {
                         {requests.map((request) => {
                             const statusMeta = getStatusMeta(request.status);
                             const isPending = request.status === 'PENDING';
-                            const isRejected = request.status === 'REJECTED';
+                            const canDelete = request.status !== 'PENDING';
                             const isProcessing = processingId === request._id;
-                            const visibleStudents = request.students.slice(0, 4);
-                            const hiddenStudentCount = Math.max(0, request.students.length - visibleStudents.length);
+                            const isExpanded = expandedRequestIds.includes(request._id);
 
                             return (
                                 <div
@@ -409,40 +424,57 @@ const AdminInstitutionRequests: React.FC = () => {
 
                                             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-[#0a192f]">
                                                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                                                    <h4 className="text-sm font-semibold uppercase tracking-[0.28em] text-[#d6b161]">
-                                                        Student List
-                                                    </h4>
-                                                    <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-[#112240] dark:text-gray-200">
-                                                        <Users className="mr-1 h-3.5 w-3.5" />
-                                                        {request.studentCount} student{request.studentCount === 1 ? '' : 's'}
-                                                    </span>
+                                                    <div className="flex flex-wrap items-center gap-3">
+                                                        <h4 className="text-sm font-semibold uppercase tracking-[0.28em] text-[#d6b161]">
+                                                            Student List
+                                                        </h4>
+                                                        <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 dark:border-gray-700 dark:bg-[#112240] dark:text-gray-200">
+                                                            <Users className="mr-1 h-3.5 w-3.5" />
+                                                            {request.studentCount} student{request.studentCount === 1 ? '' : 's'}
+                                                        </span>
+                                                    </div>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleStudents(request._id)}
+                                                        className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:border-[#d6b161] hover:text-[#0a192f] dark:border-gray-700 dark:bg-[#112240] dark:text-gray-200 dark:hover:border-[#d6b161] dark:hover:text-white"
+                                                    >
+                                                        {isExpanded ? 'Hide students' : 'Show students'}
+                                                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                                    </button>
                                                 </div>
 
-                                                <div className="grid gap-3 md:grid-cols-2">
-                                                    {visibleStudents.map((student) => (
-                                                        <div
-                                                            key={`${request._id}-${student.email}`}
-                                                            className="rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-[#112240]"
-                                                        >
-                                                            <p className="font-semibold text-gray-900 dark:text-white">{student.name}</p>
-                                                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{student.email}</p>
+                                                {isExpanded ? (
+                                                    request.students.length > 0 ? (
+                                                        <div className="grid gap-3 md:grid-cols-2">
+                                                            {request.students.map((student) => (
+                                                                <div
+                                                                    key={`${request._id}-${student.email}`}
+                                                                    className="rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-[#112240]"
+                                                                >
+                                                                    <p className="font-semibold text-gray-900 dark:text-white">{student.name}</p>
+                                                                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{student.email}</p>
+                                                                </div>
+                                                            ))}
                                                         </div>
-                                                    ))}
-                                                </div>
-
-                                                {hiddenStudentCount > 0 ? (
-                                                    <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                                                        +{hiddenStudentCount} more student{hiddenStudentCount === 1 ? '' : 's'} in this request
+                                                    ) : (
+                                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                            No students were included in this request.
+                                                        </p>
+                                                    )
+                                                ) : (
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                        Click <span className="font-medium text-gray-700 dark:text-gray-200">Show students</span> to view the full list without crowding the card.
                                                     </p>
-                                                ) : null}
+                                                )}
                                             </div>
                                         </div>
 
                                         <div className="flex shrink-0 flex-col gap-2 sm:flex-row xl:flex-col">
-                                            {isRejected ? (
+                                            {canDelete ? (
                                                 <button
                                                     type="button"
-                                                    onClick={() => void handleDeleteRejectedRequest(request)}
+                                                    onClick={() => void handleDeleteRequest(request)}
                                                     disabled={isProcessing}
                                                     className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-60 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30"
                                                 >

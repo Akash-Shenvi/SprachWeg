@@ -672,7 +672,7 @@ export const rejectInstitutionRequest = async (req: Request, res: Response) => {
     }
 };
 
-export const deleteRejectedInstitutionRequest = async (req: Request, res: Response) => {
+export const deleteResolvedInstitutionRequest = async (req: Request, res: Response) => {
     const requestId = String(req.params.id || '').trim();
 
     if (!requestId) {
@@ -686,15 +686,15 @@ export const deleteRejectedInstitutionRequest = async (req: Request, res: Respon
             return res.status(404).json({ message: 'Institution request not found' });
         }
 
-        if (request.status !== 'REJECTED') {
-            return res.status(400).json({ message: 'Only rejected institution requests can be deleted' });
+        if (request.status === 'PENDING') {
+            return res.status(400).json({ message: 'Pending institution requests cannot be deleted' });
         }
 
         await InstitutionEnrollmentRequest.deleteOne({ _id: requestId });
 
-        return res.status(200).json({ message: 'Rejected institution request deleted successfully.' });
+        return res.status(200).json({ message: 'Institution request deleted successfully.' });
     } catch (error) {
-        console.error('Failed to delete rejected institution request:', error);
-        return res.status(500).json({ message: 'Failed to delete rejected institution request' });
+        console.error('Failed to delete institution request:', error);
+        return res.status(500).json({ message: 'Failed to delete institution request' });
     }
 };
