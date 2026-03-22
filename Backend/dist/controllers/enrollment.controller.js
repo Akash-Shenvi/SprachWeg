@@ -89,17 +89,21 @@ const acceptEnrollment = (req, res) => __awaiter(void 0, void 0, void 0, functio
         const potentialBatches = yield batch_model_1.default.find(batchQuery);
         // Find the first batch with < 20 students
         let batch = potentialBatches.find(b => b.students.length < 20) || null;
-        // If no suitable batch, trainers can create one immediately.
-        if (!batch && actingUserRole === 'trainer') {
+        // If no suitable batch, create one immediately. Admin-created batches stay unassigned until a trainer is chosen.
+        if (!batch) {
             const course = yield skillCourse_model_1.default.findById(enrollment.courseId);
             const courseTitle = course ? course.title : 'Course';
             // Basic new batch name logic
-            const batchCount = yield batch_model_1.default.countDocuments({ courseId: enrollment.courseId, trainerId: actingUserId });
+            const batchCountQuery = { courseId: enrollment.courseId };
+            if (actingUserRole === 'trainer') {
+                batchCountQuery.trainerId = actingUserId;
+            }
+            const batchCount = yield batch_model_1.default.countDocuments(batchCountQuery);
             const batchName = `${courseTitle} - Batch ${batchCount + 1}`;
             batch = new batch_model_1.default({
                 name: batchName,
                 courseId: enrollment.courseId,
-                trainerId: actingUserId,
+                trainerId: actingUserRole === 'trainer' ? actingUserId : undefined,
                 students: [],
                 isActive: true,
                 startDate: new Date(),

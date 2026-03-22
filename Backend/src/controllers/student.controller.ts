@@ -70,6 +70,52 @@ const buildPaymentSnapshot = (attempt: any) => ({
     paidAt: attempt.paidAt || attempt.createdAt || null,
 });
 
+const normalizeTrainingTypeForActiveClasses = (value: unknown) => {
+    const normalizedValue = String(value ?? '').trim().toLowerCase();
+
+    if (normalizedValue === 'language' || normalizedValue === 'skill') {
+        return normalizedValue as 'language' | 'skill';
+    }
+
+    return null;
+};
+
+const buildActiveClassSummary = (batch: any, trainingType: 'language' | 'skill') => ({
+    _id: String(batch._id),
+    courseTitle:
+        trainingType === 'language'
+            ? String(batch.courseTitle || '').trim()
+            : String(batch.courseId?.title || 'Skill Training').trim(),
+    name: String(batch.name || '').trim(),
+    studentCount: Array.isArray(batch.students) ? batch.students.length : 0,
+    trainer: batch.trainerId || null,
+    trainingType,
+    createdAt: batch.createdAt || null,
+});
+
+const loadActiveClasses = async () => {
+    const [languageBatches, skillBatches] = await Promise.all([
+        LanguageBatch.find({})
+            .populate('trainerId', 'name email')
+            .sort({ createdAt: -1 })
+            .lean(),
+        SkillBatch.find({ isActive: true })
+            .populate('trainerId', 'name email')
+            .populate('courseId', 'title')
+            .sort({ createdAt: -1 })
+            .lean(),
+    ]);
+
+    return [
+        ...languageBatches.map((batch) => buildActiveClassSummary(batch, 'language')),
+        ...skillBatches.map((batch) => buildActiveClassSummary(batch, 'skill')),
+    ].sort((left, right) => {
+        const leftTime = new Date(left.createdAt || 0).getTime();
+        const rightTime = new Date(right.createdAt || 0).getTime();
+        return rightTime - leftTime;
+    });
+};
+
 export const getPendingAdminEnrollments = async (req: Request, res: Response) => {
     try {
         const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
@@ -251,6 +297,322 @@ export const getPendingAdminEnrollments = async (req: Request, res: Response) =>
     } catch (error) {
         console.error('Error fetching admin enrollments', error);
         res.status(500).json({ message: 'Error fetching admin enrollments', error });
+    }
+};
+
+export const getActiveClasses = async (req: Request, res: Response) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 6));
+        const search = String(req.query.search ?? '').trim().toLowerCase();
+        const course = String(req.query.course ?? '').trim().toLowerCase();
+        const trainingType = normalizeTrainingTypeForActiveClasses(req.query.trainingType);
+
+        const activeClasses = await loadActiveClasses();
+        const availableCourses = ['All', ...new Set(activeClasses.map((item) => item.courseTitle).filter(Boolean))];
+
+        const filteredClasses = activeClasses.filter((item) => {
+            const matchesTrainingType = trainingType ? item.trainingType === trainingType : true;
+            const matchesCourse = !course || course === 'all'
+                ? true
+                : item.courseTitle.trim().toLowerCase() === course;
+            const matchesSearch = !search
+                ? true
+                : item.courseTitle.toLowerCase().includes(search)
+                || item.name.toLowerCase().includes(search)
+                || (item.trainer?.name || '').toLowerCase().includes(search);
+
+            return matchesTrainingType && matchesCourse && matchesSearch;
+        });
+
+        const totalClasses = filteredClasses.length;
+        const totalPages = Math.max(1, Math.ceil(totalClasses / limit));
+        const currentPage = Math.min(page, totalPages);
+        const startIndex = (currentPage - 1) * limit;
+
+        return res.status(200).json({
+            batches: filteredClasses.slice(startIndex, startIndex + limit),
+            availableCourses,
+            pagination: {
+                currentPage,
+                totalPages,
+                totalBatches: totalClasses,
+                limit,
+                hasPreviousPage: currentPage > 1,
+                hasNextPage: currentPage < totalPages,
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching active classes', error);
+        return res.status(500).json({ message: 'Error fetching active classes', error });
+    }
+};
+
+export const getActiveClassStudents = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const trainingType = normalizeTrainingTypeForActiveClasses(req.query.trainingType);
+        const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 8));
+        const search = String(req.query.search ?? '').trim();
+
+        if (!trainingType) {
+            return res.status(400).json({ message: 'A valid trainingType is required.' });
+        }
+
+        if (trainingType === 'language') {
+            const batch = await LanguageBatch.findById(id).populate('trainerId', 'name email');
+            if (!batch) {
+                return res.status(404).json({ message: 'Batch not found' });
+            }
+
+            const studentFilter: any = {
+                _id: { $in: batch.students },
+                role: 'student',
+            };
+
+            if (search) {
+                studentFilter.$or = [
+                    { name: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } },
+                    { phoneNumber: { $regex: search, $options: 'i' } },
+                ];
+            }
+
+            const totalStudents = await User.countDocuments(studentFilter);
+            const totalPages = Math.max(1, Math.ceil(totalStudents / limit));
+            const currentPage = Math.min(page, totalPages);
+
+            const students = await User.find(studentFilter)
+                .select('-password -otp -otpExpires -lastOtpSent -googleRefreshToken')
+                .sort({ createdAt: -1 })
+                .skip((currentPage - 1) * limit)
+                .limit(limit);
+
+            return res.status(200).json({
+                batch: {
+                    _id: batch._id,
+                    courseTitle: batch.courseTitle,
+                    name: batch.name,
+                    trainer: batch.trainerId || null,
+                    studentCount: batch.students.length,
+                    trainingType,
+                },
+                students,
+                pagination: {
+                    currentPage,
+                    totalPages,
+                    totalStudents,
+                    limit,
+                    hasPreviousPage: currentPage > 1,
+                    hasNextPage: currentPage < totalPages,
+                },
+            });
+        }
+
+        const batch = await SkillBatch.findById(id)
+            .populate('trainerId', 'name email')
+            .populate('courseId', 'title');
+        if (!batch) {
+            return res.status(404).json({ message: 'Batch not found' });
+        }
+
+        const studentFilter: any = {
+            _id: { $in: batch.students },
+            role: 'student',
+        };
+
+        if (search) {
+            studentFilter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+                { phoneNumber: { $regex: search, $options: 'i' } },
+            ];
+        }
+
+        const totalStudents = await User.countDocuments(studentFilter);
+        const totalPages = Math.max(1, Math.ceil(totalStudents / limit));
+        const currentPage = Math.min(page, totalPages);
+
+        const students = await User.find(studentFilter)
+            .select('-password -otp -otpExpires -lastOtpSent -googleRefreshToken')
+            .sort({ createdAt: -1 })
+            .skip((currentPage - 1) * limit)
+            .limit(limit);
+
+        return res.status(200).json({
+            batch: {
+                _id: batch._id,
+                courseTitle: (batch.courseId as any)?.title || 'Skill Training',
+                name: batch.name,
+                trainer: batch.trainerId || null,
+                studentCount: batch.students.length,
+                trainingType,
+            },
+            students,
+            pagination: {
+                currentPage,
+                totalPages,
+                totalStudents,
+                limit,
+                hasPreviousPage: currentPage > 1,
+                hasNextPage: currentPage < totalPages,
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching active class students', error);
+        return res.status(500).json({ message: 'Error fetching active class students', error });
+    }
+};
+
+export const assignActiveClassTrainer = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { trainerId, trainingType: rawTrainingType } = req.body || {};
+        const trainingType = normalizeTrainingTypeForActiveClasses(rawTrainingType);
+
+        if (!trainingType) {
+            return res.status(400).json({ message: 'A valid trainingType is required.' });
+        }
+
+        if (!trainerId) {
+            return res.status(400).json({ message: 'trainerId is required' });
+        }
+
+        if (trainingType === 'language') {
+            const batch = await LanguageBatch.findById(id);
+            if (!batch) {
+                return res.status(404).json({ message: 'Batch not found' });
+            }
+
+            batch.trainerId = trainerId;
+            await batch.save();
+
+            return res.status(200).json({ message: 'Trainer assigned successfully', batch });
+        }
+
+        const batch = await SkillBatch.findById(id);
+        if (!batch) {
+            return res.status(404).json({ message: 'Batch not found' });
+        }
+
+        batch.trainerId = trainerId;
+        await batch.save();
+
+        return res.status(200).json({ message: 'Trainer assigned successfully', batch });
+    } catch (error) {
+        console.error('Error assigning active class trainer', error);
+        return res.status(500).json({ message: 'Error assigning active class trainer', error });
+    }
+};
+
+export const removeStudentFromActiveClass = async (req: Request, res: Response) => {
+    try {
+        const { id, studentId } = req.params;
+        const trainingType = normalizeTrainingTypeForActiveClasses(req.query.trainingType);
+
+        if (!trainingType) {
+            return res.status(400).json({ message: 'A valid trainingType is required.' });
+        }
+
+        if (trainingType === 'language') {
+            const batch = await LanguageBatch.findById(id);
+            if (!batch) {
+                return res.status(404).json({ message: 'Batch not found' });
+            }
+
+            batch.students = batch.students.filter((currentStudentId) => currentStudentId.toString() !== studentId);
+            await batch.save();
+
+            const enrollment = await Enrollment.findOne({
+                userId: studentId,
+                batchId: id,
+            });
+
+            if (enrollment) {
+                enrollment.status = 'REJECTED';
+                enrollment.batchId = undefined;
+                await enrollment.save();
+            }
+
+            return res.status(200).json({ message: 'Student removed from active class successfully' });
+        }
+
+        const batch = await SkillBatch.findById(id);
+        if (!batch) {
+            return res.status(404).json({ message: 'Batch not found' });
+        }
+
+        batch.students = batch.students.filter((currentStudentId) => currentStudentId.toString() !== studentId);
+        await batch.save();
+
+        const enrollment = await SkillEnrollment.findOne({
+            studentId,
+            $or: [
+                { batchId: id },
+                { courseId: batch.courseId, status: 'active' },
+            ],
+        });
+
+        if (enrollment) {
+            enrollment.status = 'dropped';
+            enrollment.batchId = undefined;
+            await enrollment.save();
+        }
+
+        return res.status(200).json({ message: 'Student removed from active class successfully' });
+    } catch (error) {
+        console.error('Error removing student from active class', error);
+        return res.status(500).json({ message: 'Error removing student from active class', error });
+    }
+};
+
+export const deleteActiveClass = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const trainingType = normalizeTrainingTypeForActiveClasses(req.query.trainingType);
+
+        if (!trainingType) {
+            return res.status(400).json({ message: 'A valid trainingType is required.' });
+        }
+
+        if (trainingType === 'language') {
+            const batch = await LanguageBatch.findById(id);
+            if (!batch) {
+                return res.status(404).json({ message: 'Batch not found' });
+            }
+
+            await Enrollment.updateMany(
+                { batchId: id },
+                { $set: { status: 'REJECTED', batchId: null } }
+            );
+
+            await Enrollment.updateMany(
+                { courseTitle: batch.courseTitle, name: batch.name, status: 'APPROVED' },
+                { $set: { status: 'REJECTED', batchId: null } }
+            );
+
+            await batch.deleteOne();
+
+            return res.status(200).json({ message: 'Active class deleted and students unenrolled successfully' });
+        }
+
+        const batch = await SkillBatch.findById(id);
+        if (!batch) {
+            return res.status(404).json({ message: 'Batch not found' });
+        }
+
+        await SkillEnrollment.updateMany(
+            { batchId: id },
+            { $set: { status: 'dropped', batchId: null } }
+        );
+
+        await batch.deleteOne();
+
+        return res.status(200).json({ message: 'Active class deleted and students unenrolled successfully' });
+    } catch (error) {
+        console.error('Error deleting active class', error);
+        return res.status(500).json({ message: 'Error deleting active class', error });
     }
 };
 

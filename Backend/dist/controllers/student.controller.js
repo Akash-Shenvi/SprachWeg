@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteUser = exports.getStudentDetails = exports.getStudents = exports.getPendingAdminEnrollments = void 0;
+exports.deleteUser = exports.getStudentDetails = exports.getStudents = exports.deleteActiveClass = exports.removeStudentFromActiveClass = exports.assignActiveClassTrainer = exports.getActiveClassStudents = exports.getActiveClasses = exports.getPendingAdminEnrollments = void 0;
 const user_model_1 = __importDefault(require("../models/user.model"));
 const language_enrollment_model_1 = __importDefault(require("../models/language.enrollment.model"));
 const enrollment_model_1 = __importDefault(require("../models/enrollment.model"));
@@ -77,6 +77,48 @@ const buildPaymentSnapshot = (attempt) => ({
     razorpayOrderId: attempt.razorpayOrderId || null,
     razorpayPaymentId: attempt.razorpayPaymentId || null,
     paidAt: attempt.paidAt || attempt.createdAt || null,
+});
+const normalizeTrainingTypeForActiveClasses = (value) => {
+    const normalizedValue = String(value !== null && value !== void 0 ? value : '').trim().toLowerCase();
+    if (normalizedValue === 'language' || normalizedValue === 'skill') {
+        return normalizedValue;
+    }
+    return null;
+};
+const buildActiveClassSummary = (batch, trainingType) => {
+    var _a;
+    return ({
+        _id: String(batch._id),
+        courseTitle: trainingType === 'language'
+            ? String(batch.courseTitle || '').trim()
+            : String(((_a = batch.courseId) === null || _a === void 0 ? void 0 : _a.title) || 'Skill Training').trim(),
+        name: String(batch.name || '').trim(),
+        studentCount: Array.isArray(batch.students) ? batch.students.length : 0,
+        trainer: batch.trainerId || null,
+        trainingType,
+        createdAt: batch.createdAt || null,
+    });
+};
+const loadActiveClasses = () => __awaiter(void 0, void 0, void 0, function* () {
+    const [languageBatches, skillBatches] = yield Promise.all([
+        language_batch_model_1.default.find({})
+            .populate('trainerId', 'name email')
+            .sort({ createdAt: -1 })
+            .lean(),
+        batch_model_1.default.find({ isActive: true })
+            .populate('trainerId', 'name email')
+            .populate('courseId', 'title')
+            .sort({ createdAt: -1 })
+            .lean(),
+    ]);
+    return [
+        ...languageBatches.map((batch) => buildActiveClassSummary(batch, 'language')),
+        ...skillBatches.map((batch) => buildActiveClassSummary(batch, 'skill')),
+    ].sort((left, right) => {
+        const leftTime = new Date(left.createdAt || 0).getTime();
+        const rightTime = new Date(right.createdAt || 0).getTime();
+        return rightTime - leftTime;
+    });
 });
 const getPendingAdminEnrollments = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
@@ -247,6 +289,274 @@ const getPendingAdminEnrollments = (req, res) => __awaiter(void 0, void 0, void 
     }
 });
 exports.getPendingAdminEnrollments = getPendingAdminEnrollments;
+const getActiveClasses = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    try {
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 6));
+        const search = String((_a = req.query.search) !== null && _a !== void 0 ? _a : '').trim().toLowerCase();
+        const course = String((_b = req.query.course) !== null && _b !== void 0 ? _b : '').trim().toLowerCase();
+        const trainingType = normalizeTrainingTypeForActiveClasses(req.query.trainingType);
+        const activeClasses = yield loadActiveClasses();
+        const availableCourses = ['All', ...new Set(activeClasses.map((item) => item.courseTitle).filter(Boolean))];
+        const filteredClasses = activeClasses.filter((item) => {
+            var _a;
+            const matchesTrainingType = trainingType ? item.trainingType === trainingType : true;
+            const matchesCourse = !course || course === 'all'
+                ? true
+                : item.courseTitle.trim().toLowerCase() === course;
+            const matchesSearch = !search
+                ? true
+                : item.courseTitle.toLowerCase().includes(search)
+                    || item.name.toLowerCase().includes(search)
+                    || (((_a = item.trainer) === null || _a === void 0 ? void 0 : _a.name) || '').toLowerCase().includes(search);
+            return matchesTrainingType && matchesCourse && matchesSearch;
+        });
+        const totalClasses = filteredClasses.length;
+        const totalPages = Math.max(1, Math.ceil(totalClasses / limit));
+        const currentPage = Math.min(page, totalPages);
+        const startIndex = (currentPage - 1) * limit;
+        return res.status(200).json({
+            batches: filteredClasses.slice(startIndex, startIndex + limit),
+            availableCourses,
+            pagination: {
+                currentPage,
+                totalPages,
+                totalBatches: totalClasses,
+                limit,
+                hasPreviousPage: currentPage > 1,
+                hasNextPage: currentPage < totalPages,
+            },
+        });
+    }
+    catch (error) {
+        console.error('Error fetching active classes', error);
+        return res.status(500).json({ message: 'Error fetching active classes', error });
+    }
+});
+exports.getActiveClasses = getActiveClasses;
+const getActiveClassStudents = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    try {
+        const { id } = req.params;
+        const trainingType = normalizeTrainingTypeForActiveClasses(req.query.trainingType);
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 8));
+        const search = String((_a = req.query.search) !== null && _a !== void 0 ? _a : '').trim();
+        if (!trainingType) {
+            return res.status(400).json({ message: 'A valid trainingType is required.' });
+        }
+        if (trainingType === 'language') {
+            const batch = yield language_batch_model_1.default.findById(id).populate('trainerId', 'name email');
+            if (!batch) {
+                return res.status(404).json({ message: 'Batch not found' });
+            }
+            const studentFilter = {
+                _id: { $in: batch.students },
+                role: 'student',
+            };
+            if (search) {
+                studentFilter.$or = [
+                    { name: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } },
+                    { phoneNumber: { $regex: search, $options: 'i' } },
+                ];
+            }
+            const totalStudents = yield user_model_1.default.countDocuments(studentFilter);
+            const totalPages = Math.max(1, Math.ceil(totalStudents / limit));
+            const currentPage = Math.min(page, totalPages);
+            const students = yield user_model_1.default.find(studentFilter)
+                .select('-password -otp -otpExpires -lastOtpSent -googleRefreshToken')
+                .sort({ createdAt: -1 })
+                .skip((currentPage - 1) * limit)
+                .limit(limit);
+            return res.status(200).json({
+                batch: {
+                    _id: batch._id,
+                    courseTitle: batch.courseTitle,
+                    name: batch.name,
+                    trainer: batch.trainerId || null,
+                    studentCount: batch.students.length,
+                    trainingType,
+                },
+                students,
+                pagination: {
+                    currentPage,
+                    totalPages,
+                    totalStudents,
+                    limit,
+                    hasPreviousPage: currentPage > 1,
+                    hasNextPage: currentPage < totalPages,
+                },
+            });
+        }
+        const batch = yield batch_model_1.default.findById(id)
+            .populate('trainerId', 'name email')
+            .populate('courseId', 'title');
+        if (!batch) {
+            return res.status(404).json({ message: 'Batch not found' });
+        }
+        const studentFilter = {
+            _id: { $in: batch.students },
+            role: 'student',
+        };
+        if (search) {
+            studentFilter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+                { phoneNumber: { $regex: search, $options: 'i' } },
+            ];
+        }
+        const totalStudents = yield user_model_1.default.countDocuments(studentFilter);
+        const totalPages = Math.max(1, Math.ceil(totalStudents / limit));
+        const currentPage = Math.min(page, totalPages);
+        const students = yield user_model_1.default.find(studentFilter)
+            .select('-password -otp -otpExpires -lastOtpSent -googleRefreshToken')
+            .sort({ createdAt: -1 })
+            .skip((currentPage - 1) * limit)
+            .limit(limit);
+        return res.status(200).json({
+            batch: {
+                _id: batch._id,
+                courseTitle: ((_b = batch.courseId) === null || _b === void 0 ? void 0 : _b.title) || 'Skill Training',
+                name: batch.name,
+                trainer: batch.trainerId || null,
+                studentCount: batch.students.length,
+                trainingType,
+            },
+            students,
+            pagination: {
+                currentPage,
+                totalPages,
+                totalStudents,
+                limit,
+                hasPreviousPage: currentPage > 1,
+                hasNextPage: currentPage < totalPages,
+            },
+        });
+    }
+    catch (error) {
+        console.error('Error fetching active class students', error);
+        return res.status(500).json({ message: 'Error fetching active class students', error });
+    }
+});
+exports.getActiveClassStudents = getActiveClassStudents;
+const assignActiveClassTrainer = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const { trainerId, trainingType: rawTrainingType } = req.body || {};
+        const trainingType = normalizeTrainingTypeForActiveClasses(rawTrainingType);
+        if (!trainingType) {
+            return res.status(400).json({ message: 'A valid trainingType is required.' });
+        }
+        if (!trainerId) {
+            return res.status(400).json({ message: 'trainerId is required' });
+        }
+        if (trainingType === 'language') {
+            const batch = yield language_batch_model_1.default.findById(id);
+            if (!batch) {
+                return res.status(404).json({ message: 'Batch not found' });
+            }
+            batch.trainerId = trainerId;
+            yield batch.save();
+            return res.status(200).json({ message: 'Trainer assigned successfully', batch });
+        }
+        const batch = yield batch_model_1.default.findById(id);
+        if (!batch) {
+            return res.status(404).json({ message: 'Batch not found' });
+        }
+        batch.trainerId = trainerId;
+        yield batch.save();
+        return res.status(200).json({ message: 'Trainer assigned successfully', batch });
+    }
+    catch (error) {
+        console.error('Error assigning active class trainer', error);
+        return res.status(500).json({ message: 'Error assigning active class trainer', error });
+    }
+});
+exports.assignActiveClassTrainer = assignActiveClassTrainer;
+const removeStudentFromActiveClass = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id, studentId } = req.params;
+        const trainingType = normalizeTrainingTypeForActiveClasses(req.query.trainingType);
+        if (!trainingType) {
+            return res.status(400).json({ message: 'A valid trainingType is required.' });
+        }
+        if (trainingType === 'language') {
+            const batch = yield language_batch_model_1.default.findById(id);
+            if (!batch) {
+                return res.status(404).json({ message: 'Batch not found' });
+            }
+            batch.students = batch.students.filter((currentStudentId) => currentStudentId.toString() !== studentId);
+            yield batch.save();
+            const enrollment = yield language_enrollment_model_1.default.findOne({
+                userId: studentId,
+                batchId: id,
+            });
+            if (enrollment) {
+                enrollment.status = 'REJECTED';
+                enrollment.batchId = undefined;
+                yield enrollment.save();
+            }
+            return res.status(200).json({ message: 'Student removed from active class successfully' });
+        }
+        const batch = yield batch_model_1.default.findById(id);
+        if (!batch) {
+            return res.status(404).json({ message: 'Batch not found' });
+        }
+        batch.students = batch.students.filter((currentStudentId) => currentStudentId.toString() !== studentId);
+        yield batch.save();
+        const enrollment = yield enrollment_model_1.default.findOne({
+            studentId,
+            $or: [
+                { batchId: id },
+                { courseId: batch.courseId, status: 'active' },
+            ],
+        });
+        if (enrollment) {
+            enrollment.status = 'dropped';
+            enrollment.batchId = undefined;
+            yield enrollment.save();
+        }
+        return res.status(200).json({ message: 'Student removed from active class successfully' });
+    }
+    catch (error) {
+        console.error('Error removing student from active class', error);
+        return res.status(500).json({ message: 'Error removing student from active class', error });
+    }
+});
+exports.removeStudentFromActiveClass = removeStudentFromActiveClass;
+const deleteActiveClass = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const trainingType = normalizeTrainingTypeForActiveClasses(req.query.trainingType);
+        if (!trainingType) {
+            return res.status(400).json({ message: 'A valid trainingType is required.' });
+        }
+        if (trainingType === 'language') {
+            const batch = yield language_batch_model_1.default.findById(id);
+            if (!batch) {
+                return res.status(404).json({ message: 'Batch not found' });
+            }
+            yield language_enrollment_model_1.default.updateMany({ batchId: id }, { $set: { status: 'REJECTED', batchId: null } });
+            yield language_enrollment_model_1.default.updateMany({ courseTitle: batch.courseTitle, name: batch.name, status: 'APPROVED' }, { $set: { status: 'REJECTED', batchId: null } });
+            yield batch.deleteOne();
+            return res.status(200).json({ message: 'Active class deleted and students unenrolled successfully' });
+        }
+        const batch = yield batch_model_1.default.findById(id);
+        if (!batch) {
+            return res.status(404).json({ message: 'Batch not found' });
+        }
+        yield enrollment_model_1.default.updateMany({ batchId: id }, { $set: { status: 'dropped', batchId: null } });
+        yield batch.deleteOne();
+        return res.status(200).json({ message: 'Active class deleted and students unenrolled successfully' });
+    }
+    catch (error) {
+        console.error('Error deleting active class', error);
+        return res.status(500).json({ message: 'Error deleting active class', error });
+    }
+});
+exports.deleteActiveClass = deleteActiveClass;
 const getStudents = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {

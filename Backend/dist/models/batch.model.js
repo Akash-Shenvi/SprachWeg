@@ -37,7 +37,7 @@ const mongoose_1 = __importStar(require("mongoose"));
 const BatchSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     courseId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'SkillCourse', required: true },
-    trainerId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+    trainerId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User' },
     schedule: {
         days: [{ type: String }],
         startTime: { type: String },

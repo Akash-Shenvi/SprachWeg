@@ -49,6 +49,7 @@ interface BatchListItem {
     name: string;
     studentCount: number;
     trainer: Trainer | null;
+    trainingType: 'language' | 'skill';
 }
 
 interface LanguageEnrollment {
@@ -91,6 +92,18 @@ interface StudentPagination {
 
 const BATCHES_PER_PAGE = 6;
 const STUDENTS_PER_PAGE = 8;
+const activeClassTypeMeta = (trainingType: BatchListItem['trainingType']) =>
+    trainingType === 'skill'
+        ? {
+            label: 'Skill',
+            badgeClassName: 'border-purple-200 bg-purple-100 text-purple-700 dark:border-purple-900/50 dark:bg-purple-900/30 dark:text-purple-300',
+            iconClassName: 'bg-purple-500/10 text-purple-500',
+        }
+        : {
+            label: 'Language',
+            badgeClassName: 'border-blue-200 bg-blue-100 text-blue-700 dark:border-blue-900/50 dark:bg-blue-900/30 dark:text-blue-300',
+            iconClassName: 'bg-[#d6b161]/10 text-[#d6b161]',
+        };
 
 const LanguageBatches: React.FC = () => {
     const [batches, setBatches] = useState<BatchListItem[]>([]);
@@ -162,7 +175,7 @@ const LanguageBatches: React.FC = () => {
             setLoading(true);
             setError('');
 
-            const response = await api.get('/language-training/admin/batches', {
+            const response = await api.get('/admin/active-classes', {
                 params: {
                     page: batchPagination.currentPage,
                     limit: BATCHES_PER_PAGE,
@@ -217,10 +230,11 @@ const LanguageBatches: React.FC = () => {
             setStudentsLoading(true);
             setStudentsError('');
 
-            const response = await api.get(`/language-training/admin/batches/${batch._id}/students`, {
+            const response = await api.get(`/admin/active-classes/${batch._id}/students`, {
                 params: {
                     page,
                     limit: STUDENTS_PER_PAGE,
+                    trainingType: batch.trainingType,
                 },
             });
 
@@ -305,8 +319,9 @@ const LanguageBatches: React.FC = () => {
         }
 
         try {
-            await api.put(`/language-training/admin/batches/${selectedBatch._id}/assign-trainer`, {
+            await api.put(`/admin/active-classes/${selectedBatch._id}/assign-trainer`, {
                 trainerId: selectedTrainer,
+                trainingType: selectedBatch.trainingType,
             });
             setShowAssignModal(false);
             await fetchBatches();
@@ -350,7 +365,12 @@ const LanguageBatches: React.FC = () => {
         }
 
         try {
-            await api.delete(`/language-training/admin/batches/${batchId}/students/${studentId}`);
+            const batch = batches.find((currentBatch) => currentBatch._id === batchId) || expandedBatch;
+            await api.delete(`/admin/active-classes/${batchId}/students/${studentId}`, {
+                params: {
+                    trainingType: batch?.trainingType,
+                },
+            });
 
             if (expandedBatch && expandedBatch._id === batchId) {
                 const nextPage =
@@ -374,7 +394,12 @@ const LanguageBatches: React.FC = () => {
         }
 
         try {
-            await api.delete(`/language-training/admin/batches/${batchId}`);
+            const batch = batches.find((currentBatch) => currentBatch._id === batchId);
+            await api.delete(`/admin/active-classes/${batchId}`, {
+                params: {
+                    trainingType: batch?.trainingType,
+                },
+            });
 
             if (expandedBatch?._id === batchId) {
                 setExpandedBatch(null);
@@ -430,7 +455,7 @@ const LanguageBatches: React.FC = () => {
                     <div>
                         <h1 className="text-3xl font-serif font-bold text-gray-900 dark:text-white">Active Classes</h1>
                         <p className="mt-1 text-gray-600 dark:text-gray-400">
-                            Load classes page by page, then open one class to fetch only that class&apos;s students.
+                            Review active language and skill classes, assign trainers, and manage enrolled students.
                         </p>
                     </div>
                     <button
@@ -531,6 +556,7 @@ const LanguageBatches: React.FC = () => {
                     <div className="space-y-4">
                         {batches.map((batch) => {
                             const isExpanded = expandedBatch?._id === batch._id;
+                            const typeMeta = activeClassTypeMeta(batch.trainingType);
 
                             return (
                                 <div
@@ -547,12 +573,15 @@ const LanguageBatches: React.FC = () => {
                                             onClick={() => void toggleBatch(batch)}
                                             className="flex flex-1 items-center gap-4 text-left"
                                         >
-                                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#d6b161]/10 text-[#d6b161]">
+                                            <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${typeMeta.iconClassName}`}>
                                                 <BookOpen className="h-6 w-6" />
                                             </div>
                                             <div>
                                                 <h2 className="flex flex-wrap items-center gap-2 text-lg font-bold text-gray-900 dark:text-white sm:text-xl">
                                                     {batch.courseTitle}
+                                                    <span className={`rounded-full border px-2 py-0.5 text-xs ${typeMeta.badgeClassName}`}>
+                                                        {typeMeta.label}
+                                                    </span>
                                                     <span className="rounded-full border border-blue-200 bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:border-blue-900/50 dark:bg-blue-900/30 dark:text-blue-300">
                                                         {batch.name}
                                                     </span>

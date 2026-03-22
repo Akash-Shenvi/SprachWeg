@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IBatch extends Document {
     name: string;
     courseId: mongoose.Types.ObjectId;
-    trainerId: mongoose.Types.ObjectId;
+    trainerId?: mongoose.Types.ObjectId;
     schedule: {
         days: string[]; // e.g., ["Mon", "Wed", "Fri"]
         startTime: string; // e.g., "10:00"
@@ -21,7 +21,7 @@ const BatchSchema: Schema = new Schema(
     {
         name: { type: String, required: true },
         courseId: { type: Schema.Types.ObjectId, ref: 'SkillCourse', required: true },
-        trainerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+        trainerId: { type: Schema.Types.ObjectId, ref: 'User' },
         schedule: {
             days: [{ type: String }],
             startTime: { type: String },

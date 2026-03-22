@@ -86,19 +86,23 @@ export const acceptEnrollment = async (req: Request, res: Response) => {
         // Find the first batch with < 20 students
         let batch = potentialBatches.find(b => b.students.length < 20) || null;
 
-        // If no suitable batch, trainers can create one immediately.
-        if (!batch && actingUserRole === 'trainer') {
+        // If no suitable batch, create one immediately. Admin-created batches stay unassigned until a trainer is chosen.
+        if (!batch) {
             const course = await SkillCourse.findById(enrollment.courseId);
             const courseTitle = course ? course.title : 'Course';
 
             // Basic new batch name logic
-            const batchCount = await Batch.countDocuments({ courseId: enrollment.courseId, trainerId: actingUserId });
+            const batchCountQuery: any = { courseId: enrollment.courseId };
+            if (actingUserRole === 'trainer') {
+                batchCountQuery.trainerId = actingUserId;
+            }
+            const batchCount = await Batch.countDocuments(batchCountQuery);
             const batchName = `${courseTitle} - Batch ${batchCount + 1}`;
 
             batch = new Batch({
                 name: batchName,
                 courseId: enrollment.courseId,
-                trainerId: actingUserId,
+                trainerId: actingUserRole === 'trainer' ? actingUserId : undefined,
                 students: [],
                 isActive: true,
                 startDate: new Date(),
