@@ -12,12 +12,28 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getStudentDetails = exports.getStudents = exports.getPendingAdminEnrollments = void 0;
+exports.deleteUser = exports.getStudentDetails = exports.getStudents = exports.getPendingAdminEnrollments = void 0;
 const user_model_1 = __importDefault(require("../models/user.model"));
 const language_enrollment_model_1 = __importDefault(require("../models/language.enrollment.model"));
 const enrollment_model_1 = __importDefault(require("../models/enrollment.model"));
 const skillCourse_model_1 = __importDefault(require("../models/skillCourse.model"));
 const trainingPaymentAttempt_model_1 = __importDefault(require("../models/trainingPaymentAttempt.model"));
+const batch_model_1 = __importDefault(require("../models/batch.model"));
+const classSession_model_1 = __importDefault(require("../models/classSession.model"));
+const attendance_model_1 = __importDefault(require("../models/attendance.model"));
+const submission_model_1 = __importDefault(require("../models/submission.model"));
+const chat_message_model_1 = __importDefault(require("../models/chat.message.model"));
+const internshipApplication_model_1 = __importDefault(require("../models/internshipApplication.model"));
+const internshipPaymentAttempt_model_1 = __importDefault(require("../models/internshipPaymentAttempt.model"));
+const webinar_model_1 = __importDefault(require("../models/webinar.model"));
+const webinarRegistration_model_1 = __importDefault(require("../models/webinarRegistration.model"));
+const webinarPaymentAttempt_model_1 = __importDefault(require("../models/webinarPaymentAttempt.model"));
+const language_batch_model_1 = __importDefault(require("../models/language.batch.model"));
+const language_class_model_1 = __importDefault(require("../models/language.class.model"));
+const language_material_model_1 = __importDefault(require("../models/language.material.model"));
+const language_announcement_model_1 = __importDefault(require("../models/language.announcement.model"));
+const announcement_model_1 = __importDefault(require("../models/announcement.model"));
+const institutionEnrollmentRequest_model_1 = __importDefault(require("../models/institutionEnrollmentRequest.model"));
 const buildLanguagePaymentKey = (params) => {
     var _a, _b, _c;
     return [
@@ -300,3 +316,83 @@ const getStudentDetails = (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.getStudentDetails = getStudentDetails;
+const deleteUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const user = yield user_model_1.default.findById(id).select('name email role');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        if (user.role === 'admin') {
+            return res.status(403).json({ message: 'Admin accounts cannot be deleted.' });
+        }
+        const userId = user._id;
+        const userIdString = String(user._id);
+        const skillClassSessionIds = yield classSession_model_1.default.find({ trainerId: userId }).distinct('_id');
+        const cleanupTasks = [
+            language_enrollment_model_1.default.deleteMany({ userId }),
+            enrollment_model_1.default.deleteMany({ studentId: userId }),
+            trainingPaymentAttempt_model_1.default.deleteMany({ userId }),
+            internshipApplication_model_1.default.deleteMany({ userId }),
+            internshipPaymentAttempt_model_1.default.deleteMany({ userId }),
+            webinarRegistration_model_1.default.deleteMany({ userId }),
+            webinarPaymentAttempt_model_1.default.deleteMany({ userId }),
+            submission_model_1.default.deleteMany({ studentId: userId }),
+            attendance_model_1.default.deleteMany({ studentId: userId }),
+            chat_message_model_1.default.deleteMany({
+                $or: [
+                    { studentId: userIdString },
+                    { trainerId: userIdString },
+                    { senderId: userIdString },
+                ],
+            }),
+            language_batch_model_1.default.updateMany({ students: userId }, { $pull: { students: userId } }),
+            language_batch_model_1.default.updateMany({ trainerId: userId }, { $unset: { trainerId: 1 } }),
+            batch_model_1.default.updateMany({ students: userId }, { $pull: { students: userId } }),
+            batch_model_1.default.updateMany({ trainerId: userId }, { $set: { isActive: false } }),
+            language_class_model_1.default.updateMany({ 'attendees.studentId': userId }, { $pull: { attendees: { studentId: userId } } }),
+            institutionEnrollmentRequest_model_1.default.updateMany({ 'students.createdUserId': userId }, { $set: { 'students.$[student].createdUserId': null } }, {
+                arrayFilters: [{ 'student.createdUserId': userId }],
+            }),
+            language_material_model_1.default.deleteMany({ uploadedBy: userId }),
+            language_announcement_model_1.default.deleteMany({ senderId: userId }),
+            language_class_model_1.default.deleteMany({ trainerId: userId }),
+            announcement_model_1.default.deleteMany({ senderId: userId }),
+            classSession_model_1.default.deleteMany({ trainerId: userId }),
+            webinar_model_1.default.updateMany({ trainerId: userId }, {
+                $set: {
+                    calendarSyncStatus: 'needs_trainer_connection',
+                    calendarSyncError: 'Trainer account deleted.',
+                    isActive: false,
+                },
+                $unset: {
+                    trainerId: 1,
+                    joinLink: 1,
+                    googleCalendarEventId: 1,
+                },
+            }),
+        ];
+        if (skillClassSessionIds.length > 0) {
+            cleanupTasks.push(attendance_model_1.default.deleteMany({ classSessionId: { $in: skillClassSessionIds } }));
+        }
+        if (user.role === 'institution') {
+            cleanupTasks.push(institutionEnrollmentRequest_model_1.default.deleteMany({ institutionId: userId }));
+        }
+        yield Promise.all(cleanupTasks);
+        yield user.deleteOne();
+        return res.status(200).json({
+            message: 'User deleted successfully.',
+            deletedUser: {
+                _id: userId,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            },
+        });
+    }
+    catch (error) {
+        console.error('Error deleting user', error);
+        return res.status(500).json({ message: 'Error deleting user', error });
+    }
+});
+exports.deleteUser = deleteUser;

@@ -4,6 +4,22 @@ import Enrollment from '../models/language.enrollment.model';
 import SkillEnrollment from '../models/enrollment.model';
 import SkillCourse from '../models/skillCourse.model';
 import TrainingPaymentAttempt from '../models/trainingPaymentAttempt.model';
+import SkillBatch from '../models/batch.model';
+import ClassSession from '../models/classSession.model';
+import Attendance from '../models/attendance.model';
+import Submission from '../models/submission.model';
+import ChatMessage from '../models/chat.message.model';
+import InternshipApplication from '../models/internshipApplication.model';
+import InternshipPaymentAttempt from '../models/internshipPaymentAttempt.model';
+import Webinar from '../models/webinar.model';
+import WebinarRegistration from '../models/webinarRegistration.model';
+import WebinarPaymentAttempt from '../models/webinarPaymentAttempt.model';
+import LanguageBatch from '../models/language.batch.model';
+import LanguageClass from '../models/language.class.model';
+import LanguageMaterial from '../models/language.material.model';
+import LanguageAnnouncement from '../models/language.announcement.model';
+import Announcement from '../models/announcement.model';
+import InstitutionEnrollmentRequest from '../models/institutionEnrollmentRequest.model';
 
 const buildLanguagePaymentKey = (params: {
     userId: unknown;
@@ -315,5 +331,102 @@ export const getStudentDetails = async (req: Request, res: Response) => {
         });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching user details', error });
+    }
+};
+
+export const deleteUser = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const user = await User.findById(id).select('name email role');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.role === 'admin') {
+            return res.status(403).json({ message: 'Admin accounts cannot be deleted.' });
+        }
+
+        const userId = user._id;
+        const userIdString = String(user._id);
+        const skillClassSessionIds = await ClassSession.find({ trainerId: userId }).distinct('_id');
+
+        const cleanupTasks: Promise<unknown>[] = [
+            Enrollment.deleteMany({ userId }),
+            SkillEnrollment.deleteMany({ studentId: userId }),
+            TrainingPaymentAttempt.deleteMany({ userId }),
+            InternshipApplication.deleteMany({ userId }),
+            InternshipPaymentAttempt.deleteMany({ userId }),
+            WebinarRegistration.deleteMany({ userId }),
+            WebinarPaymentAttempt.deleteMany({ userId }),
+            Submission.deleteMany({ studentId: userId }),
+            Attendance.deleteMany({ studentId: userId }),
+            ChatMessage.deleteMany({
+                $or: [
+                    { studentId: userIdString },
+                    { trainerId: userIdString },
+                    { senderId: userIdString },
+                ],
+            }),
+            LanguageBatch.updateMany({ students: userId }, { $pull: { students: userId } }),
+            LanguageBatch.updateMany({ trainerId: userId }, { $unset: { trainerId: 1 } }),
+            SkillBatch.updateMany({ students: userId }, { $pull: { students: userId } }),
+            SkillBatch.updateMany({ trainerId: userId }, { $set: { isActive: false } }),
+            LanguageClass.updateMany(
+                { 'attendees.studentId': userId },
+                { $pull: { attendees: { studentId: userId } } }
+            ),
+            InstitutionEnrollmentRequest.updateMany(
+                { 'students.createdUserId': userId },
+                { $set: { 'students.$[student].createdUserId': null } },
+                {
+                    arrayFilters: [{ 'student.createdUserId': userId }],
+                }
+            ),
+            LanguageMaterial.deleteMany({ uploadedBy: userId }),
+            LanguageAnnouncement.deleteMany({ senderId: userId }),
+            LanguageClass.deleteMany({ trainerId: userId }),
+            Announcement.deleteMany({ senderId: userId }),
+            ClassSession.deleteMany({ trainerId: userId }),
+            Webinar.updateMany(
+                { trainerId: userId },
+                {
+                    $set: {
+                        calendarSyncStatus: 'needs_trainer_connection',
+                        calendarSyncError: 'Trainer account deleted.',
+                        isActive: false,
+                    },
+                    $unset: {
+                        trainerId: 1,
+                        joinLink: 1,
+                        googleCalendarEventId: 1,
+                    },
+                }
+            ),
+        ];
+
+        if (skillClassSessionIds.length > 0) {
+            cleanupTasks.push(Attendance.deleteMany({ classSessionId: { $in: skillClassSessionIds } }));
+        }
+
+        if (user.role === 'institution') {
+            cleanupTasks.push(InstitutionEnrollmentRequest.deleteMany({ institutionId: userId }));
+        }
+
+        await Promise.all(cleanupTasks);
+        await user.deleteOne();
+
+        return res.status(200).json({
+            message: 'User deleted successfully.',
+            deletedUser: {
+                _id: userId,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+            },
+        });
+    } catch (error) {
+        console.error('Error deleting user', error);
+        return res.status(500).json({ message: 'Error deleting user', error });
     }
 };

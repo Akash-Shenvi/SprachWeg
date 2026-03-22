@@ -10,6 +10,7 @@ const router = express_1.default.Router();
 router.get('/enrollments/pending', auth_middleware_1.protect, auth_middleware_1.isAdmin, student_controller_1.getPendingAdminEnrollments);
 router.get('/users', auth_middleware_1.protect, auth_middleware_1.isAdmin, student_controller_1.getStudents);
 router.get('/students', auth_middleware_1.protect, auth_middleware_1.isAdmin, student_controller_1.getStudents);
+router.delete('/users/:id', auth_middleware_1.protect, auth_middleware_1.isAdmin, student_controller_1.deleteUser);
 router.get('/users/:id/details', auth_middleware_1.protect, auth_middleware_1.isAdmin, student_controller_1.getStudentDetails);
 router.get('/students/:id/details', auth_middleware_1.protect, auth_middleware_1.isAdmin, student_controller_1.getStudentDetails);
 exports.default = router;

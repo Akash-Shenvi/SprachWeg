@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen, Calendar, ChevronLeft, ChevronRight, Eye, GraduationCap, Mail, Phone, Search, ShieldCheck, User as UserIcon, X } from 'lucide-react';
+import { BookOpen, Calendar, ChevronLeft, ChevronRight, Eye, GraduationCap, Mail, Phone, Search, ShieldCheck, Trash2, User as UserIcon, X } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import Button from '../../components/ui/Button';
 import api, { getAssetUrl } from '../../lib/api';
@@ -36,6 +36,7 @@ interface SkillEnrollment {
 const LIMIT = 10;
 const formatDate = (value?: string) => (value ? new Date(value).toLocaleDateString() : 'Not Provided');
 const formatRole = (role?: string) => (role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User');
+const isAdminUser = (role?: string) => String(role ?? '').trim().toLowerCase() === 'admin';
 const roleClass = (role?: string) => {
     switch (String(role ?? '').toLowerCase()) {
         case 'admin':
@@ -74,6 +75,7 @@ const ManageUsers: React.FC = () => {
     const [languageEnrollments, setLanguageEnrollments] = useState<LanguageEnrollment[]>([]);
     const [skillEnrollments, setSkillEnrollments] = useState<SkillEnrollment[]>([]);
     const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
+    const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
     useEffect(() => {
         void fetchUsers();
@@ -124,6 +126,42 @@ const ManageUsers: React.FC = () => {
         setIsViewModalOpen(false);
         setSelectedUser(null);
         setIsAvatarFullScreen(false);
+    };
+
+    const handleDeleteUser = async (user: UserRecord) => {
+        if (isAdminUser(user.role)) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Delete ${user.name} (${user.email})?\n\nThis will remove the user account and linked enrollment records.`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setDeletingUserId(user._id);
+            setError(null);
+            await api.delete(`/admin/users/${user._id}`);
+
+            if (selectedUser?._id === user._id) {
+                closeViewModal();
+            }
+
+            if (users.length === 1 && page > 1) {
+                setPage((currentPage) => Math.max(1, currentPage - 1));
+                return;
+            }
+
+            await fetchUsers();
+        } catch (err: any) {
+            console.error('Failed to delete user:', err);
+            setError(err.response?.data?.message || 'Failed to delete user');
+        } finally {
+            setDeletingUserId(null);
+        }
     };
 
     return (
@@ -196,9 +234,27 @@ const ManageUsers: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{formatDate(user.createdAt)}</td>
                                             <td className="px-6 py-4 text-right">
-                                                <Button variant="outline" size="sm" onClick={() => handleViewUser(user)} className="flex items-center gap-2">
-                                                    <Eye className="h-4 w-4" />View
-                                                </Button>
+                                                <div className="flex justify-end gap-2">
+                                                    <Button variant="outline" size="sm" onClick={() => handleViewUser(user)} className="flex items-center gap-2">
+                                                        <Eye className="h-4 w-4" />View
+                                                    </Button>
+                                                    {isAdminUser(user.role) ? (
+                                                        <span className="inline-flex items-center rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300">
+                                                            Admin Protected
+                                                        </span>
+                                                    ) : (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => void handleDeleteUser(user)}
+                                                            disabled={deletingUserId === user._id}
+                                                            className="flex items-center gap-2 border-red-500 text-red-600 hover:bg-red-50 focus:ring-red-500 dark:border-red-400 dark:text-red-300 dark:hover:bg-red-950/40"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                            {deletingUserId === user._id ? 'Deleting...' : 'Delete'}
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
