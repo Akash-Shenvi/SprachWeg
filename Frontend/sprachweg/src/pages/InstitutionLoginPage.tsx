@@ -6,6 +6,7 @@ import Footer from '../components/layout/Footer';
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { getDashboardPathForRole } from '../lib/authRouting';
+import { institutionFieldWithIconClassName } from '../lib/formStyles';
 
 const InstitutionLoginPage: React.FC = () => {
     const navigate = useNavigate();
@@ -98,8 +99,9 @@ const InstitutionLoginPage: React.FC = () => {
                                         type="email"
                                         value={formData.email}
                                         onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))}
-                                        className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 pl-12 text-gray-900 outline-none transition focus:border-[#d6b161] focus:bg-white dark:border-gray-700 dark:bg-[#0a192f] dark:text-white"
+                                        className={institutionFieldWithIconClassName}
                                         placeholder="institution@example.com"
+                                        autoComplete="email"
                                         required
                                     />
                                 </div>
@@ -113,8 +115,9 @@ const InstitutionLoginPage: React.FC = () => {
                                         type="password"
                                         value={formData.password}
                                         onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))}
-                                        className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 pl-12 text-gray-900 outline-none transition focus:border-[#d6b161] focus:bg-white dark:border-gray-700 dark:bg-[#0a192f] dark:text-white"
+                                        className={institutionFieldWithIconClassName}
                                         placeholder="Enter institution password"
+                                        autoComplete="current-password"
                                         required
                                     />
                                 </div>

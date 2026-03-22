@@ -12,6 +12,8 @@ import LanguageEnrollment from '../models/language.enrollment.model';
 import { EmailService } from '../utils/email.service';
 
 const emailService = new EmailService();
+const MAX_INSTITUTION_STUDENTS_PER_REQUEST = 25;
+const STUDENT_WELCOME_EMAIL_BATCH_SIZE = 5;
 
 type ApprovalArtifacts = {
     createdStudentsForEmail: Array<{ name: string; email: string; courseTitle: string; levelName: string }>;
@@ -101,6 +103,33 @@ const findDuplicateEmails = (emails: string[]) => {
     return [...duplicates];
 };
 
+const chunkItems = <T>(items: T[], chunkSize: number) => {
+    const chunks: T[][] = [];
+
+    for (let index = 0; index < items.length; index += chunkSize) {
+        chunks.push(items.slice(index, index + chunkSize));
+    }
+
+    return chunks;
+};
+
+const sendInstitutionStudentWelcomeEmailsInBatches = async (
+    students: ApprovalArtifacts['createdStudentsForEmail']
+) => {
+    const chunks = chunkItems(students, STUDENT_WELCOME_EMAIL_BATCH_SIZE);
+
+    for (const chunk of chunks) {
+        await Promise.all(
+            chunk.map((student) => emailService.sendInstitutionStudentWelcomeEmail({
+                to: student.email,
+                studentName: student.name,
+                courseTitle: student.courseTitle,
+                levelName: student.levelName,
+            }))
+        );
+    }
+};
+
 const createOrLoadBatch = async (
     courseTitle: string,
     levelName: string,
@@ -182,6 +211,10 @@ const processInstitutionApproval = async (params: {
 
     if (!request || request.status !== 'PENDING') {
         throw new Error('Invalid institution request');
+    }
+
+    if (request.students.length > MAX_INSTITUTION_STUDENTS_PER_REQUEST) {
+        throw new Error(`Institution requests are limited to ${MAX_INSTITUTION_STUDENTS_PER_REQUEST} students at a time.`);
     }
 
     const validation = await validateGermanSelection(request.courseTitle, request.levelName);
@@ -390,6 +423,12 @@ export const createInstitutionSubmission = async (req: Request, res: Response) =
         });
     }
 
+    if (normalizedStudents.length > MAX_INSTITUTION_STUDENTS_PER_REQUEST) {
+        return res.status(400).json({
+            message: `Institution requests are limited to ${MAX_INSTITUTION_STUDENTS_PER_REQUEST} students at a time.`,
+        });
+    }
+
     try {
         const [{ error }, existingUsers] = await Promise.all([
             validateGermanSelection(normalizedCourseTitle, normalizedLevelName),
@@ -536,14 +575,7 @@ export const approveInstitutionRequest = async (req: Request, res: Response) => 
             });
         }
 
-        await Promise.all(
-            approvalArtifacts!.createdStudentsForEmail.map((student) => emailService.sendInstitutionStudentWelcomeEmail({
-                to: student.email,
-                studentName: student.name,
-                courseTitle: student.courseTitle,
-                levelName: student.levelName,
-            }))
-        );
+        await sendInstitutionStudentWelcomeEmailsInBatches(approvalArtifacts!.createdStudentsForEmail);
 
         const approvedRequest = await InstitutionEnrollmentRequest.findById(requestId)
             .populate(

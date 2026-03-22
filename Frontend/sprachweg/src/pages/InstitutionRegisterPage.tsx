@@ -6,6 +6,7 @@ import Footer from '../components/layout/Footer';
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { getDashboardPathForRole } from '../lib/authRouting';
+import { institutionFieldClassName, institutionFieldWithIconClassName } from '../lib/formStyles';
 
 const InstitutionRegisterPage: React.FC = () => {
     const navigate = useNavigate();
@@ -160,7 +161,8 @@ const InstitutionRegisterPage: React.FC = () => {
                                                 type="text"
                                                 value={formData.institutionName}
                                                 onChange={(event) => setFormData((current) => ({ ...current, institutionName: event.target.value }))}
-                                                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 pl-12 text-gray-900 outline-none transition focus:border-[#d6b161] focus:bg-white dark:border-gray-700 dark:bg-[#0a192f] dark:text-white"
+                                                className={institutionFieldWithIconClassName}
+                                                autoComplete="organization"
                                                 required
                                             />
                                         </div>
@@ -174,7 +176,8 @@ const InstitutionRegisterPage: React.FC = () => {
                                                 type="text"
                                                 value={formData.contactPersonName}
                                                 onChange={(event) => setFormData((current) => ({ ...current, contactPersonName: event.target.value }))}
-                                                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 pl-12 text-gray-900 outline-none transition focus:border-[#d6b161] focus:bg-white dark:border-gray-700 dark:bg-[#0a192f] dark:text-white"
+                                                className={institutionFieldWithIconClassName}
+                                                autoComplete="name"
                                                 required
                                             />
                                         </div>
@@ -190,7 +193,8 @@ const InstitutionRegisterPage: React.FC = () => {
                                                 type="email"
                                                 value={formData.email}
                                                 onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))}
-                                                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 pl-12 text-gray-900 outline-none transition focus:border-[#d6b161] focus:bg-white dark:border-gray-700 dark:bg-[#0a192f] dark:text-white"
+                                                className={institutionFieldWithIconClassName}
+                                                autoComplete="email"
                                                 required
                                             />
                                         </div>
@@ -204,7 +208,8 @@ const InstitutionRegisterPage: React.FC = () => {
                                                 type="tel"
                                                 value={formData.phoneNumber}
                                                 onChange={(event) => setFormData((current) => ({ ...current, phoneNumber: event.target.value }))}
-                                                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 pl-12 text-gray-900 outline-none transition focus:border-[#d6b161] focus:bg-white dark:border-gray-700 dark:bg-[#0a192f] dark:text-white"
+                                                className={institutionFieldWithIconClassName}
+                                                autoComplete="tel"
                                                 required
                                             />
                                         </div>
@@ -220,7 +225,8 @@ const InstitutionRegisterPage: React.FC = () => {
                                                 type="text"
                                                 value={formData.city}
                                                 onChange={(event) => setFormData((current) => ({ ...current, city: event.target.value }))}
-                                                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 pl-12 text-gray-900 outline-none transition focus:border-[#d6b161] focus:bg-white dark:border-gray-700 dark:bg-[#0a192f] dark:text-white"
+                                                className={institutionFieldWithIconClassName}
+                                                autoComplete="address-level2"
                                                 required
                                             />
                                         </div>
@@ -232,7 +238,8 @@ const InstitutionRegisterPage: React.FC = () => {
                                             type="text"
                                             value={formData.state}
                                             onChange={(event) => setFormData((current) => ({ ...current, state: event.target.value }))}
-                                            className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-[#d6b161] focus:bg-white dark:border-gray-700 dark:bg-[#0a192f] dark:text-white"
+                                            className={institutionFieldClassName}
+                                            autoComplete="address-level1"
                                             required
                                         />
                                     </label>
@@ -244,7 +251,8 @@ const InstitutionRegisterPage: React.FC = () => {
                                         value={formData.address}
                                         onChange={(event) => setFormData((current) => ({ ...current, address: event.target.value }))}
                                         rows={3}
-                                        className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-[#d6b161] focus:bg-white dark:border-gray-700 dark:bg-[#0a192f] dark:text-white"
+                                        className={institutionFieldClassName}
+                                        autoComplete="street-address"
                                         required
                                     />
                                 </label>
@@ -255,7 +263,8 @@ const InstitutionRegisterPage: React.FC = () => {
                                         type="password"
                                         value={formData.password}
                                         onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))}
-                                        className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-[#d6b161] focus:bg-white dark:border-gray-700 dark:bg-[#0a192f] dark:text-white"
+                                        className={institutionFieldClassName}
+                                        autoComplete="new-password"
                                         minLength={6}
                                         required
                                     />
@@ -277,7 +286,8 @@ const InstitutionRegisterPage: React.FC = () => {
                                         type="text"
                                         value={formData.otp}
                                         onChange={(event) => setFormData((current) => ({ ...current, otp: event.target.value }))}
-                                        className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-center text-lg tracking-[0.6em] text-gray-900 outline-none transition focus:border-[#d6b161] focus:bg-white dark:border-gray-700 dark:bg-[#0a192f] dark:text-white"
+                                        className={`${institutionFieldClassName} text-center text-lg tracking-[0.6em]`}
+                                        autoComplete="one-time-code"
                                         maxLength={6}
                                         required
                                     />

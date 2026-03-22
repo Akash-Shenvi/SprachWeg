@@ -18,6 +18,7 @@ import Footer from '../components/layout/Footer';
 import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { institutionAPI } from '../lib/api';
+import { institutionFieldClassName } from '../lib/formStyles';
 
 interface InstitutionProfile {
     _id: string;
@@ -76,6 +77,7 @@ const createStudentRow = (id: number): StudentRow => ({
     email: '',
     password: '',
 });
+const MAX_STUDENTS_PER_REQUEST = 25;
 
 const getStatusClasses = (status: InstitutionSubmission['status']) => {
     if (status === 'APPROVED') {
@@ -136,6 +138,12 @@ const InstitutionDashboard: React.FC = () => {
     };
 
     const addStudentRow = () => {
+        if (studentRows.length >= MAX_STUDENTS_PER_REQUEST) {
+            setError(`You can add up to ${MAX_STUDENTS_PER_REQUEST} students in one request.`);
+            return;
+        }
+
+        setError('');
         setStudentRows((current) => [...current, createStudentRow(nextRowId)]);
         setNextRowId((current) => current + 1);
     };
@@ -184,6 +192,12 @@ const InstitutionDashboard: React.FC = () => {
 
         if (duplicateEmails.length > 0) {
             setError('Duplicate student emails are not allowed in one submission.');
+            setSubmitting(false);
+            return;
+        }
+
+        if (payloadStudents.length > MAX_STUDENTS_PER_REQUEST) {
+            setError(`You can submit up to ${MAX_STUDENTS_PER_REQUEST} students in one request.`);
             setSubmitting(false);
             return;
         }
@@ -320,7 +334,7 @@ const InstitutionDashboard: React.FC = () => {
                                             <select
                                                 value={selectedLevelName}
                                                 onChange={(event) => setSelectedLevelName(event.target.value)}
-                                                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-[#d6b161] focus:bg-white dark:border-gray-700 dark:bg-[#0a192f] dark:text-white"
+                                                className={institutionFieldClassName}
                                                 disabled={!dashboardData.course}
                                             >
                                                 {dashboardData.course?.levels.map((level) => (
@@ -346,10 +360,16 @@ const InstitutionDashboard: React.FC = () => {
                                             variant="outline"
                                             className="rounded-2xl border-[#d6b161] text-[#d6b161]"
                                             onClick={addStudentRow}
+                                            disabled={studentRows.length >= MAX_STUDENTS_PER_REQUEST}
                                         >
                                             <Plus className="mr-2 h-4 w-4" />
-                                            Add Student
+                                            {studentRows.length >= MAX_STUDENTS_PER_REQUEST ? 'Limit Reached' : 'Add Student'}
                                         </Button>
+                                    </div>
+
+                                    <div className="mt-4 rounded-2xl border border-[#d6b161]/20 bg-[#d6b161]/10 px-4 py-3 text-sm text-[#7c6530] dark:border-[#d6b161]/30 dark:bg-[#d6b161]/10 dark:text-[#f0d79a]">
+                                        Safe limit: up to {MAX_STUDENTS_PER_REQUEST} students per request.
+                                        Current draft: {studentRows.length} student(s).
                                     </div>
 
                                     <form onSubmit={handleSubmit} className="mt-8 space-y-4">
@@ -378,24 +398,27 @@ const InstitutionDashboard: React.FC = () => {
                                                         type="text"
                                                         value={row.name}
                                                         onChange={(event) => updateStudentRow(row.id, 'name', event.target.value)}
-                                                        className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-[#d6b161] dark:border-gray-700 dark:bg-[#112240] dark:text-white"
+                                                        className={institutionFieldClassName}
                                                         placeholder="Student name"
+                                                        autoComplete="name"
                                                         required
                                                     />
                                                     <input
                                                         type="email"
                                                         value={row.email}
                                                         onChange={(event) => updateStudentRow(row.id, 'email', event.target.value)}
-                                                        className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-[#d6b161] dark:border-gray-700 dark:bg-[#112240] dark:text-white"
+                                                        className={institutionFieldClassName}
                                                         placeholder="student@example.com"
+                                                        autoComplete="email"
                                                         required
                                                     />
                                                     <input
                                                         type="password"
                                                         value={row.password}
                                                         onChange={(event) => updateStudentRow(row.id, 'password', event.target.value)}
-                                                        className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-[#d6b161] dark:border-gray-700 dark:bg-[#112240] dark:text-white"
+                                                        className={institutionFieldClassName}
                                                         placeholder="Set login password"
+                                                        autoComplete="new-password"
                                                         minLength={6}
                                                         required
                                                     />

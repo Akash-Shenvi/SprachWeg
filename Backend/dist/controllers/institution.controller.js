@@ -25,6 +25,8 @@ const language_batch_model_1 = __importDefault(require("../models/language.batch
 const language_enrollment_model_1 = __importDefault(require("../models/language.enrollment.model"));
 const email_service_1 = require("../utils/email.service");
 const emailService = new email_service_1.EmailService();
+const MAX_INSTITUTION_STUDENTS_PER_REQUEST = 25;
+const STUDENT_WELCOME_EMAIL_BATCH_SIZE = 5;
 const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
 const normalizeText = (value) => String(value || '').trim();
 const getGermanCourse = () => languageCourse_model_1.default.findOne({
@@ -89,6 +91,24 @@ const findDuplicateEmails = (emails) => {
     }
     return [...duplicates];
 };
+const chunkItems = (items, chunkSize) => {
+    const chunks = [];
+    for (let index = 0; index < items.length; index += chunkSize) {
+        chunks.push(items.slice(index, index + chunkSize));
+    }
+    return chunks;
+};
+const sendInstitutionStudentWelcomeEmailsInBatches = (students) => __awaiter(void 0, void 0, void 0, function* () {
+    const chunks = chunkItems(students, STUDENT_WELCOME_EMAIL_BATCH_SIZE);
+    for (const chunk of chunks) {
+        yield Promise.all(chunk.map((student) => emailService.sendInstitutionStudentWelcomeEmail({
+            to: student.email,
+            studentName: student.name,
+            courseTitle: student.courseTitle,
+            levelName: student.levelName,
+        })));
+    }
+});
 const createOrLoadBatch = (courseTitle, levelName, session) => __awaiter(void 0, void 0, void 0, function* () {
     const batchQuery = language_batch_model_1.default.findOne({
         courseTitle,
@@ -144,6 +164,9 @@ const processInstitutionApproval = (params) => __awaiter(void 0, void 0, void 0,
     const request = yield requestQuery;
     if (!request || request.status !== 'PENDING') {
         throw new Error('Invalid institution request');
+    }
+    if (request.students.length > MAX_INSTITUTION_STUDENTS_PER_REQUEST) {
+        throw new Error(`Institution requests are limited to ${MAX_INSTITUTION_STUDENTS_PER_REQUEST} students at a time.`);
     }
     const validation = yield validateGermanSelection(request.courseTitle, request.levelName);
     if (validation.error) {
@@ -332,6 +355,11 @@ const createInstitutionSubmission = (req, res) => __awaiter(void 0, void 0, void
             duplicateEmails,
         });
     }
+    if (normalizedStudents.length > MAX_INSTITUTION_STUDENTS_PER_REQUEST) {
+        return res.status(400).json({
+            message: `Institution requests are limited to ${MAX_INSTITUTION_STUDENTS_PER_REQUEST} students at a time.`,
+        });
+    }
     try {
         const [{ error }, existingUsers] = yield Promise.all([
             validateGermanSelection(normalizedCourseTitle, normalizedLevelName),
@@ -461,12 +489,7 @@ const approveInstitutionRequest = (req, res) => __awaiter(void 0, void 0, void 0
                 studentCount: decisionEmailPayload.studentCount,
             });
         }
-        yield Promise.all(approvalArtifacts.createdStudentsForEmail.map((student) => emailService.sendInstitutionStudentWelcomeEmail({
-            to: student.email,
-            studentName: student.name,
-            courseTitle: student.courseTitle,
-            levelName: student.levelName,
-        })));
+        yield sendInstitutionStudentWelcomeEmailsInBatches(approvalArtifacts.createdStudentsForEmail);
         const approvedRequest = yield institutionEnrollmentRequest_model_1.default.findById(requestId)
             .populate('institutionId', 'name email phoneNumber institutionName contactPersonName city state address');
         return res.status(200).json({

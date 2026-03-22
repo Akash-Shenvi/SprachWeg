@@ -1,4 +1,5 @@
 import {
+    ArrayMaxSize,
     ArrayMinSize,
     IsArray,
     IsEmail,
@@ -41,6 +42,7 @@ export class CreateInstitutionSubmissionDto {
 
     @IsArray()
     @ArrayMinSize(1)
+    @ArrayMaxSize(25)
     @ValidateNested({ each: true })
     @Type(() => InstitutionStudentDto)
     public students!: InstitutionStudentDto[];
