@@ -84,4 +84,10 @@ app.use('/api/webinars', webinarRoutes);
 import webinarRegistrationRoutes from './routes/webinarRegistration.routes';
 app.use('/api/webinar-registrations', webinarRegistrationRoutes);
 
+import institutionRoutes from './routes/institution.routes';
+app.use('/api/institutions', institutionRoutes);
+
+import adminInstitutionRoutes from './routes/adminInstitution.routes';
+app.use('/api/admin/institutions', adminInstitutionRoutes);
+
 export default app;

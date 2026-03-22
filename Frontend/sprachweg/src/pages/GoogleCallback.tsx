@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import { getDashboardPathForRole } from '../lib/authRouting';
 
 const GoogleCallback: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -13,10 +14,10 @@ const GoogleCallback: React.FC = () => {
         if (code) {
             handleCallback();
         } else {
-            navigate('/student-dashboard');
+            navigate(getDashboardPathForRole(user?.role));
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [code, navigate]);
+    }, [code, navigate, user?.role]);
 
     const handleCallback = async () => {
         try {
@@ -34,14 +35,12 @@ const GoogleCallback: React.FC = () => {
             } else {
 
                 // Fallback to role-based dashboard
-                const dashboard = user?.role === 'trainer' ? '/trainer-dashboard' : '/student-dashboard';
-                navigate(dashboard);
+                navigate(getDashboardPathForRole(user?.role));
             }
         } catch (error) {
             console.error('Google Auth Failed', error);
             alert('Failed to connect Google Calendar.');
-            const dashboard = user?.role === 'trainer' ? '/trainer-dashboard' : '/student-dashboard';
-            navigate(dashboard);
+            navigate(getDashboardPathForRole(user?.role));
         }
     };
 

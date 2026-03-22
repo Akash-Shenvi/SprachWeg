@@ -66,4 +66,8 @@ const webinar_routes_1 = __importDefault(require("./routes/webinar.routes"));
 app.use('/api/webinars', webinar_routes_1.default);
 const webinarRegistration_routes_1 = __importDefault(require("./routes/webinarRegistration.routes"));
 app.use('/api/webinar-registrations', webinarRegistration_routes_1.default);
+const institution_routes_1 = __importDefault(require("./routes/institution.routes"));
+app.use('/api/institutions', institution_routes_1.default);
+const adminInstitution_routes_1 = __importDefault(require("./routes/adminInstitution.routes"));
+app.use('/api/admin/institutions', adminInstitution_routes_1.default);
 exports.default = app;

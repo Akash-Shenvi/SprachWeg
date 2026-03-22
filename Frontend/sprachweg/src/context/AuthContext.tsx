@@ -15,6 +15,22 @@ interface User {
     guardianPhone?: string;
     qualification?: string;
     dateOfBirth?: string;
+    institutionName?: string;
+    contactPersonName?: string;
+    city?: string;
+    state?: string;
+    address?: string;
+}
+
+interface InstitutionRegistrationPayload {
+    institutionName: string;
+    contactPersonName: string;
+    email: string;
+    phoneNumber: string;
+    password: string;
+    city: string;
+    state: string;
+    address: string;
 }
 
 interface AuthContextType {
@@ -25,6 +41,10 @@ interface AuthContextType {
     googleLogin: (token: string) => Promise<void>;
     verifyOtp: (email: string, otp: string) => Promise<void>;
     resendOtp: (email: string) => Promise<void>;
+    institutionRegister: (payload: InstitutionRegistrationPayload) => Promise<void>;
+    institutionLogin: (email: string, password: string) => Promise<void>;
+    institutionVerifyOtp: (email: string, otp: string) => Promise<void>;
+    institutionResendOtp: (email: string) => Promise<void>;
     logout: () => void;
     refreshUser: () => Promise<void>;
     updateProfile: (data: Partial<User> | FormData) => Promise<void>;
@@ -92,6 +112,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await api.post('/auth/resend-otp', { email });
     };
 
+    const institutionRegister = async (payload: InstitutionRegistrationPayload) => {
+        await api.post('/auth/institution/register', payload);
+    };
+
+    const institutionVerifyOtp = async (email: string, otp: string) => {
+        const response = await api.post('/auth/institution/verify-otp', { email, otp });
+        const { token, user: userData } = response.data;
+
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+    };
+
+    const institutionResendOtp = async (email: string) => {
+        await api.post('/auth/institution/resend-otp', { email });
+    };
+
     const login = async (email: string, password: string) => {
         const response = await api.post('/auth/login', { email, password });
         const { token, user: userData } = response.data;
@@ -106,6 +143,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { token: jwtToken, user: userData } = response.data;
 
         localStorage.setItem('token', jwtToken);
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+    };
+
+    const institutionLogin = async (email: string, password: string) => {
+        const response = await api.post('/auth/institution/login', { email, password });
+        const { token, user: userData } = response.data;
+
+        localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
     };
@@ -138,6 +184,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 register,
                 verifyOtp,
                 resendOtp,
+                institutionRegister,
+                institutionLogin,
+                institutionVerifyOtp,
+                institutionResendOtp,
                 logout,
                 refreshUser,
                 updateProfile,

@@ -1,6 +1,6 @@
 import React, { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Briefcase, LogOut, Menu, X, Users, Edit, Plus } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Briefcase, LogOut, Menu, X, Users, Edit, Plus, Building2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 
@@ -21,6 +21,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         { path: '/admin/webinars', icon: BookOpen, label: 'Webinars' },
         { path: '/admin/webinar-registrations', icon: Users, label: 'Webinar Registrations' },
         { path: '/admin/users', icon: Users, label: 'Users' },
+        { path: '/admin/institutions', icon: Building2, label: 'Institution Requests' },
         { path: '/admin/language-enrollment-details', icon: BookOpen, label: 'Class Enrollments' },
         { path: '/admin/language-batches', icon: Users, label: 'Active Classes' },
         { path: '/admin/languages', icon: BookOpen, label: 'Language Courses' },

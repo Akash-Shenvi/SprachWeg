@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const auth_controller_1 = require("../controllers/auth.controller");
+const institutionAuth_controller_1 = require("../controllers/institutionAuth.controller");
 const auth_google_controller_1 = require("../controllers/auth.google.controller");
 const user_controller_1 = require("../controllers/user.controller");
 const auth_middleware_1 = require("../middlewares/auth.middleware");
@@ -14,6 +15,10 @@ router.post('/register', auth_controller_1.register);
 router.post('/verify-otp', auth_controller_1.verifyOtp);
 router.post('/resend-otp', auth_controller_1.resendOtp);
 router.post('/login', auth_controller_1.login);
+router.post('/institution/register', institutionAuth_controller_1.registerInstitution);
+router.post('/institution/verify-otp', institutionAuth_controller_1.verifyInstitutionOtp);
+router.post('/institution/resend-otp', institutionAuth_controller_1.resendInstitutionOtp);
+router.post('/institution/login', institutionAuth_controller_1.loginInstitution);
 router.post('/forgot-password', auth_controller_1.forgotPassword);
 router.post('/reset-password', auth_controller_1.resetPassword);
 router.get('/google/url', auth_middleware_1.protect, auth_google_controller_1.connectGoogle);

@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import User from '../models/user.model';
 import { EmailService } from '../utils/email.service';
 import { env } from '../config/env';
 import { RegisterDto, VerifyOtpDto, ResendOtpDto, LoginDto, GoogleLoginDto } from '../dtos/auth.dto';
 import { OAuth2Client } from 'google-auth-library';
+import { buildAuthUser, signAuthToken } from '../utils/auth-user';
 
 const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 import { validate } from 'class-validator';
@@ -84,24 +84,11 @@ export const verifyOtp = async (req: Request, res: Response) => {
         user.otpExpires = undefined;
         await user.save();
 
-        const payload = { id: (user as any)._id, role: user.role };
-        const token = jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRE } as jwt.SignOptions);
+        const token = signAuthToken(user);
 
         res.status(200).json({
             token,
-            user: {
-                id: (user as any)._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                isProfileComplete: (user as any).isProfileComplete,
-                phoneNumber: (user as any).phoneNumber,
-                guardianName: (user as any).guardianName,
-                guardianPhone: (user as any).guardianPhone,
-                qualification: (user as any).qualification,
-                dateOfBirth: (user as any).dateOfBirth,
-                avatar: (user as any).avatar
-            }
+            user: buildAuthUser(user)
         });
     } catch (error) {
         res.status(500).json({ message: (error as Error).message });
@@ -214,24 +201,11 @@ export const login = async (req: Request, res: Response) => {
         const isMatch = await bcrypt.compare(loginDto.password, user.password as string);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-        const payload = { id: (user as any)._id, role: user.role };
-        const token = jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRE } as jwt.SignOptions);
+        const token = signAuthToken(user);
 
         res.status(200).json({
             token,
-            user: {
-                id: (user as any)._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                isProfileComplete: (user as any).isProfileComplete,
-                phoneNumber: (user as any).phoneNumber,
-                guardianName: (user as any).guardianName,
-                guardianPhone: (user as any).guardianPhone,
-                qualification: (user as any).qualification,
-                dateOfBirth: (user as any).dateOfBirth,
-                avatar: (user as any).avatar
-            }
+            user: buildAuthUser(user)
         });
     } catch (error) {
         res.status(500).json({ message: (error as Error).message });
@@ -274,24 +248,11 @@ export const googleLogin = async (req: Request, res: Response) => {
             await user.save();
         }
 
-        const jwtPayload = { id: (user as any)._id, role: user.role };
-        const token = jwt.sign(jwtPayload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRE } as jwt.SignOptions);
+        const token = signAuthToken(user);
 
         res.status(200).json({
             token,
-            user: {
-                id: (user as any)._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                isProfileComplete: (user as any).isProfileComplete,
-                phoneNumber: (user as any).phoneNumber,
-                guardianName: (user as any).guardianName,
-                guardianPhone: (user as any).guardianPhone,
-                qualification: (user as any).qualification,
-                dateOfBirth: (user as any).dateOfBirth,
-                avatar: (user as any).avatar
-            }
+            user: buildAuthUser(user)
         });
     } catch (error) {
         res.status(500).json({ message: (error as Error).message });
@@ -308,17 +269,7 @@ export const getMe = async (req: Request, res: Response) => {
         }
 
         res.status(200).json({
-            id: (user as any)._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            isProfileComplete: (user as any).isProfileComplete,
-            phoneNumber: user.phoneNumber,
-            guardianName: user.guardianName,
-            guardianPhone: user.guardianPhone,
-            qualification: user.qualification,
-            dateOfBirth: user.dateOfBirth,
-            avatar: user.avatar,
+            ...buildAuthUser(user),
             googleRefreshToken: !!user.googleRefreshToken // Return boolean status
         });
     } catch (error) {

@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleLogin } from '@react-oauth/google';
 import { Header } from '../components/layout';
+import { getDashboardPathForRole } from '../lib/authRouting';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
@@ -25,14 +26,16 @@ const LoginPage: React.FC = () => {
         ? `${redirectTargetFromState.pathname}${redirectTargetFromState.search || ''}${redirectTargetFromState.hash || ''}`
         : (redirectTargetFromQuery && redirectTargetFromQuery.startsWith('/')
             ? redirectTargetFromQuery
-            : '/student-dashboard');
+            : getDashboardPathForRole());
 
     const handleGoogleLogin = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
             try {
                 setLoading(true);
                 await googleLogin(tokenResponse.access_token);
-                navigate(redirectTarget);
+                const savedUser = localStorage.getItem('user');
+                const nextUser = savedUser ? JSON.parse(savedUser) as { role?: string } : null;
+                navigate(redirectTarget || getDashboardPathForRole(nextUser?.role));
             } catch (err: any) {
                 setError(err.response?.data?.message || 'Google Login failed');
             } finally {
@@ -51,7 +54,9 @@ const LoginPage: React.FC = () => {
 
         try {
             await login(formData.email, formData.password);
-            navigate(redirectTarget);
+            const savedUser = localStorage.getItem('user');
+            const nextUser = savedUser ? JSON.parse(savedUser) as { role?: string } : null;
+            navigate(redirectTarget || getDashboardPathForRole(nextUser?.role));
         } catch (err: any) {
             setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
         } finally {

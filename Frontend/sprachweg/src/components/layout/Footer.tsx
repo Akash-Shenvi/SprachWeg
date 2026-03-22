@@ -79,6 +79,23 @@ const Footer: React.FC = () => {
                     </div>
                 </div>
 
+                <div className="mb-12 rounded-3xl border border-white/10 bg-white/5 p-6 sm:p-8">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#d6b161]">Institution Portal</p>
+                            <h3 className="mt-3 text-2xl font-semibold text-white">Register or sign in as an institution</h3>
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
+                                Institutions can create a separate account, add students in bulk, and submit German course requests for admin approval.
+                            </p>
+                        </div>
+                        <Link to="/institution/login">
+                            <Button className="bg-[#d6b161] hover:bg-[#c4a055] text-[#0a192f] font-bold px-6 py-3 rounded-xl whitespace-nowrap">
+                                Institution Portal
+                            </Button>
+                        </Link>
+                    </div>
+                </div>
+
                 {/* Newsletter Section with Follow Us on same row */}
                 <div className="border-t border-white/10 pt-12 mb-12">
                     <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">

@@ -53,6 +53,11 @@ import CareersPage from './pages/CareersPage';
 import WebinarsPage from './pages/WebinarsPage';
 import AdminWebinarCatalog from './pages/Admin/AdminWebinarCatalog';
 import AdminWebinarRegistrations from './pages/Admin/AdminWebinarRegistrations';
+import InstitutionLoginPage from './pages/InstitutionLoginPage';
+import InstitutionRegisterPage from './pages/InstitutionRegisterPage';
+import InstitutionDashboard from './pages/InstitutionDashboard';
+import AdminInstitutionRequests from './pages/Admin/AdminInstitutionRequests';
+import { getDashboardPathForRole } from './lib/authRouting';
 
 
 
@@ -101,9 +106,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (redirectTarget && redirectTarget.startsWith('/')) {
       return <Navigate to={redirectTarget} replace />;
     }
-    if (user.role === 'admin') return <Navigate to="/admin-dashboard" replace />;
-    if (user.role === 'trainer') return <Navigate to="/trainer-dashboard" replace />;
-    return <Navigate to="/student-dashboard" replace />;
+    return <Navigate to={getDashboardPathForRole(user.role)} replace />;
   }
 
   return <>{children}</>;
@@ -133,6 +136,20 @@ const TrainerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   return <>{children}</>;
 };
 
+const InstitutionRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) return <div>Loading...</div>;
+
+  if (!user || user.role !== 'institution') {
+    const redirectTo = `${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to={`/institution/login?redirect=${encodeURIComponent(redirectTo)}`} replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const AppContent = () => {
   const { user } = useAuth();
 
@@ -140,7 +157,7 @@ const AppContent = () => {
   // user.isProfileComplete is virtual from backend, so it relies on the response
   // If undefined, we assume false or check specific fields if needed. 
   // But safer to rely on flag if backend sends it.
-  const isProfileIncomplete = user && user.isProfileComplete === false;
+  const isProfileIncomplete = user && user.role !== 'institution' && user.isProfileComplete === false;
 
   return (
     <>
@@ -197,6 +214,22 @@ const AppContent = () => {
           }
         />
         <Route
+          path="/institution/login"
+          element={
+            <PublicRoute>
+              <InstitutionLoginPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/institution/register"
+          element={
+            <PublicRoute>
+              <InstitutionRegisterPage />
+            </PublicRoute>
+          }
+        />
+        <Route
           path="/forgot-password"
           element={
             <PublicRoute>
@@ -228,6 +261,14 @@ const AppContent = () => {
             <TrainerRoute>
               <TrainerDashboard />
             </TrainerRoute>
+          }
+        />
+        <Route
+          path="/institution-dashboard"
+          element={
+            <InstitutionRoute>
+              <InstitutionDashboard />
+            </InstitutionRoute>
           }
         />
 
@@ -367,6 +408,14 @@ const AppContent = () => {
           element={
             <AdminRoute>
               <AdminFileLinks />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/institutions"
+          element={
+            <AdminRoute>
+              <AdminInstitutionRequests />
             </AdminRoute>
           }
         />

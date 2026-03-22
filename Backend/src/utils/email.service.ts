@@ -572,6 +572,104 @@ export class EmailService {
         }
     }
 
+    public async sendInstitutionSubmissionDecisionEmail(params: {
+        to: string;
+        institutionName: string;
+        status: 'APPROVED' | 'REJECTED';
+        courseTitle: string;
+        levelName: string;
+        studentCount: number;
+    }): Promise<boolean> {
+        const isApproved = params.status === 'APPROVED';
+        const subject = isApproved
+            ? `Institution Enrollment Request Approved - ${params.courseTitle} ${params.levelName}`
+            : `Institution Enrollment Request Rejected - ${params.courseTitle} ${params.levelName}`;
+
+        const html = this.getProgramEmailTemplate({
+            name: params.institutionName,
+            title: isApproved
+                ? 'Your institution enrollment request has been approved.'
+                : 'Your institution enrollment request has been rejected.',
+            paragraphs: isApproved
+                ? [
+                    `We have approved your institution submission for <strong>${params.courseTitle} - ${params.levelName}</strong>.`,
+                    `All ${params.studentCount} student account(s) in this request are now active and enrolled in the selected course level.`,
+                    'Please coordinate directly with your students to share the credentials you created for them.',
+                ]
+                : [
+                    `We reviewed your institution submission for <strong>${params.courseTitle} - ${params.levelName}</strong>.`,
+                    'This request was not approved, so no student accounts or course enrollments were created from this submission.',
+                    'Please review your submission and create a new request if you would like to try again.',
+                ],
+            infoRows: [
+                { label: 'Language', value: 'German' },
+                { label: 'Course', value: params.courseTitle },
+                { label: 'Level', value: params.levelName },
+                { label: 'Students', value: String(params.studentCount) },
+                { label: 'Decision', value: isApproved ? 'Approved' : 'Rejected' },
+            ],
+            actionButton: {
+                label: 'Open Institution Portal',
+                href: 'https://training.sovirtechnologies.in/institution-dashboard',
+            },
+        });
+
+        try {
+            await this.transporter.sendMail({
+                from: `"Sovir Technologies" <${env.EMAIL_USER}>`,
+                to: params.to,
+                subject,
+                html,
+                text: `Dear ${params.institutionName},\n\nYour institution request for ${params.courseTitle} - ${params.levelName} has been ${isApproved ? 'approved' : 'rejected'}.\nStudents in request: ${params.studentCount}\n\nInstitution Portal: https://training.sovirtechnologies.in/institution-dashboard\n\nWarm regards,\nSovir Technologies Team`,
+            });
+            return true;
+        } catch (error) {
+            console.error('Error sending institution decision email:', error);
+            return false;
+        }
+    }
+
+    public async sendInstitutionStudentWelcomeEmail(params: {
+        to: string;
+        studentName: string;
+        courseTitle: string;
+        levelName: string;
+    }): Promise<boolean> {
+        const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
+        const html = this.getProgramEmailTemplate({
+            name: params.studentName,
+            title: 'Your student account is now active.',
+            paragraphs: [
+                `A student account has been created for you and enrolled in <strong>${params.courseTitle} - ${params.levelName}</strong>.`,
+                'Your institution has already set the password for this account. Please contact your institution coordinator directly if you need the password or login assistance.',
+                'You can now sign in to the student portal to access your course once you have your credentials.',
+            ],
+            infoRows: [
+                { label: 'Course', value: params.courseTitle },
+                { label: 'Level', value: params.levelName },
+                { label: 'Portal', value: 'Student Dashboard' },
+            ],
+            actionButton: {
+                label: 'Open Student Portal',
+                href: dashboardLink,
+            },
+        });
+
+        try {
+            await this.transporter.sendMail({
+                from: `"Sovir Technologies" <${env.EMAIL_USER}>`,
+                to: params.to,
+                subject: `Student Account Activated - ${params.courseTitle} ${params.levelName}`,
+                html,
+                text: `Dear ${params.studentName},\n\nYour student account has been created and enrolled in ${params.courseTitle} - ${params.levelName}.\nYour institution has the password for this account. Please contact them if you need your login credentials.\n\nStudent Dashboard: ${dashboardLink}\n\nWarm regards,\nSovir Technologies Team`,
+            });
+            return true;
+        } catch (error) {
+            console.error('Error sending institution student welcome email:', error);
+            return false;
+        }
+    }
+
     public async sendTrainingPaymentFailureEmail(params: {
         to: string;
         name: string;

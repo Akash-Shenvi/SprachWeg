@@ -8,6 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { internshipCatalogAPI } from '../../lib/api';
 import type { InternshipListing } from '../../types/internship';
+import { getDashboardPathForRole } from '../../lib/authRouting';
 
 const Header: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -343,7 +344,7 @@ const Header: React.FC = () => {
 
                         {user ? (
                             <div className="flex items-center gap-3">
-                                <Link to={`/${user.role}-dashboard`} className="text-gray-700 dark:text-white font-medium hover:text-[#d6b161] transition-colors text-sm">
+                                <Link to={getDashboardPathForRole(user.role)} className="text-gray-700 dark:text-white font-medium hover:text-[#d6b161] transition-colors text-sm">
                                     <Button className="bg-[#0a192f] hover:bg-[#112240] text-white font-semibold px-6 py-2 rounded-full text-sm dark:bg-gray-700 dark:hover:bg-gray-600">
                                         Dashboard
                                     </Button>
@@ -543,7 +544,7 @@ const Header: React.FC = () => {
                             <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-3">
                                 {user ? (
                                     <Link
-                                        to={`/${user.role}-dashboard`}
+                                        to={getDashboardPathForRole(user.role)}
                                         onClick={() => setIsMenuOpen(false)}
                                     >
                                         <Button className="w-full bg-[#0a192f] hover:bg-[#112240] text-white font-semibold rounded-full text-sm py-2 dark:bg-gray-700 dark:hover:bg-gray-600">

@@ -46,7 +46,16 @@ const UserSchema = new mongoose_1.Schema({
     guardianPhone: { type: String },
     qualification: { type: String },
     dateOfBirth: { type: Date },
-    role: { type: String, default: 'student' },
+    role: {
+        type: String,
+        enum: ['student', 'trainer', 'admin', 'institution'],
+        default: 'student'
+    },
+    institutionName: { type: String },
+    contactPersonName: { type: String },
+    city: { type: String },
+    state: { type: String },
+    address: { type: String },
     isVerified: { type: Boolean, default: false },
     otp: { type: String }, // Hashed
     otpExpires: { type: Date },
@@ -59,6 +68,14 @@ const UserSchema = new mongoose_1.Schema({
 });
 // Virtual property to check if profile is complete
 UserSchema.virtual('isProfileComplete').get(function () {
+    if (this.role === 'institution') {
+        return !!(this.institutionName
+            && this.contactPersonName
+            && this.phoneNumber
+            && this.city
+            && this.state
+            && this.address);
+    }
     return !!(this.phoneNumber && this.guardianName && this.guardianPhone && this.qualification && this.avatar);
 });
 exports.default = mongoose_1.default.model('User', UserSchema);

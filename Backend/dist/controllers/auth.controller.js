@@ -14,12 +14,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getMe = exports.googleLogin = exports.login = exports.resetPassword = exports.forgotPassword = exports.resendOtp = exports.verifyOtp = exports.register = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const email_service_1 = require("../utils/email.service");
 const env_1 = require("../config/env");
 const auth_dto_1 = require("../dtos/auth.dto");
 const google_auth_library_1 = require("google-auth-library");
+const auth_user_1 = require("../utils/auth-user");
 const client = new google_auth_library_1.OAuth2Client(env_1.env.GOOGLE_CLIENT_ID);
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
@@ -92,23 +92,10 @@ const verifyOtp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         user.otp = undefined;
         user.otpExpires = undefined;
         yield user.save();
-        const payload = { id: user._id, role: user.role };
-        const token = jsonwebtoken_1.default.sign(payload, env_1.env.JWT_SECRET, { expiresIn: env_1.env.JWT_EXPIRE });
+        const token = (0, auth_user_1.signAuthToken)(user);
         res.status(200).json({
             token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                isProfileComplete: user.isProfileComplete,
-                phoneNumber: user.phoneNumber,
-                guardianName: user.guardianName,
-                guardianPhone: user.guardianPhone,
-                qualification: user.qualification,
-                dateOfBirth: user.dateOfBirth,
-                avatar: user.avatar
-            }
+            user: (0, auth_user_1.buildAuthUser)(user)
         });
     }
     catch (error) {
@@ -216,23 +203,10 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const isMatch = yield bcryptjs_1.default.compare(loginDto.password, user.password);
         if (!isMatch)
             return res.status(400).json({ message: 'Invalid credentials' });
-        const payload = { id: user._id, role: user.role };
-        const token = jsonwebtoken_1.default.sign(payload, env_1.env.JWT_SECRET, { expiresIn: env_1.env.JWT_EXPIRE });
+        const token = (0, auth_user_1.signAuthToken)(user);
         res.status(200).json({
             token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                isProfileComplete: user.isProfileComplete,
-                phoneNumber: user.phoneNumber,
-                guardianName: user.guardianName,
-                guardianPhone: user.guardianPhone,
-                qualification: user.qualification,
-                dateOfBirth: user.dateOfBirth,
-                avatar: user.avatar
-            }
+            user: (0, auth_user_1.buildAuthUser)(user)
         });
     }
     catch (error) {
@@ -272,23 +246,10 @@ const googleLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             user.isVerified = true;
             yield user.save();
         }
-        const jwtPayload = { id: user._id, role: user.role };
-        const token = jsonwebtoken_1.default.sign(jwtPayload, env_1.env.JWT_SECRET, { expiresIn: env_1.env.JWT_EXPIRE });
+        const token = (0, auth_user_1.signAuthToken)(user);
         res.status(200).json({
             token,
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                isProfileComplete: user.isProfileComplete,
-                phoneNumber: user.phoneNumber,
-                guardianName: user.guardianName,
-                guardianPhone: user.guardianPhone,
-                qualification: user.qualification,
-                dateOfBirth: user.dateOfBirth,
-                avatar: user.avatar
-            }
+            user: (0, auth_user_1.buildAuthUser)(user)
         });
     }
     catch (error) {
@@ -303,20 +264,8 @@ const getMe = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        res.status(200).json({
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            isProfileComplete: user.isProfileComplete,
-            phoneNumber: user.phoneNumber,
-            guardianName: user.guardianName,
-            guardianPhone: user.guardianPhone,
-            qualification: user.qualification,
-            dateOfBirth: user.dateOfBirth,
-            avatar: user.avatar,
-            googleRefreshToken: !!user.googleRefreshToken // Return boolean status
-        });
+        res.status(200).json(Object.assign(Object.assign({}, (0, auth_user_1.buildAuthUser)(user)), { googleRefreshToken: !!user.googleRefreshToken // Return boolean status
+         }));
     }
     catch (error) {
         res.status(500).json({ message: error.message });

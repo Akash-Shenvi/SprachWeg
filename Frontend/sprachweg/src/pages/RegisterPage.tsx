@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleLogin } from '@react-oauth/google';
 import { Header } from '../components/layout';
+import { getDashboardPathForRole } from '../lib/authRouting';
 
 const RegisterPage: React.FC = () => {
     const navigate = useNavigate();
@@ -28,7 +29,9 @@ const RegisterPage: React.FC = () => {
             try {
                 setLoading(true);
                 await googleLogin(tokenResponse.access_token);
-                navigate('/dashboard');
+                const savedUser = localStorage.getItem('user');
+                const nextUser = savedUser ? JSON.parse(savedUser) as { role?: string } : null;
+                navigate(getDashboardPathForRole(nextUser?.role));
             } catch (err: any) {
                 setError(err.response?.data?.message || 'Google Login failed');
             } finally {
@@ -64,7 +67,9 @@ const RegisterPage: React.FC = () => {
 
         try {
             await verifyOtp(formData.email, formData.otp);
-            navigate('/dashboard');
+            const savedUser = localStorage.getItem('user');
+            const nextUser = savedUser ? JSON.parse(savedUser) as { role?: string } : null;
+            navigate(getDashboardPathForRole(nextUser?.role));
         } catch (err: any) {
             setError(err.response?.data?.message || 'Verification failed. Please try again.');
         } finally {
