@@ -7,6 +7,7 @@ export interface IClassSession extends Document {
     startTime: Date;
     endTime: Date;
     meetingLink?: string; // For online classes
+    eventId?: string;
     status: 'scheduled' | 'live' | 'completed' | 'cancelled';
     recordings?: string[]; // URLs
     resources?: string[]; // URLs to materials
@@ -22,6 +23,7 @@ const ClassSessionSchema: Schema = new Schema(
         startTime: { type: Date, required: true },
         endTime: { type: Date, required: true },
         meetingLink: { type: String },
+        eventId: { type: String },
         status: {
             type: String,
             enum: ['scheduled', 'live', 'completed', 'cancelled'],

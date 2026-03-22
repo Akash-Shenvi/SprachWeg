@@ -1,0 +1,27 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const upload_middleware_1 = require("../middlewares/upload.middleware");
+const trainer_batch_controller_1 = require("../controllers/trainer.batch.controller");
+const router = express_1.default.Router();
+router.use(auth_middleware_1.protect);
+router.get('/mine', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.getTrainerBatches);
+router.get('/:trainingType/:batchId', trainer_batch_controller_1.getTrainerBatchDetails);
+router.get('/:trainingType/:batchId/announcements', trainer_batch_controller_1.getTrainerBatchAnnouncements);
+router.get('/:trainingType/:batchId/materials', trainer_batch_controller_1.getTrainerBatchMaterials);
+router.get('/:trainingType/:batchId/students', trainer_batch_controller_1.getTrainerBatchStudents);
+router.get('/:trainingType/:batchId/classes', trainer_batch_controller_1.getTrainerBatchClasses);
+router.post('/:trainingType/announcements', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.addTrainerBatchAnnouncement);
+router.delete('/:trainingType/announcements/:announcementId', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.deleteTrainerBatchAnnouncement);
+router.post('/:trainingType/materials', (0, auth_middleware_1.authorize)('trainer'), upload_middleware_1.upload.single('file'), trainer_batch_controller_1.addTrainerBatchMaterial);
+router.delete('/:trainingType/materials/:materialId', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.deleteTrainerBatchMaterial);
+router.post('/:trainingType/classes', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.scheduleTrainerBatchClass);
+router.delete('/:trainingType/classes/:classId', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.deleteTrainerBatchClass);
+router.post('/:trainingType/classes/:classId/end', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.endTrainerBatchClass);
+router.put('/:trainingType/classes/:classId/attendance', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.updateTrainerBatchAttendance);
+router.post('/:trainingType/classes/:classId/join', trainer_batch_controller_1.joinTrainerBatchClass);
+exports.default = router;

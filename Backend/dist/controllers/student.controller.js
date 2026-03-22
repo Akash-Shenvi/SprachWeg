@@ -21,6 +21,7 @@ const trainingPaymentAttempt_model_1 = __importDefault(require("../models/traini
 const batch_model_1 = __importDefault(require("../models/batch.model"));
 const classSession_model_1 = __importDefault(require("../models/classSession.model"));
 const attendance_model_1 = __importDefault(require("../models/attendance.model"));
+const assignment_model_1 = __importDefault(require("../models/assignment.model"));
 const submission_model_1 = __importDefault(require("../models/submission.model"));
 const chat_message_model_1 = __importDefault(require("../models/chat.message.model"));
 const internshipApplication_model_1 = __importDefault(require("../models/internshipApplication.model"));
@@ -33,6 +34,7 @@ const language_class_model_1 = __importDefault(require("../models/language.class
 const language_material_model_1 = __importDefault(require("../models/language.material.model"));
 const language_announcement_model_1 = __importDefault(require("../models/language.announcement.model"));
 const announcement_model_1 = __importDefault(require("../models/announcement.model"));
+const skill_material_model_1 = __importDefault(require("../models/skill.material.model"));
 const institutionEnrollmentRequest_model_1 = __importDefault(require("../models/institutionEnrollmentRequest.model"));
 const buildLanguagePaymentKey = (params) => {
     var _a, _b, _c;
@@ -547,8 +549,20 @@ const deleteActiveClass = (req, res) => __awaiter(void 0, void 0, void 0, functi
         if (!batch) {
             return res.status(404).json({ message: 'Batch not found' });
         }
-        yield enrollment_model_1.default.updateMany({ batchId: id }, { $set: { status: 'dropped', batchId: null } });
-        yield batch.deleteOne();
+        const [skillClassIds, assignmentIds] = yield Promise.all([
+            classSession_model_1.default.find({ batchId: id }).distinct('_id'),
+            assignment_model_1.default.find({ batchId: id }).distinct('_id'),
+        ]);
+        yield Promise.all([
+            enrollment_model_1.default.updateMany({ batchId: id }, { $set: { status: 'dropped', batchId: null } }),
+            attendance_model_1.default.deleteMany({ classSessionId: { $in: skillClassIds } }),
+            submission_model_1.default.deleteMany({ assignmentId: { $in: assignmentIds } }),
+            announcement_model_1.default.deleteMany({ batchId: id }),
+            skill_material_model_1.default.deleteMany({ batchId: id }),
+            classSession_model_1.default.deleteMany({ batchId: id }),
+            assignment_model_1.default.deleteMany({ batchId: id }),
+            batch.deleteOne(),
+        ]);
         return res.status(200).json({ message: 'Active class deleted and students unenrolled successfully' });
     }
     catch (error) {
@@ -665,6 +679,7 @@ const deleteUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                 arrayFilters: [{ 'student.createdUserId': userId }],
             }),
             language_material_model_1.default.deleteMany({ uploadedBy: userId }),
+            skill_material_model_1.default.deleteMany({ uploadedBy: userId }),
             language_announcement_model_1.default.deleteMany({ senderId: userId }),
             language_class_model_1.default.deleteMany({ trainerId: userId }),
             announcement_model_1.default.deleteMany({ senderId: userId }),

@@ -7,6 +7,7 @@ import TrainingPaymentAttempt from '../models/trainingPaymentAttempt.model';
 import SkillBatch from '../models/batch.model';
 import ClassSession from '../models/classSession.model';
 import Attendance from '../models/attendance.model';
+import Assignment from '../models/assignment.model';
 import Submission from '../models/submission.model';
 import ChatMessage from '../models/chat.message.model';
 import InternshipApplication from '../models/internshipApplication.model';
@@ -19,6 +20,7 @@ import LanguageClass from '../models/language.class.model';
 import LanguageMaterial from '../models/language.material.model';
 import LanguageAnnouncement from '../models/language.announcement.model';
 import Announcement from '../models/announcement.model';
+import SkillMaterial from '../models/skill.material.model';
 import InstitutionEnrollmentRequest from '../models/institutionEnrollmentRequest.model';
 
 const buildLanguagePaymentKey = (params: {
@@ -602,12 +604,24 @@ export const deleteActiveClass = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'Batch not found' });
         }
 
-        await SkillEnrollment.updateMany(
-            { batchId: id },
-            { $set: { status: 'dropped', batchId: null } }
-        );
+        const [skillClassIds, assignmentIds] = await Promise.all([
+            ClassSession.find({ batchId: id }).distinct('_id'),
+            Assignment.find({ batchId: id }).distinct('_id'),
+        ]);
 
-        await batch.deleteOne();
+        await Promise.all([
+            SkillEnrollment.updateMany(
+                { batchId: id },
+                { $set: { status: 'dropped', batchId: null } }
+            ),
+            Attendance.deleteMany({ classSessionId: { $in: skillClassIds } }),
+            Submission.deleteMany({ assignmentId: { $in: assignmentIds } }),
+            Announcement.deleteMany({ batchId: id }),
+            SkillMaterial.deleteMany({ batchId: id }),
+            ClassSession.deleteMany({ batchId: id }),
+            Assignment.deleteMany({ batchId: id }),
+            batch.deleteOne(),
+        ]);
 
         return res.status(200).json({ message: 'Active class deleted and students unenrolled successfully' });
     } catch (error) {
@@ -746,6 +760,7 @@ export const deleteUser = async (req: Request, res: Response) => {
                 }
             ),
             LanguageMaterial.deleteMany({ uploadedBy: userId }),
+            SkillMaterial.deleteMany({ uploadedBy: userId }),
             LanguageAnnouncement.deleteMany({ senderId: userId }),
             LanguageClass.deleteMany({ trainerId: userId }),
             Announcement.deleteMany({ senderId: userId }),

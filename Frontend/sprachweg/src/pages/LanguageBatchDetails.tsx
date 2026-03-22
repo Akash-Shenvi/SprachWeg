@@ -28,6 +28,8 @@ import Footer from '../components/layout/Footer';
 import { useAuth } from '../context/AuthContext';
 import api, { getAssetUrl } from '../lib/api';
 
+type TrainingType = 'language' | 'skill';
+
 interface Annotation {
     _id: string;
     title: string;
@@ -39,9 +41,12 @@ interface Material {
     _id: string;
     title: string;
     subtitle?: string;
-    description: string;
+    description?: string;
     fileUrl?: string;
+    attachments?: string[];
     createdAt: string;
+    materialType?: string;
+    isSystemMaterial?: boolean;
 }
 
 interface Student {
@@ -74,13 +79,18 @@ interface LanguageClass {
     startTime: string;
     meetLink: string;
     attendees: { studentId: string; joinedAt: string }[];
-    status: 'scheduled' | 'completed' | 'cancelled';
+    status: 'scheduled' | 'live' | 'completed' | 'cancelled';
 }
 
-const LanguageBatchDetails: React.FC = () => {
+interface LanguageBatchDetailsProps {
+    trainingType?: TrainingType;
+}
+
+const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingType = 'language' }) => {
     const { batchId } = useParams<{ batchId: string }>();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const trainerBatchBasePath = `/trainer-batches/${trainingType}`;
     const [batch, setBatch] = useState<BatchDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'announcements' | 'materials' | 'students' | 'classes'>('announcements');
@@ -143,7 +153,7 @@ const LanguageBatchDetails: React.FC = () => {
 
         setLoading(true);
         try {
-            const res = await api.get(`/language-trainer/batch/${batchId}/${tab}`, {
+            const res = await api.get(`${trainerBatchBasePath}/${batchId}/${tab}`, {
                 params: { page, limit: PAGE_LIMIT }
             });
             const { data, hasMore } = res.data;
@@ -180,17 +190,21 @@ const LanguageBatchDetails: React.FC = () => {
             alert('✅ Google Calendar successfully connected! Meeting links will now be auto-generated.');
             window.history.replaceState({}, '', window.location.pathname);
         }
-    }, [batchId]);
+    }, [batchId, trainingType]);
 
     // Re-fetch active tab whenever batchId or activeTab changes
     useEffect(() => {
         if (batchId) fetchTab(activeTab, 1, false);
-    }, [batchId, activeTab]);
+    }, [batchId, activeTab, trainingType]);
 
     const fetchBatchDetails = async () => {
         try {
-            const response = await api.get(`/language-trainer/batch/${batchId}`);
+            const response = await api.get(`${trainerBatchBasePath}/${batchId}`);
             setBatch(response.data);
+            setAnnouncements(Array.isArray(response.data.announcements) ? response.data.announcements : []);
+            setMaterials(Array.isArray(response.data.materials) ? response.data.materials : []);
+            setStudents(Array.isArray(response.data.students) ? response.data.students : []);
+            setClasses(Array.isArray(response.data.classes) ? response.data.classes : []);
         } catch (error) {
             console.error("Failed to fetch batch details", error);
         } finally {
@@ -226,14 +240,14 @@ const LanguageBatchDetails: React.FC = () => {
             setSubmitting(true);
 
             if (activeTab === 'announcements') {
-                await api.post('/language-trainer/announcements', {
+                await api.post(`${trainerBatchBasePath}/announcements`, {
                     batchId,
                     title,
                     content
                 });
             } else if (activeTab === 'classes') {
                 const startTime = new Date(`${classDate}T${classTime}`);
-                await api.post('/language-trainer/classes', {
+                await api.post(`${trainerBatchBasePath}/classes`, {
                     batchId,
                     topic: title,
                     startTime
@@ -247,7 +261,7 @@ const LanguageBatchDetails: React.FC = () => {
                 if (selectedFile) {
                     formData.append('file', selectedFile);
                 }
-                await api.post('/language-trainer/materials', formData, {
+                await api.post(`${trainerBatchBasePath}/materials`, formData, {
                     headers: {
                         'Content-Type': 'multipart/form-data',
                     },
@@ -278,7 +292,7 @@ const LanguageBatchDetails: React.FC = () => {
         if (!window.confirm('Are you sure you want to delete this announcement?')) return;
 
         try {
-            await api.delete(`/language-trainer/announcements/${announcementId}`);
+            await api.delete(`${trainerBatchBasePath}/announcements/${announcementId}`);
             fetchTab('announcements', 1, false);
         } catch (error) {
             console.error("Failed to delete announcement", error);
@@ -290,7 +304,7 @@ const LanguageBatchDetails: React.FC = () => {
         if (!window.confirm('Are you sure you want to delete this material?')) return;
 
         try {
-            await api.delete(`/language-trainer/materials/${materialId}`);
+            await api.delete(`${trainerBatchBasePath}/materials/${materialId}`);
             fetchTab('materials', 1, false);
         } catch (error) {
             console.error("Failed to delete material", error);
@@ -301,7 +315,8 @@ const LanguageBatchDetails: React.FC = () => {
     const handleDeleteClass = async (classId: string) => {
         if (!window.confirm('Are you sure you want to delete this class?')) return;
         try {
-            await api.delete(`/language-trainer/classes/${classId}`);
+            await api.delete(`${trainerBatchBasePath}/classes/${classId}`);
+            setClasses(prev => prev.filter(c => c._id !== classId));
             setBatch(prev => prev ? {
                 ...prev,
                 classes: prev.classes.filter(c => c._id !== classId)
@@ -314,7 +329,8 @@ const LanguageBatchDetails: React.FC = () => {
     const handleEndClass = async (classId: string) => {
         if (!window.confirm('Are you sure you want to end this class? This will disable the meeting link.')) return;
         try {
-            await api.post(`/language-trainer/classes/${classId}/end`, {});
+            await api.post(`${trainerBatchBasePath}/classes/${classId}/end`, {});
+            setClasses(prev => prev.map(c => c._id === classId ? { ...c, status: 'completed' } : c));
             setBatch(prev => prev ? {
                 ...prev,
                 classes: prev.classes.map(c => c._id === classId ? { ...c, status: 'completed' } : c)
@@ -330,11 +346,12 @@ const LanguageBatchDetails: React.FC = () => {
         if (!attendanceClass) return;
         setAttendanceLoading(true);
         try {
-            const response = await api.put(`/language-trainer/classes/${attendanceClass._id}/attendance`, {
+            const response = await api.put(`${trainerBatchBasePath}/classes/${attendanceClass._id}/attendance`, {
                 studentId,
                 attended
             });
             setAttendanceClass(prev => prev ? { ...prev, attendees: response.data.attendees } : null);
+            setClasses(prev => prev.map(c => c._id === attendanceClass._id ? { ...c, attendees: response.data.attendees } : c));
             setBatch(prev => prev ? {
                 ...prev,
                 classes: prev.classes.map(c => c._id === attendanceClass._id ? { ...c, attendees: response.data.attendees } : c)
@@ -348,7 +365,7 @@ const LanguageBatchDetails: React.FC = () => {
 
     const handleJoinClass = async (classId: string, link: string) => {
         try {
-            await api.post(`/language-trainer/classes/${classId}/join`);
+            await api.post(`${trainerBatchBasePath}/classes/${classId}/join`);
             window.open(link, '_blank');
         } catch (error) {
             console.error("Failed to join class", error);
@@ -499,14 +516,14 @@ const LanguageBatchDetails: React.FC = () => {
                 >
                     {activeTab === 'classes' ? (
                         <div className="space-y-4 sm:space-y-5">
-                            {(!batch.classes || batch.classes.length === 0) && (
+                            {(!classes || classes.length === 0) && (
                                 <div className="text-center py-12 sm:py-16 bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700/50 backdrop-blur-xl">
                                     <Video className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                                     <p className="text-gray-500 dark:text-gray-400 text-base font-medium">No live classes scheduled yet.</p>
                                 </div>
                             )}
 
-                            {(batch.classes || []).map((cls, idx) => (
+                            {(classes || []).map((cls, idx) => (
                                 <div
                                     key={cls._id}
                                     className="group relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-800/50 backdrop-blur-xl p-5 sm:p-6 lg:p-7 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-left duration-500"
@@ -660,7 +677,7 @@ const LanguageBatchDetails: React.FC = () => {
                                         <div className="mb-4 flex items-start justify-between">
                                             <div className="flex gap-3 items-center">
                                                 <div className="flex flex-shrink-0 h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-green-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 transition-transform group-hover:scale-110 duration-300">
-                                                    {getFileIcon(item.fileUrl)}
+                                                    {getFileIcon((item.attachments && item.attachments[0]) || item.fileUrl)}
                                                 </div>
                                                 {item.createdAt && (
                                                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50 px-2 py-1 rounded-lg">
@@ -668,7 +685,7 @@ const LanguageBatchDetails: React.FC = () => {
                                                     </span>
                                                 )}
                                             </div>
-                                            {isTrainer && (
+                                            {isTrainer && !item.isSystemMaterial && (
                                                 <button onClick={() => handleDeleteMaterial(item._id)} className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-2 ml-2 rounded-lg bg-white/80 dark:bg-gray-800/80 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 hover:text-red-600 dark:text-red-400 shadow-sm" title="Delete" aria-label="Delete material">
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>
@@ -677,16 +694,20 @@ const LanguageBatchDetails: React.FC = () => {
                                         <div className="flex-1 mb-4">
                                             <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-1 line-clamp-2 group-hover:text-[#d6b161] transition-colors" title={item.title}>{item.title}</h3>
                                             {item.subtitle && <p className="text-sm font-semibold text-[#d6b161] mb-2 line-clamp-1">{item.subtitle}</p>}
-                                            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 leading-relaxed">{item.description}</p>
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 leading-relaxed">{item.description || 'No description provided.'}</p>
                                         </div>
-                                        {item.fileUrl ? (
-                                            <div className="mt-auto flex items-center gap-2 pt-4 border-t border-gray-100 dark:border-gray-700/50">
-                                                <a href={getAssetUrl(item.fileUrl)} target="_blank" rel="noopener noreferrer" className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 transition-all duration-300 border border-gray-200 dark:border-gray-700" aria-label={`View ${item.title}`}>
-                                                    <Eye className="h-4 w-4" /> View
-                                                </a>
-                                                <a href={getAssetUrl(item.fileUrl)} download={item.title} target="_blank" rel="noopener noreferrer" className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500/10 to-green-500/10 hover:from-emerald-500 hover:to-green-500 py-2.5 text-sm font-semibold text-emerald-600 hover:text-white dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:text-white transition-all duration-300 border border-emerald-200 dark:border-emerald-700/50" aria-label={`Download ${item.title}`}>
-                                                    <Download className="h-4 w-4" /> Download
-                                                </a>
+                                        {((item.attachments && item.attachments.length > 0) || item.fileUrl) ? (
+                                            <div className="mt-auto flex flex-wrap items-center gap-2 pt-4 border-t border-gray-100 dark:border-gray-700/50">
+                                                {(item.attachments && item.attachments.length > 0 ? item.attachments : item.fileUrl ? [item.fileUrl] : []).map((attachment, attachmentIndex) => (
+                                                    <React.Fragment key={`${item._id}-${attachment}-${attachmentIndex}`}>
+                                                        <a href={getAssetUrl(attachment)} target="_blank" rel="noopener noreferrer" className="inline-flex flex-1 min-w-[140px] items-center justify-center gap-2 rounded-xl bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 transition-all duration-300 border border-gray-200 dark:border-gray-700" aria-label={`View ${item.title}`}>
+                                                            <Eye className="h-4 w-4" /> {item.attachments && item.attachments.length > 1 ? `View ${attachmentIndex + 1}` : 'View'}
+                                                        </a>
+                                                        <a href={getAssetUrl(attachment)} download={item.title} target="_blank" rel="noopener noreferrer" className="inline-flex flex-1 min-w-[140px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500/10 to-green-500/10 hover:from-emerald-500 hover:to-green-500 py-2.5 text-sm font-semibold text-emerald-600 hover:text-white dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:text-white transition-all duration-300 border border-emerald-200 dark:border-emerald-700/50" aria-label={`Download ${item.title}`}>
+                                                            <Download className="h-4 w-4" /> {item.attachments && item.attachments.length > 1 ? `Download ${attachmentIndex + 1}` : 'Download'}
+                                                        </a>
+                                                    </React.Fragment>
+                                                ))}
                                             </div>
                                         ) : (
                                             <div className="mt-auto w-full py-2.5 text-center text-sm font-medium text-gray-400 bg-gray-50 dark:bg-gray-700/50 rounded-xl">No file</div>

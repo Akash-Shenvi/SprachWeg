@@ -70,6 +70,8 @@ const institution_routes_1 = __importDefault(require("./routes/institution.route
 app.use('/api/institutions', institution_routes_1.default);
 const adminInstitution_routes_1 = __importDefault(require("./routes/adminInstitution.routes"));
 app.use('/api/admin/institutions', adminInstitution_routes_1.default);
+const trainer_batch_routes_1 = __importDefault(require("./routes/trainer.batch.routes"));
+app.use('/api/trainer-batches', trainer_batch_routes_1.default);
 const skill_batch_routes_1 = __importDefault(require("./routes/skill.batch.routes"));
 app.use('/api/skill-batches', skill_batch_routes_1.default);
 exports.default = app;

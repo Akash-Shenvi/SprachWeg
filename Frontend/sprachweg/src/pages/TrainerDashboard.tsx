@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
-import api, { dashboardAPI, webinarCatalogAPI } from '../lib/api';
+import api, { webinarCatalogAPI } from '../lib/api';
 import {
     BookOpen,
     Users,
@@ -35,13 +35,6 @@ interface Batch {
 interface TrainerWebinarFeed {
     trainerCalendarConnected: boolean;
     webinars: WebinarListing[];
-}
-
-interface TrainerSkillBatchResponse {
-    id: string;
-    name: string;
-    course: string;
-    students: number;
 }
 
 // ============================================================================
@@ -323,33 +316,22 @@ const TrainerDashboard: React.FC = () => {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [batchResponse, trainerDashboardResponse, webinarResponse] = await Promise.all([
-                    api.get('/language-trainer/batches'),
-                    dashboardAPI.getTrainerData(),
+                const [batchResponse, webinarResponse] = await Promise.all([
+                    api.get('/trainer-batches/mine'),
                     webinarCatalogAPI.getAssignedTrainer() as Promise<TrainerWebinarFeed>,
                 ]);
 
-                const languageBatches: Batch[] = Array.isArray(batchResponse.data)
+                const normalizedBatches: Batch[] = Array.isArray(batchResponse.data)
                     ? batchResponse.data.map((batch: any) => ({
                         _id: String(batch._id),
                         courseTitle: String(batch.courseTitle || '').trim(),
                         name: String(batch.name || '').trim(),
-                        studentCount: Array.isArray(batch.students) ? batch.students.length : 0,
-                        trainingType: 'language' as const,
+                        studentCount: Number(batch.studentCount || 0),
+                        trainingType: batch.trainingType === 'skill' ? 'skill' : 'language',
                     }))
                     : [];
 
-                const skillBatches: Batch[] = Array.isArray(trainerDashboardResponse?.batches)
-                    ? trainerDashboardResponse.batches.map((batch: TrainerSkillBatchResponse) => ({
-                        _id: String(batch.id),
-                        courseTitle: String(batch.course || 'Skill Training').trim(),
-                        name: String(batch.name || '').trim(),
-                        studentCount: Number(batch.students || 0),
-                        trainingType: 'skill' as const,
-                    }))
-                    : [];
-
-                setBatches([...languageBatches, ...skillBatches]);
+                setBatches(normalizedBatches);
                 setAssignedWebinars(webinarResponse.webinars || []);
                 setTrainerCalendarConnected(webinarResponse.trainerCalendarConnected !== false);
             } catch (error) {

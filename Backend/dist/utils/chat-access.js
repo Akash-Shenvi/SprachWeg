@@ -14,16 +14,28 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.canAccessChatPair = exports.resolveTrainerIdForStudentChat = exports.getAssignedTrainerIdsForStudent = exports.findAssignedBatchForChat = void 0;
 const language_batch_model_1 = __importDefault(require("../models/language.batch.model"));
+const batch_model_1 = __importDefault(require("../models/batch.model"));
 const findAssignedBatchForChat = (studentId, trainerId) => __awaiter(void 0, void 0, void 0, function* () {
-    return language_batch_model_1.default.findOne({ students: studentId, trainerId });
+    const [languageBatch, skillBatch] = yield Promise.all([
+        language_batch_model_1.default.findOne({ students: studentId, trainerId }),
+        batch_model_1.default.findOne({ students: studentId, trainerId, isActive: true }),
+    ]);
+    return languageBatch || skillBatch;
 });
 exports.findAssignedBatchForChat = findAssignedBatchForChat;
 const getAssignedTrainerIdsForStudent = (studentId) => __awaiter(void 0, void 0, void 0, function* () {
-    const batches = yield language_batch_model_1.default.find({
-        students: studentId,
-        trainerId: { $exists: true, $ne: null }
-    }).select('trainerId');
-    return [...new Set(batches
+    const [languageBatches, skillBatches] = yield Promise.all([
+        language_batch_model_1.default.find({
+            students: studentId,
+            trainerId: { $exists: true, $ne: null }
+        }).select('trainerId'),
+        batch_model_1.default.find({
+            students: studentId,
+            trainerId: { $exists: true, $ne: null },
+            isActive: true,
+        }).select('trainerId'),
+    ]);
+    return [...new Set([...languageBatches, ...skillBatches]
             .map(batch => { var _a; return (_a = batch.trainerId) === null || _a === void 0 ? void 0 : _a.toString(); })
             .filter((trainerId) => Boolean(trainerId)))];
 });

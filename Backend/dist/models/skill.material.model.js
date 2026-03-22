@@ -34,20 +34,12 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const ClassSessionSchema = new mongoose_1.Schema({
+const SkillMaterialSchema = new mongoose_1.Schema({
     batchId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Batch', required: true },
-    trainerId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-    topic: { type: String, required: true },
-    startTime: { type: Date, required: true },
-    endTime: { type: Date, required: true },
-    meetingLink: { type: String },
-    eventId: { type: String },
-    status: {
-        type: String,
-        enum: ['scheduled', 'live', 'completed', 'cancelled'],
-        default: 'scheduled',
-    },
-    recordings: [{ type: String }],
-    resources: [{ type: String }],
+    title: { type: String, required: true },
+    subtitle: { type: String },
+    description: { type: String },
+    fileUrl: { type: String },
+    uploadedBy: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
 }, { timestamps: true });
-exports.default = mongoose_1.default.model('ClassSession', ClassSessionSchema);
+exports.default = mongoose_1.default.model('SkillMaterial', SkillMaterialSchema);

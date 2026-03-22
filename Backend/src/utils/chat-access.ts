@@ -1,19 +1,32 @@
 import LanguageBatch from '../models/language.batch.model';
+import Batch from '../models/batch.model';
 
 type ChatRole = 'student' | 'trainer' | string | undefined;
 
 export const findAssignedBatchForChat = async (studentId: string, trainerId: string) => {
-    return LanguageBatch.findOne({ students: studentId, trainerId });
+    const [languageBatch, skillBatch] = await Promise.all([
+        LanguageBatch.findOne({ students: studentId, trainerId }),
+        Batch.findOne({ students: studentId, trainerId, isActive: true }),
+    ]);
+
+    return languageBatch || skillBatch;
 };
 
 export const getAssignedTrainerIdsForStudent = async (studentId: string) => {
-    const batches = await LanguageBatch.find({
-        students: studentId,
-        trainerId: { $exists: true, $ne: null }
-    }).select('trainerId');
+    const [languageBatches, skillBatches] = await Promise.all([
+        LanguageBatch.find({
+            students: studentId,
+            trainerId: { $exists: true, $ne: null }
+        }).select('trainerId'),
+        Batch.find({
+            students: studentId,
+            trainerId: { $exists: true, $ne: null },
+            isActive: true,
+        }).select('trainerId'),
+    ]);
 
     return [...new Set(
-        batches
+        [...languageBatches, ...skillBatches]
             .map(batch => batch.trainerId?.toString())
             .filter((trainerId): trainerId is string => Boolean(trainerId))
     )];

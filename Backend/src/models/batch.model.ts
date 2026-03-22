@@ -32,7 +32,29 @@ const BatchSchema: Schema = new Schema(
         students: [{ type: Schema.Types.ObjectId, ref: 'User' }],
         isActive: { type: Boolean, default: true },
     },
-    { timestamps: true }
+    {
+        timestamps: true,
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true },
+    }
 );
+
+BatchSchema.virtual('announcements', {
+    ref: 'Announcement',
+    localField: '_id',
+    foreignField: 'batchId',
+});
+
+BatchSchema.virtual('materials', {
+    ref: 'SkillMaterial',
+    localField: '_id',
+    foreignField: 'batchId',
+});
+
+BatchSchema.virtual('classes', {
+    ref: 'ClassSession',
+    localField: '_id',
+    foreignField: 'batchId',
+});
 
 export default mongoose.model<IBatch>('Batch', BatchSchema);
