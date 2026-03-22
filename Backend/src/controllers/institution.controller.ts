@@ -13,6 +13,17 @@ import { EmailService } from '../utils/email.service';
 
 const emailService = new EmailService();
 
+type ApprovalArtifacts = {
+    createdStudentsForEmail: Array<{ name: string; email: string; courseTitle: string; levelName: string }>;
+    institutionEmailPayload?: {
+        email: string;
+        institutionName: string;
+        courseTitle: string;
+        levelName: string;
+        studentCount: number;
+    };
+};
+
 const normalizeEmail = (value: string) => String(value || '').trim().toLowerCase();
 const normalizeText = (value: string) => String(value || '').trim();
 
@@ -93,12 +104,18 @@ const findDuplicateEmails = (emails: string[]) => {
 const createOrLoadBatch = async (
     courseTitle: string,
     levelName: string,
-    session: ClientSession
+    session?: ClientSession | null
 ) => {
-    let batch = await LanguageBatch.findOne({
+    const batchQuery = LanguageBatch.findOne({
         courseTitle,
         name: levelName,
-    }).session(session);
+    });
+
+    if (session) {
+        batchQuery.session(session);
+    }
+
+    let batch = await batchQuery;
 
     if (!batch) {
         batch = new LanguageBatch({
@@ -106,10 +123,183 @@ const createOrLoadBatch = async (
             name: levelName,
             students: [],
         });
-        await batch.save({ session });
+        if (session) {
+            await batch.save({ session });
+        } else {
+            await batch.save();
+        }
     }
 
     return batch;
+};
+
+const isTransactionUnsupportedError = (error: unknown) => {
+    const message = String((error as Error)?.message || '');
+    return message.includes('Transaction numbers are only allowed on a replica set member or mongos');
+};
+
+const rollbackNonTransactionalApproval = async (params: {
+    createdEnrollmentIds: mongoose.Types.ObjectId[];
+    createdUserIds: mongoose.Types.ObjectId[];
+    batchId?: mongoose.Types.ObjectId | null;
+    originalBatchStudentIds: mongoose.Types.ObjectId[];
+}) => {
+    if (params.createdEnrollmentIds.length > 0) {
+        await LanguageEnrollment.deleteMany({
+            _id: { $in: params.createdEnrollmentIds },
+        });
+    }
+
+    if (params.createdUserIds.length > 0) {
+        await User.deleteMany({
+            _id: { $in: params.createdUserIds },
+        });
+    }
+
+    if (params.batchId) {
+        await LanguageBatch.findByIdAndUpdate(
+            params.batchId,
+            { $set: { students: params.originalBatchStudentIds } }
+        );
+    }
+};
+
+const processInstitutionApproval = async (params: {
+    requestId: string;
+    adminUserId: mongoose.Types.ObjectId | null;
+    session?: ClientSession | null;
+}): Promise<ApprovalArtifacts> => {
+    const { requestId, adminUserId, session } = params;
+    const approvalArtifacts: ApprovalArtifacts = {
+        createdStudentsForEmail: [],
+    };
+
+    const requestQuery = InstitutionEnrollmentRequest.findById(requestId);
+    if (session) {
+        requestQuery.session(session);
+    }
+    const request = await requestQuery;
+
+    if (!request || request.status !== 'PENDING') {
+        throw new Error('Invalid institution request');
+    }
+
+    const validation = await validateGermanSelection(request.courseTitle, request.levelName);
+    if (validation.error) {
+        throw new Error(validation.error);
+    }
+
+    const normalizedEmails = request.students.map((student) => normalizeEmail(student.email));
+    const duplicateEmails = findDuplicateEmails(normalizedEmails);
+
+    if (duplicateEmails.length > 0) {
+        throw new Error('Duplicate student emails are not allowed in the same request.');
+    }
+
+    const existingUsersQuery = User.find({
+        email: { $in: normalizedEmails },
+    });
+    if (session) {
+        existingUsersQuery.session(session);
+    }
+    const existingUsers = await existingUsersQuery;
+
+    if (existingUsers.length > 0) {
+        throw new Error('One or more student emails are already registered.');
+    }
+
+    const institutionQuery = User.findById(request.institutionId);
+    if (session) {
+        institutionQuery.session(session);
+    }
+    const institution = await institutionQuery;
+
+    if (!institution) {
+        throw new Error('Institution account not found.');
+    }
+
+    const batch = await createOrLoadBatch(request.courseTitle, request.levelName, session);
+    const originalBatchStudentIds = [...batch.students];
+    const createdUserIds: mongoose.Types.ObjectId[] = [];
+    const createdEnrollmentIds: mongoose.Types.ObjectId[] = [];
+
+    try {
+        for (let index = 0; index < request.students.length; index += 1) {
+            const studentEntry = request.students[index];
+            const studentUser = new User({
+                name: normalizeText(studentEntry.name),
+                email: normalizeEmail(studentEntry.email),
+                password: studentEntry.passwordHash,
+                role: 'student',
+                isVerified: true,
+            });
+
+            if (session) {
+                await studentUser.save({ session });
+            } else {
+                await studentUser.save();
+            }
+
+            createdUserIds.push(studentUser._id);
+
+            const createdEnrollments = await LanguageEnrollment.create([{
+                userId: studentUser._id,
+                courseTitle: request.courseTitle,
+                name: request.levelName,
+                status: 'APPROVED',
+                batchId: batch._id,
+            }], session ? { session } : undefined);
+
+            createdEnrollmentIds.push(createdEnrollments[0]._id);
+
+            if (!batch.students.some((studentId) => studentId.equals(studentUser._id))) {
+                batch.students.push(studentUser._id);
+            }
+
+            request.students[index].createdUserId = studentUser._id;
+            approvalArtifacts.createdStudentsForEmail.push({
+                name: studentUser.name,
+                email: studentUser.email,
+                courseTitle: request.courseTitle,
+                levelName: request.levelName,
+            });
+        }
+
+        request.status = 'APPROVED';
+        request.adminDecisionBy = adminUserId;
+        request.adminDecisionAt = new Date();
+        request.rejectionReason = null;
+        request.approvedBatchId = batch._id;
+
+        if (session) {
+            await batch.save({ session });
+            await request.save({ session });
+        } else {
+            await batch.save();
+            await request.save();
+        }
+
+        approvalArtifacts.institutionEmailPayload = {
+            email: institution.email,
+            institutionName: institution.institutionName || institution.name,
+            courseTitle: request.courseTitle,
+            levelName: request.levelName,
+            studentCount: request.students.length,
+        };
+
+        return approvalArtifacts;
+    } catch (error) {
+        if (!session) {
+            await rollbackNonTransactionalApproval({
+                createdEnrollmentIds,
+                createdUserIds,
+                batchId: batch._id,
+                originalBatchStudentIds,
+            });
+        }
+
+        throw error;
+    }
 };
 
 export const getInstitutionDashboard = async (req: Request, res: Response) => {
@@ -308,108 +498,32 @@ export const approveInstitutionRequest = async (req: Request, res: Response) => 
     const session = await mongoose.startSession();
 
     try {
-        const approvalArtifacts: {
-            createdStudentsForEmail: Array<{ name: string; email: string; courseTitle: string; levelName: string }>;
-            institutionEmailPayload?: {
-                email: string;
-                institutionName: string;
-                courseTitle: string;
-                levelName: string;
-                studentCount: number;
-            };
-        } = {
-            createdStudentsForEmail: [],
-        };
+        let approvalArtifacts: ApprovalArtifacts;
 
-        await session.withTransaction(async () => {
-            const request = await InstitutionEnrollmentRequest.findById(requestId).session(session);
-
-            if (!request || request.status !== 'PENDING') {
-                throw new Error('Invalid institution request');
-            }
-
-            const validation = await validateGermanSelection(request.courseTitle, request.levelName);
-            if (validation.error) {
-                throw new Error(validation.error);
-            }
-
-            const normalizedEmails = request.students.map((student) => normalizeEmail(student.email));
-            const duplicateEmails = findDuplicateEmails(normalizedEmails);
-
-            if (duplicateEmails.length > 0) {
-                throw new Error('Duplicate student emails are not allowed in the same request.');
-            }
-
-            const existingUsers = await User.find({
-                email: { $in: normalizedEmails },
-            }).session(session);
-
-            if (existingUsers.length > 0) {
-                throw new Error('One or more student emails are already registered.');
-            }
-
-            const institution = await User.findById(request.institutionId).session(session);
-            if (!institution) {
-                throw new Error('Institution account not found.');
-            }
-
-            const batch = await createOrLoadBatch(request.courseTitle, request.levelName, session);
-            approvalArtifacts.createdStudentsForEmail = [];
-
-            for (let index = 0; index < request.students.length; index += 1) {
-                const studentEntry = request.students[index];
-                const studentUser = new User({
-                    name: normalizeText(studentEntry.name),
-                    email: normalizeEmail(studentEntry.email),
-                    password: studentEntry.passwordHash,
-                    role: 'student',
-                    isVerified: true,
+        try {
+            await session.withTransaction(async () => {
+                approvalArtifacts = await processInstitutionApproval({
+                    requestId,
+                    adminUserId: (req.user as any)?._id || null,
+                    session,
                 });
-
-                await studentUser.save({ session });
-
-                await LanguageEnrollment.create([{
-                    userId: studentUser._id,
-                    courseTitle: request.courseTitle,
-                    name: request.levelName,
-                    status: 'APPROVED',
-                    batchId: batch._id,
-                }], { session });
-
-                if (!batch.students.some((studentId) => studentId.equals(studentUser._id))) {
-                    batch.students.push(studentUser._id);
-                }
-
-                request.students[index].createdUserId = studentUser._id;
-                approvalArtifacts.createdStudentsForEmail.push({
-                    name: studentUser.name,
-                    email: studentUser.email,
-                    courseTitle: request.courseTitle,
-                    levelName: request.levelName,
-                });
+            });
+        } catch (error) {
+            if (!isTransactionUnsupportedError(error)) {
+                throw error;
             }
 
-            request.status = 'APPROVED';
-            request.adminDecisionBy = (req.user as any)?._id || null;
-            request.adminDecisionAt = new Date();
-            request.rejectionReason = null;
-            request.approvedBatchId = batch._id;
+            console.warn('MongoDB transactions are unavailable. Falling back to non-transactional institution approval.');
+            approvalArtifacts = await processInstitutionApproval({
+                requestId,
+                adminUserId: (req.user as any)?._id || null,
+                session: null,
+            });
+        } finally {
+            session.endSession();
+        }
 
-            await batch.save({ session });
-            await request.save({ session });
-
-            approvalArtifacts.institutionEmailPayload = {
-                email: institution.email,
-                institutionName: institution.institutionName || institution.name,
-                courseTitle: request.courseTitle,
-                levelName: request.levelName,
-                studentCount: request.students.length,
-            };
-        });
-
-        session.endSession();
-
-        const decisionEmailPayload = approvalArtifacts.institutionEmailPayload;
+        const decisionEmailPayload = approvalArtifacts!.institutionEmailPayload;
 
         if (decisionEmailPayload) {
             await emailService.sendInstitutionSubmissionDecisionEmail({
@@ -423,7 +537,7 @@ export const approveInstitutionRequest = async (req: Request, res: Response) => 
         }
 
         await Promise.all(
-            approvalArtifacts.createdStudentsForEmail.map((student) => emailService.sendInstitutionStudentWelcomeEmail({
+            approvalArtifacts!.createdStudentsForEmail.map((student) => emailService.sendInstitutionStudentWelcomeEmail({
                 to: student.email,
                 studentName: student.name,
                 courseTitle: student.courseTitle,
@@ -442,12 +556,6 @@ export const approveInstitutionRequest = async (req: Request, res: Response) => 
             request: approvedRequest ? sanitizeInstitutionRequest(approvedRequest.toObject()) : null,
         });
     } catch (error) {
-        try {
-            await session.abortTransaction();
-        } catch {
-            // Transaction may already be closed by withTransaction.
-        }
-        session.endSession();
         console.error('Failed to approve institution request:', error);
         return res.status(400).json({ message: (error as Error).message || 'Failed to approve institution request' });
     }

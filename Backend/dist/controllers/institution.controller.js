@@ -90,19 +90,161 @@ const findDuplicateEmails = (emails) => {
     return [...duplicates];
 };
 const createOrLoadBatch = (courseTitle, levelName, session) => __awaiter(void 0, void 0, void 0, function* () {
-    let batch = yield language_batch_model_1.default.findOne({
+    const batchQuery = language_batch_model_1.default.findOne({
         courseTitle,
         name: levelName,
-    }).session(session);
+    });
+    if (session) {
+        batchQuery.session(session);
+    }
+    let batch = yield batchQuery;
     if (!batch) {
         batch = new language_batch_model_1.default({
             courseTitle,
             name: levelName,
             students: [],
         });
-        yield batch.save({ session });
+        if (session) {
+            yield batch.save({ session });
+        }
+        else {
+            yield batch.save();
+        }
     }
     return batch;
+});
+const isTransactionUnsupportedError = (error) => {
+    const message = String((error === null || error === void 0 ? void 0 : error.message) || '');
+    return message.includes('Transaction numbers are only allowed on a replica set member or mongos');
+};
+const rollbackNonTransactionalApproval = (params) => __awaiter(void 0, void 0, void 0, function* () {
+    if (params.createdEnrollmentIds.length > 0) {
+        yield language_enrollment_model_1.default.deleteMany({
+            _id: { $in: params.createdEnrollmentIds },
+        });
+    }
+    if (params.createdUserIds.length > 0) {
+        yield user_model_1.default.deleteMany({
+            _id: { $in: params.createdUserIds },
+        });
+    }
+    if (params.batchId) {
+        yield language_batch_model_1.default.findByIdAndUpdate(params.batchId, { $set: { students: params.originalBatchStudentIds } });
+    }
+});
+const processInstitutionApproval = (params) => __awaiter(void 0, void 0, void 0, function* () {
+    const { requestId, adminUserId, session } = params;
+    const approvalArtifacts = {
+        createdStudentsForEmail: [],
+    };
+    const requestQuery = institutionEnrollmentRequest_model_1.default.findById(requestId);
+    if (session) {
+        requestQuery.session(session);
+    }
+    const request = yield requestQuery;
+    if (!request || request.status !== 'PENDING') {
+        throw new Error('Invalid institution request');
+    }
+    const validation = yield validateGermanSelection(request.courseTitle, request.levelName);
+    if (validation.error) {
+        throw new Error(validation.error);
+    }
+    const normalizedEmails = request.students.map((student) => normalizeEmail(student.email));
+    const duplicateEmails = findDuplicateEmails(normalizedEmails);
+    if (duplicateEmails.length > 0) {
+        throw new Error('Duplicate student emails are not allowed in the same request.');
+    }
+    const existingUsersQuery = user_model_1.default.find({
+        email: { $in: normalizedEmails },
+    });
+    if (session) {
+        existingUsersQuery.session(session);
+    }
+    const existingUsers = yield existingUsersQuery;
+    if (existingUsers.length > 0) {
+        throw new Error('One or more student emails are already registered.');
+    }
+    const institutionQuery = user_model_1.default.findById(request.institutionId);
+    if (session) {
+        institutionQuery.session(session);
+    }
+    const institution = yield institutionQuery;
+    if (!institution) {
+        throw new Error('Institution account not found.');
+    }
+    const batch = yield createOrLoadBatch(request.courseTitle, request.levelName, session);
+    const originalBatchStudentIds = [...batch.students];
+    const createdUserIds = [];
+    const createdEnrollmentIds = [];
+    try {
+        for (let index = 0; index < request.students.length; index += 1) {
+            const studentEntry = request.students[index];
+            const studentUser = new user_model_1.default({
+                name: normalizeText(studentEntry.name),
+                email: normalizeEmail(studentEntry.email),
+                password: studentEntry.passwordHash,
+                role: 'student',
+                isVerified: true,
+            });
+            if (session) {
+                yield studentUser.save({ session });
+            }
+            else {
+                yield studentUser.save();
+            }
+            createdUserIds.push(studentUser._id);
+            const createdEnrollments = yield language_enrollment_model_1.default.create([{
+                    userId: studentUser._id,
+                    courseTitle: request.courseTitle,
+                    name: request.levelName,
+                    status: 'APPROVED',
+                    batchId: batch._id,
+                }], session ? { session } : undefined);
+            createdEnrollmentIds.push(createdEnrollments[0]._id);
+            if (!batch.students.some((studentId) => studentId.equals(studentUser._id))) {
+                batch.students.push(studentUser._id);
+            }
+            request.students[index].createdUserId = studentUser._id;
+            approvalArtifacts.createdStudentsForEmail.push({
+                name: studentUser.name,
+                email: studentUser.email,
+                courseTitle: request.courseTitle,
+                levelName: request.levelName,
+            });
+        }
+        request.status = 'APPROVED';
+        request.adminDecisionBy = adminUserId;
+        request.adminDecisionAt = new Date();
+        request.rejectionReason = null;
+        request.approvedBatchId = batch._id;
+        if (session) {
+            yield batch.save({ session });
+            yield request.save({ session });
+        }
+        else {
+            yield batch.save();
+            yield request.save();
+        }
+        approvalArtifacts.institutionEmailPayload = {
+            email: institution.email,
+            institutionName: institution.institutionName || institution.name,
+            courseTitle: request.courseTitle,
+            levelName: request.levelName,
+            studentCount: request.students.length,
+        };
+        return approvalArtifacts;
+    }
+    catch (error) {
+        if (!session) {
+            yield rollbackNonTransactionalApproval({
+                createdEnrollmentIds,
+                createdUserIds,
+                batchId: batch._id,
+                originalBatchStudentIds,
+            });
+        }
+        throw error;
+    }
 });
 const getInstitutionDashboard = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -276,86 +418,38 @@ const getAdminInstitutionRequests = (req, res) => __awaiter(void 0, void 0, void
 });
 exports.getAdminInstitutionRequests = getAdminInstitutionRequests;
 const approveInstitutionRequest = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     const requestId = String(req.params.id || '').trim();
     if (!requestId) {
         return res.status(400).json({ message: 'Institution request id is required' });
     }
     const session = yield mongoose_1.default.startSession();
     try {
-        const approvalArtifacts = {
-            createdStudentsForEmail: [],
-        };
-        yield session.withTransaction(() => __awaiter(void 0, void 0, void 0, function* () {
-            var _a;
-            const request = yield institutionEnrollmentRequest_model_1.default.findById(requestId).session(session);
-            if (!request || request.status !== 'PENDING') {
-                throw new Error('Invalid institution request');
-            }
-            const validation = yield validateGermanSelection(request.courseTitle, request.levelName);
-            if (validation.error) {
-                throw new Error(validation.error);
-            }
-            const normalizedEmails = request.students.map((student) => normalizeEmail(student.email));
-            const duplicateEmails = findDuplicateEmails(normalizedEmails);
-            if (duplicateEmails.length > 0) {
-                throw new Error('Duplicate student emails are not allowed in the same request.');
-            }
-            const existingUsers = yield user_model_1.default.find({
-                email: { $in: normalizedEmails },
-            }).session(session);
-            if (existingUsers.length > 0) {
-                throw new Error('One or more student emails are already registered.');
-            }
-            const institution = yield user_model_1.default.findById(request.institutionId).session(session);
-            if (!institution) {
-                throw new Error('Institution account not found.');
-            }
-            const batch = yield createOrLoadBatch(request.courseTitle, request.levelName, session);
-            approvalArtifacts.createdStudentsForEmail = [];
-            for (let index = 0; index < request.students.length; index += 1) {
-                const studentEntry = request.students[index];
-                const studentUser = new user_model_1.default({
-                    name: normalizeText(studentEntry.name),
-                    email: normalizeEmail(studentEntry.email),
-                    password: studentEntry.passwordHash,
-                    role: 'student',
-                    isVerified: true,
+        let approvalArtifacts;
+        try {
+            yield session.withTransaction(() => __awaiter(void 0, void 0, void 0, function* () {
+                var _a;
+                approvalArtifacts = yield processInstitutionApproval({
+                    requestId,
+                    adminUserId: ((_a = req.user) === null || _a === void 0 ? void 0 : _a._id) || null,
+                    session,
                 });
-                yield studentUser.save({ session });
-                yield language_enrollment_model_1.default.create([{
-                        userId: studentUser._id,
-                        courseTitle: request.courseTitle,
-                        name: request.levelName,
-                        status: 'APPROVED',
-                        batchId: batch._id,
-                    }], { session });
-                if (!batch.students.some((studentId) => studentId.equals(studentUser._id))) {
-                    batch.students.push(studentUser._id);
-                }
-                request.students[index].createdUserId = studentUser._id;
-                approvalArtifacts.createdStudentsForEmail.push({
-                    name: studentUser.name,
-                    email: studentUser.email,
-                    courseTitle: request.courseTitle,
-                    levelName: request.levelName,
-                });
+            }));
+        }
+        catch (error) {
+            if (!isTransactionUnsupportedError(error)) {
+                throw error;
             }
-            request.status = 'APPROVED';
-            request.adminDecisionBy = ((_a = req.user) === null || _a === void 0 ? void 0 : _a._id) || null;
-            request.adminDecisionAt = new Date();
-            request.rejectionReason = null;
-            request.approvedBatchId = batch._id;
-            yield batch.save({ session });
-            yield request.save({ session });
-            approvalArtifacts.institutionEmailPayload = {
-                email: institution.email,
-                institutionName: institution.institutionName || institution.name,
-                courseTitle: request.courseTitle,
-                levelName: request.levelName,
-                studentCount: request.students.length,
-            };
-        }));
-        session.endSession();
+            console.warn('MongoDB transactions are unavailable. Falling back to non-transactional institution approval.');
+            approvalArtifacts = yield processInstitutionApproval({
+                requestId,
+                adminUserId: ((_a = req.user) === null || _a === void 0 ? void 0 : _a._id) || null,
+                session: null,
+            });
+        }
+        finally {
+            session.endSession();
+        }
         const decisionEmailPayload = approvalArtifacts.institutionEmailPayload;
         if (decisionEmailPayload) {
             yield emailService.sendInstitutionSubmissionDecisionEmail({
@@ -381,13 +475,6 @@ const approveInstitutionRequest = (req, res) => __awaiter(void 0, void 0, void 0
         });
     }
     catch (error) {
-        try {
-            yield session.abortTransaction();
-        }
-        catch (_a) {
-            // Transaction may already be closed by withTransaction.
-        }
-        session.endSession();
         console.error('Failed to approve institution request:', error);
         return res.status(400).json({ message: error.message || 'Failed to approve institution request' });
     }
