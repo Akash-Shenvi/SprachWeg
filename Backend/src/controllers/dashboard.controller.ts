@@ -12,10 +12,14 @@ export const getStudentDashboard = async (req: Request, res: Response): Promise<
         const studentId = (req as any).user._id;
 
         // 1. Get Enrolled Courses
-        const enrollments = await Enrollment.find({ studentId }).populate('courseId');
+        const enrollments = await Enrollment.find({
+            studentId,
+            status: { $in: ['active', 'completed'] },
+        }).populate('courseId');
+        const validEnrollments = enrollments.filter((enrollment: any) => enrollment.courseId);
 
         // 2. Get Upcoming Classes (from batches user is enrolled in)
-        const batchIds = enrollments.map(e => e.batchId).filter(id => !!id) as mongoose.Types.ObjectId[];
+        const batchIds = validEnrollments.map(e => e.batchId).filter(id => !!id) as mongoose.Types.ObjectId[];
         const upcomingClasses = await ClassSession.find({
             batchId: { $in: batchIds },
             startTime: { $gte: new Date() },
@@ -33,14 +37,14 @@ export const getStudentDashboard = async (req: Request, res: Response): Promise<
         // Calculate streak (mock or simple logic)
         const stats = {
             streak: 12, // Placeholder
-            certificates: enrollments.filter(e => e.status === 'completed').length,
+            certificates: validEnrollments.filter(e => e.status === 'completed').length,
             weeklyGoalHours: 10,
             completedHours: 6.5
         };
 
         res.json({
             user: await User.findById(studentId).select('name email avatar'),
-            courses: enrollments.map(e => ({
+            courses: validEnrollments.map(e => ({
                 id: (e.courseId as any)._id,
                 title: (e.courseId as any).title,
                 progress: e.progress,

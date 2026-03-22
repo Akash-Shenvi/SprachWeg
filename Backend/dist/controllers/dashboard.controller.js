@@ -21,9 +21,13 @@ const getStudentDashboard = (req, res) => __awaiter(void 0, void 0, void 0, func
     try {
         const studentId = req.user._id;
         // 1. Get Enrolled Courses
-        const enrollments = yield enrollment_model_1.default.find({ studentId }).populate('courseId');
+        const enrollments = yield enrollment_model_1.default.find({
+            studentId,
+            status: { $in: ['active', 'completed'] },
+        }).populate('courseId');
+        const validEnrollments = enrollments.filter((enrollment) => enrollment.courseId);
         // 2. Get Upcoming Classes (from batches user is enrolled in)
-        const batchIds = enrollments.map(e => e.batchId).filter(id => !!id);
+        const batchIds = validEnrollments.map(e => e.batchId).filter(id => !!id);
         const upcomingClasses = yield classSession_model_1.default.find({
             batchId: { $in: batchIds },
             startTime: { $gte: new Date() },
@@ -39,13 +43,13 @@ const getStudentDashboard = (req, res) => __awaiter(void 0, void 0, void 0, func
         // Calculate streak (mock or simple logic)
         const stats = {
             streak: 12, // Placeholder
-            certificates: enrollments.filter(e => e.status === 'completed').length,
+            certificates: validEnrollments.filter(e => e.status === 'completed').length,
             weeklyGoalHours: 10,
             completedHours: 6.5
         };
         res.json({
             user: yield user_model_1.default.findById(studentId).select('name email avatar'),
-            courses: enrollments.map(e => ({
+            courses: validEnrollments.map(e => ({
                 id: e.courseId._id,
                 title: e.courseId.title,
                 progress: e.progress,

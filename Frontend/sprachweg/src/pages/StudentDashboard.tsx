@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import api from '../lib/api';
-import { getAssetUrl, internshipApplicationAPI, webinarRegistrationAPI } from '../lib/api';
+import { dashboardAPI, getAssetUrl, internshipApplicationAPI, webinarRegistrationAPI } from '../lib/api';
 import {
     BookOpen,
     Briefcase,
@@ -17,9 +17,11 @@ import {
     Layers,
     LogOut,
     Moon,
+    Cpu,
     ExternalLink,
     Settings,
     Sun,
+    Target,
     Video
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -40,6 +42,16 @@ interface EnrolledInternship {
     referenceCode: string;
     status: string;
     createdAt: string;
+}
+
+interface ApprovedSkillCourse {
+    id: string;
+    title: string;
+    progress?: number;
+    totalLessons?: number;
+    completedLessons?: number;
+    difficulty?: string;
+    thumbnail?: string;
 }
 
 // ============================================================================
@@ -114,6 +126,32 @@ const SkeletonCourseCard: React.FC = () => (
     </div>
 );
 
+const getSkillCourseRoute = (title?: string) => {
+    const normalizedTitle = String(title || '').trim().toLowerCase();
+
+    if (normalizedTitle.includes('scada') || normalizedTitle.includes('hmi')) {
+        return '/skill-training/scada';
+    }
+
+    if (normalizedTitle.includes('plc')) {
+        return '/skill-training/plc';
+    }
+
+    if (normalizedTitle.includes('industrial drives') || normalizedTitle.includes('motion')) {
+        return '/skill-training/drives';
+    }
+
+    if (normalizedTitle.includes('industry 4') || normalizedTitle.includes('advanced automation')) {
+        return '/skill-training/industry4';
+    }
+
+    if (normalizedTitle.includes('corporate')) {
+        return '/skill-training/corporate';
+    }
+
+    return '/skill-training';
+};
+
 
 
 // ============================================================================
@@ -171,6 +209,78 @@ const CourseCard: React.FC<{ course: any }> = ({ course }) => {
                             Chat
                         </button>
                     )}
+                </div>
+            </div>
+        </motion.div>
+    );
+};
+
+const SkillCourseCard: React.FC<{ course: ApprovedSkillCourse }> = ({ course }) => {
+    const navigate = useNavigate();
+    const targetRoute = getSkillCourseRoute(course.title);
+    const hasImageThumbnail =
+        typeof course.thumbnail === 'string'
+        && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('/'));
+
+    return (
+        <motion.div
+            variants={itemVariants}
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-xl dark:border-gray-700 dark:bg-gray-800"
+            onClick={() => navigate(targetRoute)}
+        >
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#d6b161]/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <div className="relative">
+                <div className="mb-4 flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                        <div className="mb-1 inline-flex items-center rounded-md bg-[#0a192f]/8 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-[#0a192f] dark:bg-[#d6b161]/12 dark:text-[#f0d79a]">
+                            Skill Course
+                        </div>
+                        <h3 className="mt-2 text-lg font-bold leading-snug text-[#0a192f] dark:text-white">{course.title}</h3>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            {course.difficulty || 'Professional Training'}
+                        </p>
+                    </div>
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#0a192f]/5 dark:bg-[#d6b161]/10">
+                        {hasImageThumbnail ? (
+                            <img src={getAssetUrl(course.thumbnail!)} alt={course.title} className="h-full w-full object-cover" />
+                        ) : (
+                            <Cpu className="h-6 w-6 text-[#d6b161]" />
+                        )}
+                    </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-700/40">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                            <Target className="h-3.5 w-3.5 text-[#d6b161]" />
+                            Progress
+                        </div>
+                        <p className="mt-1 text-sm font-bold text-gray-900 dark:text-white">{course.progress ?? 0}% complete</p>
+                    </div>
+                    <div className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-700/40">
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                            <BookOpen className="h-3.5 w-3.5 text-[#d6b161]" />
+                            Lessons
+                        </div>
+                        <p className="mt-1 text-sm font-bold text-gray-900 dark:text-white">
+                            {course.completedLessons ?? 0} / {course.totalLessons ?? 0}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mt-5">
+                    <button
+                        type="button"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(targetRoute);
+                        }}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[#0a192f] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 dark:bg-[#d6b161] dark:text-[#0a192f]"
+                    >
+                        <BookOpen className="h-4 w-4" />
+                        View Course
+                    </button>
                 </div>
             </div>
         </motion.div>
@@ -297,24 +407,6 @@ const SectionHeader: React.FC<{ icon: React.ReactNode; title: string; count?: nu
 );
 
 // ============================================================================
-// EMPTY STATE
-// ============================================================================
-
-const EmptyState: React.FC<{ icon: React.ReactNode; title: string; description: string }> = ({ icon, title, description }) => (
-    <motion.div
-        initial={{ opacity: 0, scale: 0.97 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-14 px-6 text-center"
-    >
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-            {icon}
-        </div>
-        <p className="text-base font-semibold text-gray-700 dark:text-gray-300 mb-1">{title}</p>
-        <p className="text-sm text-gray-400 max-w-xs">{description}</p>
-    </motion.div>
-);
-
-// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -323,6 +415,7 @@ const StudentDashboard: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const [courses, setCourses] = useState<any[]>([]);
+    const [skillCourses, setSkillCourses] = useState<ApprovedSkillCourse[]>([]);
     const [enrolledInternships, setEnrolledInternships] = useState<EnrolledInternship[]>([]);
     const [approvedWebinars, setApprovedWebinars] = useState<ApprovedWebinar[]>([]);
     const [coursesLoading, setCoursesLoading] = useState(true);
@@ -335,14 +428,16 @@ const StudentDashboard: React.FC = () => {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [batchesResponse, enrolledInternshipsResponse, approvedWebinarsResponse] = await Promise.all([
+                const [batchesResponse, enrolledInternshipsResponse, approvedWebinarsResponse, studentDashboardResponse] = await Promise.all([
                     api.get('/language-trainer/student/batches'),
                     internshipApplicationAPI.getMyEnrolled(),
                     webinarRegistrationAPI.getApprovedMine(),
+                    dashboardAPI.getStudentData(),
                 ]);
                 setCourses(batchesResponse.data);
                 setEnrolledInternships(enrolledInternshipsResponse.internships || []);
                 setApprovedWebinars(approvedWebinarsResponse.registrations || []);
+                setSkillCourses(studentDashboardResponse.courses || []);
             } catch (error) {
                 console.error("Failed to fetch student dashboard data", error);
             } finally {
@@ -374,8 +469,8 @@ const StudentDashboard: React.FC = () => {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <div ref={quickActionsRef} className="fixed right-4 top-4 z-50 flex items-center gap-3">
                 <Link
-                    to="/student-dashboard"
-                    aria-label="Student dashboard"
+                    to="/"
+                    aria-label="Go to home page"
                     className="flex h-11 w-11 items-center justify-center rounded-full border border-white/50 bg-white/90 text-[#0a192f] shadow-lg backdrop-blur-md transition-colors hover:bg-white dark:border-gray-700 dark:bg-[#112240]/90 dark:text-white dark:hover:bg-[#112240]"
                 >
                     <LayoutDashboard className="h-5 w-5" />
@@ -543,6 +638,7 @@ const StudentDashboard: React.FC = () => {
                                 <motion.section
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 12 }}
                                     transition={{ duration: 0.5 }}
                                 >
                                     <SectionHeader
@@ -564,40 +660,32 @@ const StudentDashboard: React.FC = () => {
                             )}
                         </AnimatePresence>
 
-                        {/* Approved Webinars */}
-                        <motion.section
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.08, duration: 0.5 }}
-                        >
-                            <SectionHeader
-                                icon={<Video className="h-4 w-4 text-[#d6b161]" />}
-                                title="Approved Webinars"
-                                count={!webinarsLoading ? approvedWebinars.length : undefined}
-                            />
-                            {webinarsLoading ? (
-                                <div className="grid gap-5">
-                                    <SkeletonCourseCard />
-                                </div>
-                            ) : approvedWebinars.length > 0 ? (
-                                <motion.div
-                                    variants={containerVariants}
-                                    initial="hidden"
-                                    animate="visible"
-                                    className="space-y-4"
+                        <AnimatePresence>
+                            {!webinarsLoading && approvedWebinars.length > 0 && (
+                                <motion.section
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 12 }}
+                                    transition={{ delay: 0.08, duration: 0.5 }}
                                 >
-                                    {approvedWebinars.map((webinar) => (
-                                        <ApprovedWebinarCard key={webinar._id} webinar={webinar} />
-                                    ))}
-                                </motion.div>
-                            ) : (
-                                <EmptyState
-                                    icon={<Video className="h-6 w-6 text-gray-400" />}
-                                    title="No approved webinars yet"
-                                    description="Once your webinar payment is reviewed and accepted by admin, it will appear here with the join link."
-                                />
+                                    <SectionHeader
+                                        icon={<Video className="h-4 w-4 text-[#d6b161]" />}
+                                        title="Approved Webinars"
+                                        count={approvedWebinars.length}
+                                    />
+                                    <motion.div
+                                        variants={containerVariants}
+                                        initial="hidden"
+                                        animate="visible"
+                                        className="space-y-4"
+                                    >
+                                        {approvedWebinars.map((webinar) => (
+                                            <ApprovedWebinarCard key={webinar._id} webinar={webinar} />
+                                        ))}
+                                    </motion.div>
+                                </motion.section>
                             )}
-                        </motion.section>
+                        </AnimatePresence>
 
                         {/* Enrolled Courses */}
                         <motion.section
@@ -608,29 +696,79 @@ const StudentDashboard: React.FC = () => {
                             <SectionHeader
                                 icon={<BookOpen className="h-4 w-4 text-[#d6b161]" />}
                                 title="Enrolled Courses"
-                                count={!coursesLoading ? courses.length : undefined}
+                                count={!coursesLoading ? courses.length + skillCourses.length : undefined}
                             />
                             {coursesLoading ? (
                                 <div className="grid gap-5 sm:grid-cols-1 lg:grid-cols-2">
                                     {Array.from({ length: 2 }).map((_, i) => <SkeletonCourseCard key={i} />)}
                                 </div>
-                            ) : courses.length > 0 ? (
-                                <motion.div
-                                    variants={containerVariants}
-                                    initial="hidden"
-                                    animate="visible"
-                                    className="grid gap-5 sm:grid-cols-1 lg:grid-cols-2"
-                                >
-                                    {courses.map((course) => (
-                                        <CourseCard key={course._id} course={course} />
-                                    ))}
-                                </motion.div>
+                            ) : courses.length > 0 || skillCourses.length > 0 ? (
+                                <div className="space-y-8">
+                                    {courses.length > 0 && (
+                                        <div>
+                                            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.22em] text-gray-400 dark:text-gray-500">
+                                                Language Courses
+                                            </p>
+                                            <motion.div
+                                                variants={containerVariants}
+                                                initial="hidden"
+                                                animate="visible"
+                                                className="grid gap-5 sm:grid-cols-1 lg:grid-cols-2"
+                                            >
+                                                {courses.map((course) => (
+                                                    <CourseCard key={course._id} course={course} />
+                                                ))}
+                                            </motion.div>
+                                        </div>
+                                    )}
+
+                                    {skillCourses.length > 0 && (
+                                        <div>
+                                            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.22em] text-gray-400 dark:text-gray-500">
+                                                Skill Courses
+                                            </p>
+                                            <motion.div
+                                                variants={containerVariants}
+                                                initial="hidden"
+                                                animate="visible"
+                                                className="grid gap-5 sm:grid-cols-1 lg:grid-cols-2"
+                                            >
+                                                {skillCourses.map((course) => (
+                                                    <SkillCourseCard key={course.id} course={course} />
+                                                ))}
+                                            </motion.div>
+                                        </div>
+                                    )}
+                                </div>
                             ) : (
-                                <EmptyState
-                                    icon={<BookOpen className="h-6 w-6 text-gray-400" />}
-                                    title="No courses enrolled yet"
-                                    description="Once you're enrolled in a course, it will appear here with all your learning materials."
-                                />
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.98 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="rounded-2xl border-2 border-dashed border-gray-200 bg-white px-6 py-12 text-center dark:border-gray-700 dark:bg-gray-800"
+                                >
+                                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
+                                        <BookOpen className="h-6 w-6 text-[#d6b161]" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-[#0a192f] dark:text-white">No courses enrolled yet</h3>
+                                    <p className="mx-auto mt-2 max-w-md text-sm text-gray-500 dark:text-gray-400">
+                                        Start learning by enrolling in a language course or a skill course.
+                                    </p>
+                                    <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                                        <Button
+                                            onClick={() => navigate('/language-training')}
+                                            className="rounded-xl bg-[#0a192f] px-5 py-3 text-white hover:bg-[#112240] dark:bg-[#d6b161] dark:text-[#0a192f] dark:hover:bg-[#c4a055]"
+                                        >
+                                            Enroll to Language Courses
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => navigate('/skill-training')}
+                                            className="rounded-xl border-[#d6b161] px-5 py-3 text-[#d6b161] hover:bg-[#d6b161]/10 dark:border-[#d6b161] dark:text-[#f0d79a] dark:hover:bg-[#d6b161]/10"
+                                        >
+                                            Enroll to Skill Courses
+                                        </Button>
+                                    </div>
+                                </motion.div>
                             )}
                         </motion.section>
                     </div>
