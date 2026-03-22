@@ -20,12 +20,17 @@ import {
     GraduationCap,
     User as UserIcon,
     Eye,
-    MessageCircle
+    MessageCircle,
+    LayoutDashboard,
+    Settings,
+    Moon,
+    Sun
 
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import api, { getAssetUrl } from '../lib/api';
 
 type TrainingType = 'language' | 'skill';
@@ -90,12 +95,14 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
     const { batchId } = useParams<{ batchId: string }>();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const trainerBatchBasePath = `/trainer-batches/${trainingType}`;
     const [batch, setBatch] = useState<BatchDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'announcements' | 'materials' | 'students' | 'classes'>('announcements');
     const contentContainerRef = useRef<HTMLDivElement>(null);
     const tabsContainerRef = useRef<HTMLDivElement>(null);
+    const quickActionsRef = useRef<HTMLDivElement>(null);
 
     // Forms State
     const [showAddModal, setShowAddModal] = useState(false);
@@ -117,6 +124,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
     // View Student Profile State
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
     const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
+    const [isQuickSettingsOpen, setIsQuickSettingsOpen] = useState(false);
 
     // Pagination State — per tab
     const PAGE_LIMIT = 10;
@@ -142,6 +150,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
     const [clsLoading, setClsLoading] = useState(false);
 
     const isTrainer = user?.role === 'trainer' || user?._id === batch?.trainerId;
+    const isStudent = user?.role === 'student';
 
     // --- Paginated fetch helpers ---
     const fetchTab = async (tab: typeof activeTab, page: number, append = false) => {
@@ -225,6 +234,24 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
         };
         checkGoogleConnection();
     }, [isTrainer]);
+
+    useEffect(() => {
+        if (!isStudent) return;
+
+        const handleClickOutside = (event: MouseEvent) => {
+            if (quickActionsRef.current && !quickActionsRef.current.contains(event.target as Node)) {
+                setIsQuickSettingsOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside as unknown as EventListener);
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside as unknown as EventListener);
+        };
+    }, [isStudent]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -413,18 +440,73 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-950 dark:to-gray-950 flex flex-col">
-            <Header />
+            {!isStudent && <Header />}
 
-            <main className="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
+            {isStudent && (
+                <div ref={quickActionsRef} className="fixed right-4 top-4 z-50 flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/')}
+                        aria-label="Go to home page"
+                        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/50 bg-white/90 text-[#0a192f] shadow-lg backdrop-blur-md transition-colors hover:bg-white dark:border-gray-700 dark:bg-[#112240]/90 dark:text-white dark:hover:bg-[#112240]"
+                    >
+                        <LayoutDashboard className="h-5 w-5" />
+                    </button>
+
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setIsQuickSettingsOpen((currentState) => !currentState)}
+                            aria-label="Dashboard settings"
+                            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/50 bg-white/90 text-[#0a192f] shadow-lg backdrop-blur-md transition-colors hover:bg-white dark:border-gray-700 dark:bg-[#112240]/90 dark:text-white dark:hover:bg-[#112240]"
+                        >
+                            <Settings className="h-5 w-5" />
+                        </button>
+
+                        {isQuickSettingsOpen && (
+                            <div className="absolute right-0 top-14 w-72 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-2xl backdrop-blur-md dark:border-gray-700 dark:bg-[#112240]/95">
+                                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500">Settings</p>
+
+                                <div className="mt-4 flex items-center justify-between rounded-xl bg-gray-50 px-3 py-3 dark:bg-[#0a192f]/80">
+                                    <div className="flex items-center gap-2.5">
+                                        {theme === 'dark' ? (
+                                            <Moon className="h-4 w-4 text-[#d6b161]" />
+                                        ) : (
+                                            <Sun className="h-4 w-4 text-[#d6b161]" />
+                                        )}
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                                            {theme === 'dark' ? 'Dark mode' : 'Light mode'}
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={toggleTheme}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 dark:focus:ring-offset-[#112240] ${theme === 'dark' ? 'bg-[#d6b161]' : 'bg-gray-300'}`}
+                                        aria-label="Toggle theme"
+                                    >
+                                        <span
+                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`}
+                                        />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            <main className={`flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${isStudent ? 'py-20 sm:py-24 lg:py-24' : 'py-6 sm:py-8 lg:py-10'}`}>
                 {/* Navigation */}
                 <div className="mb-8 animate-in fade-in slide-in-from-top duration-500">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="group inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-all duration-300 hover:gap-3 mb-6"
-                    >
-                        <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
-                        <span className="font-medium">Back to Dashboard</span>
-                    </button>
+                    {!isStudent && (
+                        <button
+                            onClick={() => navigate(-1)}
+                            className="group inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-all duration-300 hover:gap-3 mb-6"
+                        >
+                            <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
+                            <span className="font-medium">Back to Dashboard</span>
+                        </button>
+                    )}
 
                     {/* Batch Header */}
                     <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-gray-800/50 backdrop-blur-xl shadow-xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8 lg:p-10">
@@ -1257,7 +1339,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                 </div>
             )}
 
-            <Footer />
+            {!isStudent && <Footer />}
         </div>
     );
 };
