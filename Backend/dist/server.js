@@ -54,27 +54,34 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         const userId = socket.userId;
         const userRole = socket.userRole;
         // Client joins their private 1-on-1 room
-        socket.on('joinRoom', (_a) => __awaiter(void 0, [_a], void 0, function* ({ studentId, trainerId }) {
+        socket.on('joinRoom', (_a, ack_1) => __awaiter(void 0, [_a, ack_1], void 0, function* ({ studentId, trainerId }, ack) {
             const sId = String(studentId);
             const tId = String(trainerId);
             const isAuthorized = yield (0, chat_access_1.canAccessChatPair)(userId, userRole, sId, tId);
             if (!isAuthorized) {
-                socket.emit('error', { message: 'Not authorized for this chat room' });
+                const message = 'Not authorized for this chat room';
+                socket.emit('error', { message });
+                ack === null || ack === void 0 ? void 0 : ack({ ok: false, message });
                 return;
             }
             const room = `chat_${sId}_${tId}`;
             socket.join(room);
+            ack === null || ack === void 0 ? void 0 : ack({ ok: true, room });
             console.log(`[Socket] User ${userId} (${userRole}) joined room: ${room}`);
         }));
         // Client sends a message
-        socket.on('sendMessage', (_a) => __awaiter(void 0, [_a], void 0, function* ({ studentId, trainerId, content }) {
-            if (!(content === null || content === void 0 ? void 0 : content.trim()))
+        socket.on('sendMessage', (_a, ack_1) => __awaiter(void 0, [_a, ack_1], void 0, function* ({ studentId, trainerId, content }, ack) {
+            if (!(content === null || content === void 0 ? void 0 : content.trim())) {
+                ack === null || ack === void 0 ? void 0 : ack({ ok: false, message: 'Message cannot be empty.' });
                 return;
+            }
             const sId = String(studentId);
             const tId = String(trainerId);
             const isAuthorized = yield (0, chat_access_1.canAccessChatPair)(userId, userRole, sId, tId);
             if (!isAuthorized) {
-                socket.emit('error', { message: 'Not authorized to send messages in this chat' });
+                const message = 'Not authorized to send messages in this chat';
+                socket.emit('error', { message });
+                ack === null || ack === void 0 ? void 0 : ack({ ok: false, message });
                 return;
             }
             try {
@@ -86,13 +93,17 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
                     createdAt: new Date()
                 });
                 const populated = yield message.populate('senderId', 'name avatar _id');
+                const serializedMessage = typeof populated.toObject === 'function' ? populated.toObject() : populated;
                 const room = `chat_${sId}_${tId}`;
-                io.to(room).emit('newMessage', populated);
+                io.to(room).emit('newMessage', serializedMessage);
+                ack === null || ack === void 0 ? void 0 : ack({ ok: true, chatMessage: serializedMessage });
                 console.log(`[Socket] Message sent in room: ${room}`);
             }
             catch (err) {
                 console.error('[Socket] Failed to save message:', err);
-                socket.emit('error', { message: 'Failed to send message' });
+                const message = 'Failed to send message';
+                socket.emit('error', { message });
+                ack === null || ack === void 0 ? void 0 : ack({ ok: false, message });
             }
         }));
         socket.on('disconnect', () => {

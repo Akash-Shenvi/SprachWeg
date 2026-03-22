@@ -3,6 +3,10 @@ import mongoose from 'mongoose';
 import Enrollment from '../models/enrollment.model';
 import Batch from '../models/batch.model';
 import SkillCourse from '../models/skillCourse.model';
+import User from '../models/user.model';
+import { EmailService } from '../utils/email.service';
+
+const emailService = new EmailService();
 
 // 1. Student requests enrollment
 export const enrollStudent = async (req: Request, res: Response) => {
@@ -125,6 +129,20 @@ export const acceptEnrollment = async (req: Request, res: Response) => {
         // Update enrollment
         enrollment.status = 'active';
         await enrollment.save();
+
+        const [student, course] = await Promise.all([
+            User.findById(enrollment.studentId).select('name email'),
+            SkillCourse.findById(enrollment.courseId).select('title'),
+        ]);
+
+        if (student?.email) {
+            await emailService.sendEnrollmentEmail(
+                student.email,
+                student.name || 'Student',
+                course?.title || 'Skill Training',
+                'APPROVED'
+            );
+        }
 
         res.json({ message: 'Enrollment accepted', batch: batch?.name || null, enrollment });
 

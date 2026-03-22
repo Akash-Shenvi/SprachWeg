@@ -16,6 +16,9 @@ exports.rejectEnrollment = exports.acceptEnrollment = exports.getPendingEnrollme
 const enrollment_model_1 = __importDefault(require("../models/enrollment.model"));
 const batch_model_1 = __importDefault(require("../models/batch.model"));
 const skillCourse_model_1 = __importDefault(require("../models/skillCourse.model"));
+const user_model_1 = __importDefault(require("../models/user.model"));
+const email_service_1 = require("../utils/email.service");
+const emailService = new email_service_1.EmailService();
 // 1. Student requests enrollment
 const enrollStudent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -123,6 +126,13 @@ const acceptEnrollment = (req, res) => __awaiter(void 0, void 0, void 0, functio
         // Update enrollment
         enrollment.status = 'active';
         yield enrollment.save();
+        const [student, course] = yield Promise.all([
+            user_model_1.default.findById(enrollment.studentId).select('name email'),
+            skillCourse_model_1.default.findById(enrollment.courseId).select('title'),
+        ]);
+        if (student === null || student === void 0 ? void 0 : student.email) {
+            yield emailService.sendEnrollmentEmail(student.email, student.name || 'Student', (course === null || course === void 0 ? void 0 : course.title) || 'Skill Training', 'APPROVED');
+        }
         res.json({ message: 'Enrollment accepted', batch: (batch === null || batch === void 0 ? void 0 : batch.name) || null, enrollment });
     }
     catch (error) {

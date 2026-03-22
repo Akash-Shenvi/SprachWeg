@@ -22,6 +22,18 @@ interface ChatMessage {
     createdAt: string;
 }
 
+interface JoinRoomAck {
+    ok: boolean;
+    message?: string;
+    room?: string;
+}
+
+interface SendMessageAck {
+    ok: boolean;
+    message?: string;
+    chatMessage?: ChatMessage;
+}
+
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -44,6 +56,13 @@ const formatDateDivider = (dateStr: string) => {
 const shouldShowDateDivider = (current: ChatMessage, previous?: ChatMessage) => {
     if (!previous) return true;
     return new Date(current.createdAt).toDateString() !== new Date(previous.createdAt).toDateString();
+};
+
+const appendUniqueChatMessage = (currentMessages: ChatMessage[], nextMessage?: ChatMessage | null) => {
+    if (!nextMessage) return currentMessages;
+    return currentMessages.some((message) => message._id === nextMessage._id)
+        ? currentMessages
+        : [...currentMessages, nextMessage];
 };
 
 // ============================================================================
@@ -96,6 +115,8 @@ const ChatPage: React.FC = () => {
             try {
                 setLoading(true);
                 setError(null);
+                setSocketError(null);
+                setConnected(false);
                 const res = await api.get(`/chat/${studentId}`, {
                     params: requestedTrainerId ? { trainerId: requestedTrainerId } : undefined
                 });
@@ -109,6 +130,8 @@ const ChatPage: React.FC = () => {
                     setOtherPartyName(res.data.studentName || 'Student');
                 }
             } catch (err: any) {
+                setMessages([]);
+                setTrainerId(null);
                 setError(err.response?.data?.message || 'Failed to load chat. Make sure a trainer is assigned.');
             } finally {
                 setLoading(false);
@@ -124,6 +147,7 @@ const ChatPage: React.FC = () => {
 
         const token = localStorage.getItem('token');
         if (!token) {
+            setConnected(false);
             setSocketError('Not authenticated');
             return;
         }
@@ -139,13 +163,23 @@ const ChatPage: React.FC = () => {
         socketRef.current = socket;
 
         socket.on('connect', () => {
-            setConnected(true);
+            setConnected(false);
             setSocketError(null);
-            // Join the private room
-            socket.emit('joinRoom', { studentId, trainerId });
+            socket.emit('joinRoom', { studentId, trainerId }, (response?: JoinRoomAck) => {
+                if (!response?.ok) {
+                    setConnected(false);
+                    setSocketError(response?.message || 'Failed to join chat room.');
+                    return;
+                }
+
+                setConnected(true);
+                setSocketError(null);
+            });
         });
 
-        socket.on('disconnect', () => setConnected(false));
+        socket.on('disconnect', () => {
+            setConnected(false);
+        });
 
         socket.on('connect_error', (err) => {
             console.error('Socket.IO connect error:', err.message);
@@ -154,11 +188,15 @@ const ChatPage: React.FC = () => {
         });
 
         socket.on('newMessage', (msg: ChatMessage) => {
-            setMessages(prev => [...prev, msg]);
+            setMessages((prev) => appendUniqueChatMessage(prev, msg));
         });
 
         socket.on('error', (err: { message: string }) => {
             console.error('Socket room error:', err.message);
+            setSocketError(err.message || 'Chat connection error.');
+            if (err.message?.toLowerCase().includes('not authorized')) {
+                setConnected(false);
+            }
         });
 
         return () => {
@@ -174,16 +212,28 @@ const ChatPage: React.FC = () => {
 
     // ── Send message ─────────────────────────────────────────────────────────
     const handleSend = () => {
-        if (!input.trim() || !socketRef.current || !trainerId) return;
+        const trimmedInput = input.trim();
+        if (!trimmedInput || !socketRef.current || !trainerId || !studentId || !connected) return;
 
-        socketRef.current.emit('sendMessage', {
-            studentId,
-            trainerId,
-            content: input.trim(),
-        });
+        socketRef.current.emit(
+            'sendMessage',
+            {
+                studentId,
+                trainerId,
+                content: trimmedInput,
+            },
+            (response?: SendMessageAck) => {
+                if (!response?.ok) {
+                    setSocketError(response?.message || 'Failed to send message.');
+                    return;
+                }
 
-        setInput('');
-        inputRef.current?.focus();
+                setSocketError(null);
+                setMessages((prev) => appendUniqueChatMessage(prev, response.chatMessage));
+                setInput('');
+                inputRef.current?.focus();
+            }
+        );
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
