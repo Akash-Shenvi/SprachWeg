@@ -3,8 +3,6 @@ import mongoose from 'mongoose';
 import Batch from '../models/batch.model';
 import ClassSession from '../models/classSession.model';
 import Enrollment from '../models/enrollment.model';
-import SkillCourse from '../models/skillCourse.model'; // Assuming this exists
-import Attendance from '../models/attendance.model';
 import User from '../models/user.model';
 
 export const getStudentDashboard = async (req: Request, res: Response): Promise<void> => {
@@ -19,7 +17,14 @@ export const getStudentDashboard = async (req: Request, res: Response): Promise<
         const validEnrollments = enrollments.filter((enrollment: any) => enrollment.courseId);
 
         // 2. Get Upcoming Classes (from batches user is enrolled in)
-        const batchIds = validEnrollments.map(e => e.batchId).filter(id => !!id) as mongoose.Types.ObjectId[];
+        const batchIds = validEnrollments.map((enrollment) => enrollment.batchId).filter(Boolean) as mongoose.Types.ObjectId[];
+        const batches = await Batch.find({
+            _id: { $in: batchIds },
+        })
+            .select('trainerId isActive')
+            .populate('trainerId', 'name');
+        const batchMap = new Map(batches.map((batch) => [String(batch._id), batch]));
+
         const upcomingClasses = await ClassSession.find({
             batchId: { $in: batchIds },
             startTime: { $gte: new Date() },
@@ -37,30 +42,42 @@ export const getStudentDashboard = async (req: Request, res: Response): Promise<
         // Calculate streak (mock or simple logic)
         const stats = {
             streak: 12, // Placeholder
-            certificates: validEnrollments.filter(e => e.status === 'completed').length,
+            certificates: validEnrollments.filter((enrollment) => enrollment.status === 'completed').length,
             weeklyGoalHours: 10,
             completedHours: 6.5
         };
 
+        const dashboardCourses = validEnrollments.map((enrollment) => {
+            const normalizedBatchId = enrollment.batchId ? String(enrollment.batchId) : null;
+            const batch = normalizedBatchId ? batchMap.get(normalizedBatchId) : null;
+            const trainer = batch?.isActive === false ? null : (batch?.trainerId as any) || null;
+
+            return {
+                id: (enrollment.courseId as any)._id,
+                batchId: normalizedBatchId,
+                title: (enrollment.courseId as any).title,
+                progress: enrollment.progress,
+                totalLessons: 24, // Placeholder
+                completedLessons: enrollment.completedLessons.length,
+                thumbnail: (enrollment.courseId as any).image || '',
+                difficulty: (enrollment.courseId as any).level || 'Beginner',
+                trainerId: trainer ? {
+                    _id: String(trainer._id),
+                    name: trainer.name || 'Trainer',
+                } : null,
+            };
+        });
+
         res.json({
             user: await User.findById(studentId).select('name email avatar'),
-            courses: validEnrollments.map(e => ({
-                id: (e.courseId as any)._id,
-                batchId: e.batchId ? String(e.batchId) : null,
-                title: (e.courseId as any).title,
-                progress: e.progress,
-                totalLessons: 24, // Placeholder
-                completedLessons: e.completedLessons.length,
-                thumbnail: (e.courseId as any).image || '📚',
-                difficulty: (e.courseId as any).level || 'Beginner'
-            })),
-            upcomingClasses: upcomingClasses.map(c => ({
-                id: c._id,
-                title: c.topic,
-                startsAt: c.startTime,
-                instructor: (c.trainerId as any).name,
-                batch: (c.batchId as any).name,
-                status: c.status
+            courses: dashboardCourses,
+            upcomingClasses: upcomingClasses.map((skillClass) => ({
+                id: skillClass._id,
+                title: skillClass.topic,
+                startsAt: skillClass.startTime,
+                instructor: (skillClass.trainerId as any).name,
+                batch: (skillClass.batchId as any).name,
+                status: skillClass.status
             })),
             stats
         });
@@ -86,8 +103,8 @@ export const getTrainerDashboard = async (req: Request, res: Response): Promise<
         }).populate('batchId', 'name').sort({ startTime: 1 }).limit(5);
 
         // 3. Get Students for Performance Table
-        const studentIds = batches.reduce((acc, b) => [...acc, ...b.students], [] as mongoose.Types.ObjectId[]);
-        const uniqueStudentIds = [...new Set(studentIds.map(id => id.toString()))];
+        const studentIds = batches.reduce((acc, batch) => [...acc, ...batch.students], [] as mongoose.Types.ObjectId[]);
+        const uniqueStudentIds = [...new Set(studentIds.map((id) => id.toString()))];
         const students = await User.find({ _id: { $in: uniqueStudentIds } }).select('name email');
 
         // 4. Stats Aggregation
@@ -99,26 +116,26 @@ export const getTrainerDashboard = async (req: Request, res: Response): Promise<
                 avgAttendance: 88, // Placeholder
                 earnings: 2840 // Placeholder
             },
-            batches: batches.map(b => ({
-                id: b._id,
-                name: b.name,
-                course: (b.courseId as any).title,
-                students: b.students.length,
+            batches: batches.map((batch) => ({
+                id: batch._id,
+                name: batch.name,
+                course: (batch.courseId as any).title,
+                students: batch.students.length,
                 attendance: 90, // Placeholder
                 nextClass: 'Today, 10:00 AM'
             })),
-            upcomingClasses: upcomingClasses.map(c => ({
-                id: c._id,
-                title: c.topic,
-                time: c.startTime,
-                batch: (c.batchId as any).name,
+            upcomingClasses: upcomingClasses.map((skillClass) => ({
+                id: skillClass._id,
+                title: skillClass.topic,
+                time: skillClass.startTime,
+                batch: (skillClass.batchId as any).name,
                 attendees: 0,
-                status: c.status
+                status: skillClass.status
             })),
-            students: students.map(s => ({
-                id: s._id,
-                name: s.name,
-                email: s.email,
+            students: students.map((student) => ({
+                id: student._id,
+                name: student.name,
+                email: student.email,
                 attendance: 85, // Placeholder
                 lastActive: '2h ago', // Placeholder
                 status: 'active' // Placeholder

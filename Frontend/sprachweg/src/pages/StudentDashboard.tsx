@@ -52,6 +52,7 @@ interface ApprovedSkillCourse {
     completedLessons?: number;
     difficulty?: string;
     thumbnail?: string;
+    trainerId?: string | { _id?: string; name?: string } | null;
 }
 
 // ============================================================================
@@ -152,6 +153,20 @@ const getSkillCourseRoute = (title?: string) => {
     return '/skill-training';
 };
 
+const getTrainerId = (trainer: string | { _id?: string; name?: string } | null | undefined) => {
+    if (!trainer) return null;
+    return typeof trainer === 'string' ? trainer : trainer._id || null;
+};
+
+const getTrainerName = (
+    trainer: string | { _id?: string; name?: string } | null | undefined,
+    fallback: string = 'Trainer not assigned'
+) => {
+    if (!trainer) return fallback;
+    if (typeof trainer === 'string') return fallback;
+    return trainer.name || fallback;
+};
+
 
 
 // ============================================================================
@@ -162,9 +177,15 @@ const CourseCard: React.FC<{ course: any }> = ({ course }) => {
     const navigate = useNavigate();
     const { user } = useAuth();
     const myId = user?._id || (user as any)?.id;
-    const trainerId = typeof course.trainerId === 'string' ? course.trainerId : course.trainerId?._id;
+    const trainerId = getTrainerId(course.trainerId);
+    const trainerName = getTrainerName(course.trainerId, 'Unknown');
 
     const handleCardClick = () => { navigate(`/language-batch/${course._id}`); };
+    const handleChatClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        if (!trainerId || !myId) return;
+        navigate(`/chat/${myId}?trainerId=${encodeURIComponent(trainerId)}`);
+    };
 
     return (
         <motion.div
@@ -182,7 +203,7 @@ const CourseCard: React.FC<{ course: any }> = ({ course }) => {
                         </div>
                         <h3 className="mt-2 text-lg font-bold leading-snug text-[#0a192f] dark:text-white">{course.courseTitle}</h3>
                         <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{course.name}</p>
-                        <p className="mt-1 text-xs text-gray-400">Trainer: <span className="text-gray-600 dark:text-gray-300 font-medium">{course.trainerId?.name || 'Unknown'}</span></p>
+                        <p className="mt-1 text-xs text-gray-400">Trainer: <span className="text-gray-600 dark:text-gray-300 font-medium">{trainerName}</span></p>
                     </div>
                     <div className="h-10 w-10 shrink-0 rounded-xl bg-[#0a192f]/5 dark:bg-[#d6b161]/10 flex items-center justify-center">
                         <BookOpen className="h-5 w-5 text-[#d6b161]" />
@@ -196,17 +217,15 @@ const CourseCard: React.FC<{ course: any }> = ({ course }) => {
                         <BookOpen className="h-4 w-4" />
                         View Materials
                     </button>
-                    {course.trainerId && (
+                    {trainerId && (
                         <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (!trainerId) return;
-                                navigate(`/chat/${myId}?trainerId=${encodeURIComponent(trainerId)}`);
-                            }}
-                            className="flex items-center gap-1.5 rounded-xl bg-[#d6b161]/10 px-4 py-2 text-sm font-semibold text-[#d6b161] hover:bg-[#d6b161]/20 transition-colors"
+                            type="button"
+                            onClick={handleChatClick}
+                            aria-label={`Chat with ${trainerName}`}
+                            title={`Chat with ${trainerName}`}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#d6b161]/10 text-[#d6b161] transition-colors hover:bg-[#d6b161]/20"
                         >
                             <MessageCircle className="h-4 w-4" />
-                            Chat
                         </button>
                     )}
                 </div>
@@ -217,10 +236,20 @@ const CourseCard: React.FC<{ course: any }> = ({ course }) => {
 
 const SkillCourseCard: React.FC<{ course: ApprovedSkillCourse }> = ({ course }) => {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const myId = user?._id || (user as any)?.id;
     const targetRoute = course.batchId ? `/skill-batch/${course.batchId}` : getSkillCourseRoute(course.title);
+    const trainerId = getTrainerId(course.trainerId);
+    const trainerName = getTrainerName(course.trainerId);
     const hasImageThumbnail =
         typeof course.thumbnail === 'string'
         && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('/'));
+
+    const handleChatClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        if (!trainerId || !myId) return;
+        navigate(`/chat/${myId}?trainerId=${encodeURIComponent(trainerId)}`);
+    };
 
     return (
         <motion.div
@@ -238,12 +267,7 @@ const SkillCourseCard: React.FC<{ course: ApprovedSkillCourse }> = ({ course }) 
                         </div>
                         <h3 className="mt-2 text-lg font-bold leading-snug text-[#0a192f] dark:text-white">{course.title}</h3>
                         <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{course.difficulty || 'Professional Training'}</p>
-                        <p className="mt-1 text-xs text-gray-400">
-                            Progress:{' '}
-                            <span className="font-medium text-gray-600 dark:text-gray-300">
-                                {course.progress ?? 0}% complete
-                            </span>
-                        </p>
+                        <p className="mt-1 text-xs text-gray-400">Trainer: <span className="font-medium text-gray-600 dark:text-gray-300">{trainerName}</span></p>
                     </div>
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#0a192f]/5 dark:bg-[#d6b161]/10">
                         {hasImageThumbnail ? (
@@ -266,9 +290,17 @@ const SkillCourseCard: React.FC<{ course: ApprovedSkillCourse }> = ({ course }) 
                         <BookOpen className="h-4 w-4" />
                         View Materials
                     </button>
-                    <div className="flex items-center rounded-xl bg-[#d6b161]/10 px-4 py-2 text-sm font-semibold text-[#d6b161]">
-                        {course.completedLessons ?? 0}/{course.totalLessons ?? 0} Lessons
-                    </div>
+                    {trainerId && (
+                        <button
+                            type="button"
+                            onClick={handleChatClick}
+                            aria-label={`Chat with ${trainerName}`}
+                            title={`Chat with ${trainerName}`}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#d6b161]/10 text-[#d6b161] transition-colors hover:bg-[#d6b161]/20"
+                        >
+                            <MessageCircle className="h-4 w-4" />
+                        </button>
+                    )}
                 </div>
             </div>
         </motion.div>
