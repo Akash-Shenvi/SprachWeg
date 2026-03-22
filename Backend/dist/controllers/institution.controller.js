@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.rejectInstitutionRequest = exports.approveInstitutionRequest = exports.getAdminInstitutionRequests = exports.createInstitutionSubmission = exports.getInstitutionSubmissions = exports.getInstitutionDashboard = void 0;
+exports.deleteRejectedInstitutionRequest = exports.rejectInstitutionRequest = exports.approveInstitutionRequest = exports.getAdminInstitutionRequests = exports.createInstitutionSubmission = exports.getInstitutionSubmissions = exports.getInstitutionDashboard = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const class_transformer_1 = require("class-transformer");
@@ -403,8 +403,11 @@ const createInstitutionSubmission = (req, res) => __awaiter(void 0, void 0, void
 exports.createInstitutionSubmission = createInstitutionSubmission;
 const getAdminInstitutionRequests = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        const rawPage = Math.max(1, parseInt(String(req.query.page || ''), 10) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit || ''), 10) || 10));
         const status = normalizeText(String(req.query.status || ''));
         const search = normalizeText(String(req.query.search || ''));
+        const searchFilter = {};
         const filter = {};
         if (status && status !== 'All') {
             filter.status = status.toUpperCase();
@@ -422,7 +425,7 @@ const getAdminInstitutionRequests = (req, res) => __awaiter(void 0, void 0, void
                 ],
             }).select('_id');
             matchingInstitutionIds = matchingInstitutions.map((institution) => institution._id);
-            filter.$or = [
+            searchFilter.$or = [
                 { courseTitle: { $regex: search, $options: 'i' } },
                 { levelName: { $regex: search, $options: 'i' } },
                 { institutionId: { $in: matchingInstitutionIds } },
@@ -430,13 +433,39 @@ const getAdminInstitutionRequests = (req, res) => __awaiter(void 0, void 0, void
                 { 'students.email': { $regex: search, $options: 'i' } },
             ];
         }
-        const requests = yield institutionEnrollmentRequest_model_1.default.find(filter)
+        const queryFilter = Object.assign(Object.assign({}, searchFilter), filter);
+        const [totalFilteredRequests, pendingCount, approvedCount, rejectedCount,] = yield Promise.all([
+            institutionEnrollmentRequest_model_1.default.countDocuments(queryFilter),
+            institutionEnrollmentRequest_model_1.default.countDocuments(Object.assign(Object.assign({}, searchFilter), { status: 'PENDING' })),
+            institutionEnrollmentRequest_model_1.default.countDocuments(Object.assign(Object.assign({}, searchFilter), { status: 'APPROVED' })),
+            institutionEnrollmentRequest_model_1.default.countDocuments(Object.assign(Object.assign({}, searchFilter), { status: 'REJECTED' })),
+        ]);
+        const totalPages = Math.max(1, Math.ceil(totalFilteredRequests / limit));
+        const currentPage = Math.min(rawPage, totalPages);
+        const skip = (currentPage - 1) * limit;
+        const requests = yield institutionEnrollmentRequest_model_1.default.find(queryFilter)
             .populate('institutionId', 'name email phoneNumber institutionName contactPersonName city state address')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
         const availableStatuses = ['All', 'PENDING', 'APPROVED', 'REJECTED'];
         return res.status(200).json({
             requests: requests.map((request) => sanitizeInstitutionRequest(request.toObject())),
             availableStatuses,
+            summary: {
+                pending: pendingCount,
+                approved: approvedCount,
+                rejected: rejectedCount,
+                total: pendingCount + approvedCount + rejectedCount,
+            },
+            pagination: {
+                currentPage,
+                totalPages,
+                totalRequests: totalFilteredRequests,
+                limit,
+                hasPreviousPage: currentPage > 1,
+                hasNextPage: currentPage < totalPages,
+            },
         });
     }
     catch (error) {
@@ -541,3 +570,25 @@ const rejectInstitutionRequest = (req, res) => __awaiter(void 0, void 0, void 0,
     }
 });
 exports.rejectInstitutionRequest = rejectInstitutionRequest;
+const deleteRejectedInstitutionRequest = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const requestId = String(req.params.id || '').trim();
+    if (!requestId) {
+        return res.status(400).json({ message: 'Institution request id is required' });
+    }
+    try {
+        const request = yield institutionEnrollmentRequest_model_1.default.findById(requestId);
+        if (!request) {
+            return res.status(404).json({ message: 'Institution request not found' });
+        }
+        if (request.status !== 'REJECTED') {
+            return res.status(400).json({ message: 'Only rejected institution requests can be deleted' });
+        }
+        yield institutionEnrollmentRequest_model_1.default.deleteOne({ _id: requestId });
+        return res.status(200).json({ message: 'Rejected institution request deleted successfully.' });
+    }
+    catch (error) {
+        console.error('Failed to delete rejected institution request:', error);
+        return res.status(500).json({ message: 'Failed to delete rejected institution request' });
+    }
+});
+exports.deleteRejectedInstitutionRequest = deleteRejectedInstitutionRequest;

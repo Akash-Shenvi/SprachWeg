@@ -426,8 +426,16 @@ export const institutionAPI = {
         const response = await api.post('/institutions/submissions', data);
         return response.data;
     },
-    async getAdminRequests(params?: { status?: string; search?: string }) {
+    async getAdminRequests(params?: { page?: number; limit?: number; status?: string; search?: string }) {
         const searchParams = new URLSearchParams();
+
+        if (params?.page) {
+            searchParams.set('page', String(params.page));
+        }
+
+        if (params?.limit) {
+            searchParams.set('limit', String(params.limit));
+        }
 
         if (params?.status) {
             searchParams.set('status', params.status);
@@ -447,6 +455,10 @@ export const institutionAPI = {
     },
     async rejectRequest(id: string, reason?: string) {
         const response = await api.post(`/admin/institutions/requests/${id}/reject`, reason ? { reason } : {});
+        return response.data;
+    },
+    async deleteRejectedRequest(id: string) {
+        const response = await api.delete(`/admin/institutions/requests/${id}`);
         return response.data;
     },
 };

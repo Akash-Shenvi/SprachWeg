@@ -476,8 +476,11 @@ export const createInstitutionSubmission = async (req: Request, res: Response) =
 
 export const getAdminInstitutionRequests = async (req: Request, res: Response) => {
     try {
+        const rawPage = Math.max(1, parseInt(String(req.query.page || ''), 10) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit || ''), 10) || 10));
         const status = normalizeText(String(req.query.status || ''));
         const search = normalizeText(String(req.query.search || ''));
+        const searchFilter: Record<string, unknown> = {};
         const filter: Record<string, unknown> = {};
 
         if (status && status !== 'All') {
@@ -499,7 +502,7 @@ export const getAdminInstitutionRequests = async (req: Request, res: Response) =
 
             matchingInstitutionIds = matchingInstitutions.map((institution) => institution._id);
 
-            filter.$or = [
+            searchFilter.$or = [
                 { courseTitle: { $regex: search, $options: 'i' } },
                 { levelName: { $regex: search, $options: 'i' } },
                 { institutionId: { $in: matchingInstitutionIds } },
@@ -508,18 +511,55 @@ export const getAdminInstitutionRequests = async (req: Request, res: Response) =
             ];
         }
 
-        const requests = await InstitutionEnrollmentRequest.find(filter)
+        const queryFilter = {
+            ...searchFilter,
+            ...filter,
+        };
+
+        const [
+            totalFilteredRequests,
+            pendingCount,
+            approvedCount,
+            rejectedCount,
+        ] = await Promise.all([
+            InstitutionEnrollmentRequest.countDocuments(queryFilter),
+            InstitutionEnrollmentRequest.countDocuments({ ...searchFilter, status: 'PENDING' }),
+            InstitutionEnrollmentRequest.countDocuments({ ...searchFilter, status: 'APPROVED' }),
+            InstitutionEnrollmentRequest.countDocuments({ ...searchFilter, status: 'REJECTED' }),
+        ]);
+
+        const totalPages = Math.max(1, Math.ceil(totalFilteredRequests / limit));
+        const currentPage = Math.min(rawPage, totalPages);
+        const skip = (currentPage - 1) * limit;
+
+        const requests = await InstitutionEnrollmentRequest.find(queryFilter)
             .populate(
                 'institutionId',
                 'name email phoneNumber institutionName contactPersonName city state address'
             )
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
 
         const availableStatuses = ['All', 'PENDING', 'APPROVED', 'REJECTED'];
 
         return res.status(200).json({
             requests: requests.map((request) => sanitizeInstitutionRequest(request.toObject())),
             availableStatuses,
+            summary: {
+                pending: pendingCount,
+                approved: approvedCount,
+                rejected: rejectedCount,
+                total: pendingCount + approvedCount + rejectedCount,
+            },
+            pagination: {
+                currentPage,
+                totalPages,
+                totalRequests: totalFilteredRequests,
+                limit,
+                hasPreviousPage: currentPage > 1,
+                hasNextPage: currentPage < totalPages,
+            },
         });
     } catch (error) {
         console.error('Failed to fetch institution admin requests:', error);
@@ -629,5 +669,32 @@ export const rejectInstitutionRequest = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Failed to reject institution request:', error);
         return res.status(500).json({ message: 'Failed to reject institution request' });
+    }
+};
+
+export const deleteRejectedInstitutionRequest = async (req: Request, res: Response) => {
+    const requestId = String(req.params.id || '').trim();
+
+    if (!requestId) {
+        return res.status(400).json({ message: 'Institution request id is required' });
+    }
+
+    try {
+        const request = await InstitutionEnrollmentRequest.findById(requestId);
+
+        if (!request) {
+            return res.status(404).json({ message: 'Institution request not found' });
+        }
+
+        if (request.status !== 'REJECTED') {
+            return res.status(400).json({ message: 'Only rejected institution requests can be deleted' });
+        }
+
+        await InstitutionEnrollmentRequest.deleteOne({ _id: requestId });
+
+        return res.status(200).json({ message: 'Rejected institution request deleted successfully.' });
+    } catch (error) {
+        console.error('Failed to delete rejected institution request:', error);
+        return res.status(500).json({ message: 'Failed to delete rejected institution request' });
     }
 };

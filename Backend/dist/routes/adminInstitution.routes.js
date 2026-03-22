@@ -11,4 +11,5 @@ router.use(auth_middleware_1.protect, auth_middleware_1.isAdmin);
 router.get('/requests', institution_controller_1.getAdminInstitutionRequests);
 router.post('/requests/:id/approve', institution_controller_1.approveInstitutionRequest);
 router.post('/requests/:id/reject', institution_controller_1.rejectInstitutionRequest);
+router.delete('/requests/:id', institution_controller_1.deleteRejectedInstitutionRequest);
 exports.default = router;
