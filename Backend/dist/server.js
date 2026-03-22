@@ -20,6 +20,7 @@ const app_1 = __importDefault(require("./app"));
 const database_1 = require("./config/database");
 const env_1 = require("./config/env");
 const chat_message_model_1 = __importDefault(require("./models/chat.message.model"));
+const user_model_1 = __importDefault(require("./models/user.model"));
 const chat_access_1 = require("./utils/chat-access");
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     yield (0, database_1.connectDB)();
@@ -34,21 +35,25 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         }
     });
     // ─── Socket.IO JWT Auth Middleware ───────────────────────────────────────────
-    io.use((socket, next) => {
+    io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
         const token = (_a = socket.handshake.auth) === null || _a === void 0 ? void 0 : _a.token;
         if (!token)
             return next(new Error('Authentication error: no token'));
         try {
             const decoded = jsonwebtoken_1.default.verify(token, env_1.env.JWT_SECRET);
-            socket.userId = decoded.id;
-            socket.userRole = decoded.role;
+            const user = yield user_model_1.default.findById(decoded.id).select('_id role');
+            if (!user) {
+                return next(new Error('Authentication error: user not found'));
+            }
+            socket.userId = String(user._id);
+            socket.userRole = user.role;
             next();
         }
         catch (_b) {
             next(new Error('Authentication error: invalid token'));
         }
-    });
+    }));
     // ─── Socket.IO Connection Handler ────────────────────────────────────────────
     io.on('connection', (socket) => {
         const userId = socket.userId;

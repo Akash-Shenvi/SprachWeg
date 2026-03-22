@@ -6,6 +6,7 @@ import app from './app';
 import { connectDB } from './config/database';
 import { env } from './config/env';
 import ChatMessage from './models/chat.message.model';
+import User from './models/user.model';
 import { canAccessChatPair } from './utils/chat-access';
 
 type SocketAck<T> = ((payload: T) => void) | undefined;
@@ -26,13 +27,18 @@ const startServer = async () => {
     });
 
     // ─── Socket.IO JWT Auth Middleware ───────────────────────────────────────────
-    io.use((socket, next) => {
+    io.use(async (socket, next) => {
         const token = socket.handshake.auth?.token;
         if (!token) return next(new Error('Authentication error: no token'));
         try {
             const decoded = jwt.verify(token, env.JWT_SECRET) as { id: string; role: string };
-            (socket as any).userId = decoded.id;
-            (socket as any).userRole = decoded.role;
+            const user = await User.findById(decoded.id).select('_id role');
+            if (!user) {
+                return next(new Error('Authentication error: user not found'));
+            }
+
+            (socket as any).userId = String(user._id);
+            (socket as any).userRole = user.role;
             next();
         } catch {
             next(new Error('Authentication error: invalid token'));
