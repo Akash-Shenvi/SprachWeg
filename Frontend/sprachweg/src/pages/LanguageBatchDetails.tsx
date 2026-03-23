@@ -578,7 +578,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                 </div>
 
                 {/* Action Bar */}
-                {isTrainer && activeTab !== 'students' && (
+                {(isTrainer || isAdmin) && activeTab !== 'students' && (
                     <div className="mb-8 flex justify-end animate-in fade-in slide-in-from-bottom duration-500 delay-150">
                         <button
                             onClick={() => { resetForm(); setShowAddModal(true); }}

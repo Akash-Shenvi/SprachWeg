@@ -528,7 +528,10 @@ export const addTrainerBatchAnnouncement = async (req: AuthRequest, res: Respons
     try {
         const { batchId, title, content } = req.body;
         const trainerId = req.user?._id;
-        const batch = await Batch.findOne({ _id: batchId, trainerId });
+        const isAdmin = req.user?.role === 'admin';
+        const batch = isAdmin
+            ? await Batch.findById(batchId)
+            : await Batch.findOne({ _id: batchId, trainerId });
 
         if (!batch) {
             return res.status(403).json({ message: 'Not authorized to add announcement to this batch' });
@@ -594,7 +597,10 @@ export const addTrainerBatchMaterial = async (req: AuthRequest, res: Response) =
     try {
         const { batchId, title, subtitle, description } = req.body;
         const trainerId = req.user?._id;
-        const batch = await Batch.findOne({ _id: batchId, trainerId });
+        const isAdmin = req.user?.role === 'admin';
+        const batch = isAdmin
+            ? await Batch.findById(batchId)
+            : await Batch.findOne({ _id: batchId, trainerId });
 
         if (!batch) {
             return res.status(403).json({ message: 'Not authorized to add material to this batch' });
@@ -663,14 +669,19 @@ export const scheduleTrainerBatchClass = async (req: AuthRequest, res: Response)
 
     try {
         const { batchId, topic, startTime } = req.body;
+        const isAdmin = req.user?.role === 'admin';
         const trainerId = String(req.user?._id || '');
-        const batch = await Batch.findOne({ _id: batchId, trainerId }).populate('students', 'email');
+        const batch = isAdmin
+            ? await Batch.findById(batchId).populate('students', 'email')
+            : await Batch.findOne({ _id: batchId, trainerId }).populate('students', 'email');
 
         if (!batch) {
             return res.status(403).json({ message: 'Not authorized to schedule class for this batch' });
         }
 
-        const { trainer, attendeeEmails } = await getTrainerEventAttendees(batch, trainerId);
+        const actualTrainerId = String(batch.trainerId);
+
+        const { trainer, attendeeEmails } = await getTrainerEventAttendees(batch, actualTrainerId);
         let meetingLink = '';
         let eventId = '';
 
@@ -693,7 +704,7 @@ export const scheduleTrainerBatchClass = async (req: AuthRequest, res: Response)
 
         const newClass = await ClassSession.create({
             batchId,
-            trainerId,
+            trainerId: actualTrainerId,
             topic,
             startTime,
             endTime: new Date(new Date(startTime).getTime() + 60 * 60 * 1000),
@@ -868,9 +879,17 @@ export const joinTrainerBatchClass = async (req: AuthRequest, res: Response) => 
 
         const isTrainer = String(skillClass.trainerId) === userId;
         const isStudent = batch.students.some((studentId) => String(studentId) === userId);
+        const isAdmin = req.user?.role === 'admin';
 
-        if (!isTrainer && !isStudent) {
+        if (!isTrainer && !isStudent && !isAdmin) {
             return res.status(403).json({ message: 'Not authorized to join this class' });
+        }
+
+        if (isAdmin) {
+            return res.status(200).json({
+                message: 'Admin monitoring — attendance not recorded',
+                link: skillClass.meetingLink || '',
+            });
         }
 
         if (isStudent) {

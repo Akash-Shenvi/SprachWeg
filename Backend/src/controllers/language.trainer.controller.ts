@@ -55,8 +55,11 @@ export const addMaterial = async (req: AuthRequest, res: Response) => {
             fileUrl = `/uploads/materials/${req.file.filename}`;
         }
 
-        // Verify trainer owns the batch
-        const batch = await LanguageBatch.findOne({ _id: batchId, trainerId });
+        // Verify trainer owns the batch (or admin)
+        const isAdmin = req.user?.role === 'admin';
+        const batch = isAdmin
+            ? await LanguageBatch.findById(batchId)
+            : await LanguageBatch.findOne({ _id: batchId, trainerId });
         if (!batch) {
             return res.status(403).json({ message: 'Not authorized to add material to this batch' });
         }
@@ -84,8 +87,11 @@ export const addAnnouncement = async (req: AuthRequest, res: Response) => {
         const { batchId, title, content } = req.body;
         const trainerId = req.user?._id;
 
-        // Verify trainer owns the batch
-        const batch = await LanguageBatch.findOne({ _id: batchId, trainerId });
+        // Verify trainer owns the batch (or admin)
+        const isAdmin = req.user?.role === 'admin';
+        const batch = isAdmin
+            ? await LanguageBatch.findById(batchId)
+            : await LanguageBatch.findOne({ _id: batchId, trainerId });
         if (!batch) {
             return res.status(403).json({ message: 'Not authorized to add announcement to this batch' });
         }
@@ -249,14 +255,19 @@ export const scheduleClass = async (req: AuthRequest, res: Response) => {
         const { batchId, topic, startTime } = req.body; // Remove meetLink from req.body
         const trainerId = req.user?._id;
 
-        // Verify trainer owns the batch
-        const batch = await LanguageBatch.findOne({ _id: batchId, trainerId }).populate('students');
+        // Verify trainer owns the batch (or admin)
+        const isAdmin = req.user?.role === 'admin';
+        const batch = isAdmin
+            ? await LanguageBatch.findById(batchId)?.populate('students')
+            : await LanguageBatch.findOne({ _id: batchId, trainerId }).populate('students');
         if (!batch) {
             return res.status(403).json({ message: 'Not authorized to schedule class for this batch' });
         }
 
+        const actualTrainerId = String(batch.trainerId);
+
         // Check if trainer has connected Google Calendar
-        const trainer = await User.findById(trainerId).select('+googleRefreshToken');
+        const trainer = await User.findById(actualTrainerId).select('+googleRefreshToken');
         let meetLink = '';
         let eventId = '';
 
@@ -302,7 +313,7 @@ export const scheduleClass = async (req: AuthRequest, res: Response) => {
 
         const newClass = new LanguageClass({
             batchId,
-            trainerId,
+            trainerId: actualTrainerId,
             topic,
             startTime,
             meetLink,
