@@ -15,11 +15,15 @@ router.get('/:trainingType/:batchId/announcements', trainer_batch_controller_1.g
 router.get('/:trainingType/:batchId/materials', trainer_batch_controller_1.getTrainerBatchMaterials);
 router.get('/:trainingType/:batchId/students', trainer_batch_controller_1.getTrainerBatchStudents);
 router.get('/:trainingType/:batchId/classes', trainer_batch_controller_1.getTrainerBatchClasses);
-router.post('/:trainingType/announcements', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.addTrainerBatchAnnouncement);
+router.get('/:trainingType/:batchId/assessments', trainer_batch_controller_1.getTrainerBatchAssessments);
+router.get('/:trainingType/assessments/:assessmentId', trainer_batch_controller_1.getTrainerBatchAssessmentDetail);
+router.post('/:trainingType/announcements', (0, auth_middleware_1.authorize)('trainer', 'admin'), trainer_batch_controller_1.addTrainerBatchAnnouncement);
 router.delete('/:trainingType/announcements/:announcementId', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.deleteTrainerBatchAnnouncement);
-router.post('/:trainingType/materials', (0, auth_middleware_1.authorize)('trainer'), upload_middleware_1.upload.single('file'), trainer_batch_controller_1.addTrainerBatchMaterial);
+router.post('/:trainingType/materials', (0, auth_middleware_1.authorize)('trainer', 'admin'), upload_middleware_1.upload.single('file'), trainer_batch_controller_1.addTrainerBatchMaterial);
 router.delete('/:trainingType/materials/:materialId', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.deleteTrainerBatchMaterial);
-router.post('/:trainingType/classes', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.scheduleTrainerBatchClass);
+router.post('/:trainingType/classes', (0, auth_middleware_1.authorize)('trainer', 'admin'), trainer_batch_controller_1.scheduleTrainerBatchClass);
+router.post('/:trainingType/assessments', (0, auth_middleware_1.authorize)('trainer', 'admin'), trainer_batch_controller_1.createTrainerBatchAssessment);
+router.post('/:trainingType/assessments/:assessmentId/submit', trainer_batch_controller_1.submitTrainerBatchAssessment);
 router.delete('/:trainingType/classes/:classId', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.deleteTrainerBatchClass);
 router.post('/:trainingType/classes/:classId/end', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.endTrainerBatchClass);
 router.put('/:trainingType/classes/:classId/attendance', (0, auth_middleware_1.authorize)('trainer'), trainer_batch_controller_1.updateTrainerBatchAttendance);

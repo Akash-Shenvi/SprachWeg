@@ -198,7 +198,7 @@ class EmailService {
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>Sovir Technologies<br>Training & Skilling Program</h1>
+                    <h1>SoVir Skilling & Training Center<br>Training & Skilling Program</h1>
                 </div>
                 <div class="content">
                     <div class="welcome-text">Dear ${options.name},</div>
@@ -209,12 +209,12 @@ class EmailService {
                         ${actionButton}
                         <p style="margin-top: 32px; border-top: 1px solid #eee; padding-top: 20px;">
                             Warm regards,<br>
-                            <strong>Sovir Technologies Team</strong>
+                            <strong>SoVir Skilling & Training Center Team</strong>
                         </p>
                     </div>
                 </div>
                 <div class="footer">
-                    &copy; ${new Date().getFullYear()} Sovir Technologies LLP. All rights reserved.<br>
+                    &copy; ${new Date().getFullYear()} SoVir Skilling & Training Center. All rights reserved.<br>
                     <a href="https://sovirtechnologies.in" style="color: #666; text-decoration: none;">www.sovirtechnologies.in</a>
                 </div>
             </div>
@@ -296,13 +296,13 @@ class EmailService {
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>Sovir Technologies<br>Training & Skilling Program</h1>
+                    <h1>SoVir Skilling & Training Center</h1>
                 </div>
                 <div class="content">
                     <div class="welcome-text">Dear ${name},</div>
                     
                     <div class="message-body">
-                        <p>Welcome to the <strong>Sovir Technologies Training and Skilling Program</strong>.</p>
+                        <p>Welcome to the <strong>SoVir Skilling & Training Center</strong>.</p>
                         
                         <p>We are delighted to have you with us. As requested, here is your One-Time Password (OTP) for <strong>${purpose}</strong>.</p>
                         
@@ -312,17 +312,17 @@ class EmailService {
                         
                         <p>All further information, updates, and important announcements will be shared through your registered login email ID. Kindly check your email regularly to stay informed.</p>
 
-                        <p style="margin-top: 30px;">Once again, thank you for choosing Sovir Technologies as your skilling partner.</p>
+                        <p style="margin-top: 30px;">Once again, thank you for choosing SoVir Skilling & Training Center as your skilling partner.</p>
                         
                         <p style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
                             Warm regards,<br>
-                            <strong>Sovir Technologies Team</strong>
+                            <strong>SoVir Skilling & Training Center Team</strong>
                         </p>
                     </div>
                 </div>
                 <div class="footer">
-                    &copy; ${new Date().getFullYear()} Sovir Technologies LLP. All rights reserved.<br>
-                    <a href="https://sovirtechnologies.in" style="color: #666; text-decoration: none;">www.sovirtechnologies.in</a>
+                    &copy; ${new Date().getFullYear()} SoVir Skilling & Training Center. All rights reserved.<br>
+                    <a href="https://training.sovirtechnologies.in" style="color: #666; text-decoration: none;">www.training.sovirtechnologies.in</a>
                 </div>
             </div>
         </body>
@@ -333,10 +333,10 @@ class EmailService {
         return __awaiter(this, arguments, void 0, function* (to, otp, name = 'Participant', purpose = 'Verification') {
             const htmlContent = this.getOtpTemplate(name, otp, purpose);
             const mailOptions = {
-                from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                from: `"SoVir Skilling & Training Center" <${env_1.env.EMAIL_USER}>`,
                 to,
-                subject: `${purpose} OTP - Sovir Technologies`,
-                text: `Dear ${name},\n\nYour OTP for ${purpose} is: ${otp}. It is valid for 3 minutes.\n\nWarm regards,\nSovir Technologies Team`,
+                subject: `${purpose} OTP - SoVir Skilling & Training Center`,
+                text: `Dear ${name},\n\nYour OTP for ${purpose} is: ${otp}. It is valid for 3 minutes.\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
                 html: htmlContent,
             };
             try {
@@ -395,13 +395,13 @@ class EmailService {
                     },
                 });
                 const mailOptions = {
-                    from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                    from: `" SoVir Skilling & Training Center" <${env_1.env.EMAIL_USER}>`,
                     to,
                     subject,
                     html,
                     text: isApproved
-                        ? `Dear ${name},\n\nYour enrollment for ${courseTitle} has been approved and your payment is confirmed.\nStatus: Approved\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nOrder ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}\n\nStudent Dashboard: ${dashboardLink}\n\nWarm regards,\nSovir Technologies Team`
-                        : `Dear ${name},\n\nWe have received your enrollment request and payment for ${courseTitle} successfully.\nStatus: Pending Approval\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nOrder ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}\n\nOur admissions team will contact you with the next updates.\nStudent Dashboard: ${dashboardLink}\n\nWarm regards,\nSovir Technologies Team`,
+                        ? `Dear ${name},\n\nYour enrollment for ${courseTitle} has been approved and your payment is confirmed.\nStatus: Approved\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nOrder ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}\n\nStudent Dashboard: ${dashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`
+                        : `Dear ${name},\n\nWe have received your enrollment request and payment for ${courseTitle} successfully.\nStatus: Pending Approval\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nOrder ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}\n\nOur admissions team will contact you with the next updates.\nStudent Dashboard: ${dashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
                 };
                 try {
                     yield this.transporter.sendMail(mailOptions);
@@ -489,13 +489,13 @@ class EmailService {
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>Sovir Technologies<br>Training & Skilling Program</h1>
+                    <h1>SoVir Skilling & Training Center</h1>
                 </div>
                 <div class="content">
                     <div class="welcome-text">Dear ${name},</div>
                     
                     <div class="message-body">
-                        <p>Welcome to the <span class="highlight">Sovir Technologies Training and Skilling Program</span>.</p>
+                        <p>Welcome to the <span class="highlight">SoVir Skilling & Training Center</span>.</p>
                         
                         <p>We are delighted to have you with us. Our program is designed and delivered by industry-specific professional trainers, ensuring practical knowledge and real-world skill development.</p>
                         
@@ -503,16 +503,16 @@ class EmailService {
                         
                         ${actionButton}
 
-                        <p style="margin-top: 30px;">Once again, thank you for choosing Sovir Technologies as your skilling partner. We wish you a successful and enriching learning journey with us.</p>
+                        <p style="margin-top: 30px;">Once again, thank you for choosing  SoVir Skilling & Training Center as your skilling partner. We wish you a successful and enriching learning journey with us.</p>
                         
                         <p style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
                             Warm regards,<br>
-                            <strong>Sovir Technologies Team</strong>
+                            <strong>SoVir Skilling & Training Center Team</strong>
                         </p>
                     </div>
                 </div>
                 <div class="footer">
-                    &copy; ${new Date().getFullYear()} Sovir Technologies LLP. All rights reserved.<br>
+                    &copy; ${new Date().getFullYear()} SoVir Skilling & Training Center. All rights reserved.<br>
                     <a href="https://sovirtechnologies.in" style="color: #666; text-decoration: none;">www.sovirtechnologies.in</a>
                 </div>
             </div>
@@ -520,11 +520,11 @@ class EmailService {
         </html>
         `;
             const mailOptions = {
-                from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                from: `"SoVir Skilling & Training Center" <${env_1.env.EMAIL_USER}>`,
                 to,
                 subject,
                 html: htmlContent,
-                text: `Dear ${name},\n\nWelcome to Sovir Technologies Training and Skilling Program.\n\nWe are delighted to have you with us. Our program is designed and delivered by industry-specific professional trainers, ensuring practical knowledge and real-world skill development.\n\nAll further information, updates, and important announcements will be shared through your registered login email ID. Kindly check your email regularly to stay informed.\n\nOnce again, thank you for choosing Sovir Technologies as your skilling partner. We wish you a successful and enriching learning journey with us.\n\nWarm regards,\nSovir Technologies Team`
+                text: `Dear ${name},\n\nWelcome to SoVir Skilling & Training Center.\n\nWe are delighted to have you with us. Our program is designed and delivered by industry-specific professional trainers, ensuring practical knowledge and real-world skill development.\n\nAll further information, updates, and important announcements will be shared through your registered login email ID. Kindly check your email regularly to stay informed.\n\nOnce again, thank you for choosing SoVir Skilling & Training Center as your skilling partner. We wish you a successful and enriching learning journey with us.\n\nWarm regards,\nSoVir Skilling & Training Center Team`
             };
             try {
                 yield this.transporter.sendMail(mailOptions);
@@ -570,11 +570,11 @@ class EmailService {
             });
             try {
                 yield this.transporter.sendMail({
-                    from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                    from: `"SoVir Skilling & Training Center" <${env_1.env.EMAIL_USER}>`,
                     to: params.to,
                     subject,
                     html,
-                    text: `Dear ${params.institutionName},\n\nYour institution request for ${params.courseTitle} - ${params.levelName} has been ${isApproved ? 'approved' : 'rejected'}.\nStudents in request: ${params.studentCount}\n\nInstitution Portal: https://training.sovirtechnologies.in/institution-dashboard\n\nWarm regards,\nSovir Technologies Team`,
+                    text: `Dear ${params.institutionName},\n\nYour institution request for ${params.courseTitle} - ${params.levelName} has been ${isApproved ? 'approved' : 'rejected'}.\nStudents in request: ${params.studentCount}\n\nInstitution Portal: https://training.sovirtechnologies.in/institution-dashboard\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
                 });
                 return true;
             }
@@ -607,11 +607,11 @@ class EmailService {
             });
             try {
                 yield this.transporter.sendMail({
-                    from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                    from: `"SoVir Skilling & Training Center" <${env_1.env.EMAIL_USER}>`,
                     to: params.to,
                     subject: `Student Account Activated - ${params.courseTitle} ${params.levelName}`,
                     html,
-                    text: `Dear ${params.studentName},\n\nYour student account has been created and enrolled in ${params.courseTitle} - ${params.levelName}.\nYour institution has the password for this account. Please contact them if you need your login credentials.\n\nStudent Dashboard: ${dashboardLink}\n\nWarm regards,\nSovir Technologies Team`,
+                    text: `Dear ${params.studentName},\n\nYour student account has been created and enrolled in ${params.courseTitle} - ${params.levelName}.\nYour institution has the password for this account. Please contact them if you need your login credentials.\n\nStudent Dashboard: ${dashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
                 });
                 return true;
             }
@@ -666,11 +666,11 @@ class EmailService {
                 },
             });
             const mailOptions = {
-                from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                from: `"SoVir Skilling & Training Center" <${env_1.env.EMAIL_USER}>`,
                 to: params.to,
                 subject,
                 html,
-                text: `Dear ${params.name},\n\nWe were unable to complete the payment step for ${displayCourseTitle}.\nProgram Type: ${trainingTypeLabel}\nAmount: ${amountLabel}\nStatus: ${isCancelled ? 'Not Completed' : 'Payment Failed'}\nGateway Status: ${params.paymentStatus || 'Not available'}\nPayment Method: ${params.paymentMethod || 'Not available'}\nReason: ${params.failureReason || 'Payment could not be completed.'}\n\nNo enrollment request was submitted. Please try again from the course page.\nStudent Dashboard: ${dashboardLink}\nRetry Link: ${retryUrl}\n\nWarm regards,\nSovir Technologies Team`,
+                text: `Dear ${params.name},\n\nWe were unable to complete the payment step for ${displayCourseTitle}.\nProgram Type: ${trainingTypeLabel}\nAmount: ${amountLabel}\nStatus: ${isCancelled ? 'Not Completed' : 'Payment Failed'}\nGateway Status: ${params.paymentStatus || 'Not available'}\nPayment Method: ${params.paymentMethod || 'Not available'}\nReason: ${params.failureReason || 'Payment could not be completed.'}\n\nNo enrollment request was submitted. Please try again from the course page.\nStudent Dashboard: ${dashboardLink}\nRetry Link: ${retryUrl}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
             };
             try {
                 yield this.transporter.sendMail(mailOptions);
@@ -733,7 +733,7 @@ class EmailService {
     }
     sendContactAutoReply(to) {
         return __awaiter(this, void 0, void 0, function* () {
-            const subject = "Thank you for contacting Sovir Technologies LLP";
+            const subject = "Thank you for contacting SoVir Skilling & Training Center";
             const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -748,24 +748,24 @@ class EmailService {
             <div class="container">
                 <p>Dear Sir/Madam,</p>
 
-                <p>Greetings from Sovir Technologies LLP.</p>
+                <p>Greetings from SoVir Skilling & Training Center.</p>
 
                 <p>Thank you for reaching out to us. We appreciate your interest in our organization. Our team of experts will review your details and get in touch with you shortly to discuss your requirements.</p>
 
                 <p>You may share your profile with us for any service requirements, collaboration opportunities, or strategic partnerships. We look forward to exploring potential avenues of mutual growth and cooperation.</p>
 
-                <p>Thank you for connecting with Sovir Technologies LLP.</p>
+                <p>Thank you for connecting with SoVir Skilling & Training Center.</p>
 
                 <div class="footer">
                     <p>Yours sincerely,<br>
-                    <strong>Sovir Technologies LLP</strong></p>
+                    <strong>SoVir Skilling & Training Center</strong></p>
                 </div>
             </div>
         </body>
         </html>
         `;
             const mailOptions = {
-                from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                from: `"SoVir Skilling & Training Center" <${env_1.env.EMAIL_USER}>`,
                 to,
                 subject,
                 html: htmlContent,
@@ -780,7 +780,7 @@ class EmailService {
     }
     sendTrialEmail(to, name) {
         return __awaiter(this, void 0, void 0, function* () {
-            const subject = "Welcome to Sovir Technologies Training & Skilling Program";
+            const subject = "Welcome to SoVir Skilling & Training Center Training & Skilling Program";
             const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -846,28 +846,28 @@ class EmailService {
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>Sovir Technologies<br>Training & Skilling Program</h1>
+                    <h1>SoVir Skilling & Training Center<br>Training & Skilling Program</h1>
                 </div>
                 <div class="content">
                     <div class="welcome-text">Dear ${name},</div>
                     
                     <div class="message-body">
-                        <p>Welcome to the <span class="highlight">Sovir Technologies Training and Skilling Program</span>.</p>
+                        <p>Welcome to the <span class="highlight">SoVir Skilling & Training Center</span>.</p>
                         
                         <p>We are delighted to have you with us. Our program is designed and delivered by industry-specific professional trainers, ensuring practical knowledge and real-world skill development.</p>
                         
                         <p>All further information, updates, and important announcements will be shared through your registered login email ID. Kindly check your email regularly to stay informed.</p>
                         
-                        <p style="margin-top: 30px;">Once again, thank you for choosing Sovir Technologies as your skilling partner. We wish you a successful and enriching learning journey with us.</p>
+                        <p style="margin-top: 30px;">Once again, thank you for choosing SoVir Skilling & Training Center as your skilling partner. We wish you a successful and enriching learning journey with us.</p>
                         
                         <p style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
                             Warm regards,<br>
-                            <strong>Sovir Technologies Team</strong>
+                            <strong>SoVir Skilling & Training Center Team</strong>
                         </p>
                     </div>
                 </div>
                 <div class="footer">
-                    &copy; ${new Date().getFullYear()} Sovir Technologies LLP. All rights reserved.<br>
+                    &copy; ${new Date().getFullYear()} SoVir Skilling & Training Center. All rights reserved.<br>
                     <a href="https://sovirtechnologies.in" style="color: #666; text-decoration: none;">www.sovirtechnologies.in</a>
                 </div>
             </div>
@@ -875,11 +875,11 @@ class EmailService {
         </html>
         `;
             const mailOptions = {
-                from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                from: `"SoVir Skilling & Training Center" <${env_1.env.EMAIL_USER}>`,
                 to,
                 subject,
                 html: htmlContent,
-                text: `Dear ${name},\n\nWelcome to Sovir Technologies Training and Skilling Program.\n\nWe are delighted to have you with us. Our program is designed and delivered by industry-specific professional trainers, ensuring practical knowledge and real-world skill development.\n\nAll further information, updates, and important announcements will be shared through your registered login email ID. Kindly check your email regularly to stay informed.\n\nOnce again, thank you for choosing Sovir Technologies as your skilling partner. We wish you a successful and enriching learning journey with us.\n\nWarm regards,\nSovir Technologies Team`
+                text: `Dear ${name},\n\nWelcome to SoVir Skilling & Training Center.\n\nWe are delighted to have you with us. Our program is designed and delivered by industry-specific professional trainers, ensuring practical knowledge and real-world skill development.\n\nAll further information, updates, and important announcements will be shared through your registered login email ID. Kindly check your email regularly to stay informed.\n\nOnce again, thank you for choosing SoVir Skilling & Training Center as your skilling partner. We wish you a successful and enriching learning journey with us.\n\nWarm regards,\nSoVir Skilling & Training Center Team`
             };
             try {
                 yield this.transporter.sendMail(mailOptions);
@@ -912,7 +912,7 @@ class EmailService {
                 : [];
             const html = this.getProgramEmailTemplate({
                 name,
-                title: 'Thank you for applying for an internship with Sovir Technologies.',
+                title: 'Thank you for applying for an internship with SoVir Skilling & Training Center.',
                 paragraphs: [
                     `We have successfully received your application for the <strong>${internshipTitle}</strong> internship opportunity.`,
                     ...(hasPaymentDetails
@@ -934,11 +934,11 @@ class EmailService {
                 },
             });
             const mailOptions = {
-                from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                from: `"SoVir Skilling & Training Center" <${env_1.env.EMAIL_USER}>`,
                 to,
                 subject,
                 html,
-                text: `Dear ${name},\n\nThank you for applying for the ${internshipTitle} internship at Sovir Technologies.\n\nWe have received your application successfully.\nMode: ${formattedMode}\nReference ID: ${referenceCode}\nStatus: Application Received${hasPaymentDetails ? `\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nOrder ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}` : ''}\n\nOur team will review your profile and update you through your registered email.\n\nWarm regards,\nSovir Technologies Team`,
+                text: `Dear ${name},\n\nThank you for applying for the ${internshipTitle} internship at SoVir Skilling & Training Center.\n\nWe have received your application successfully.\nMode: ${formattedMode}\nReference ID: ${referenceCode}\nStatus: Application Received${hasPaymentDetails ? `\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nOrder ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}` : ''}\n\nOur team will review your profile and update you through your registered email.\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
             };
             try {
                 yield this.transporter.sendMail(mailOptions);
@@ -966,10 +966,10 @@ class EmailService {
                     ? [
                         `We are pleased to inform you that your application for the <strong>${internshipTitle}</strong> internship has been accepted.`,
                         'Our team will share the next instructions and onboarding details with you through your registered email. Please keep checking your inbox regularly.',
-                        'We look forward to having you as part of the Sovir Technologies learning and skilling journey.',
+                        'We look forward to having you as part of the SoVir Skilling & Training Center learning and skilling journey.',
                     ]
                     : [
-                        `Thank you for applying for the <strong>${internshipTitle}</strong> internship at Sovir Technologies.`,
+                        `Thank you for applying for the <strong>${internshipTitle}</strong> internship at SoVir Skilling & Training Center.`,
                         'After careful review, we are unable to move forward with your application for this opportunity at this time.',
                         'We appreciate your interest in our programs and encourage you to apply again for future opportunities that match your profile.',
                     ],
@@ -985,13 +985,13 @@ class EmailService {
                 },
             });
             const mailOptions = {
-                from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                from: `"SoVir Skilling & Training Center" <${env_1.env.EMAIL_USER}>`,
                 to,
                 subject,
                 html,
                 text: isAccepted
-                    ? `Dear ${name},\n\nCongratulations. Your application for the ${internshipTitle} internship has been accepted.\nMode: ${formattedMode}\nReference ID: ${referenceCode}\n\nOur team will share the next steps with you soon.\n\nWarm regards,\nSovir Technologies Team`
-                    : `Dear ${name},\n\nThank you for applying for the ${internshipTitle} internship at Sovir Technologies.\nMode: ${formattedMode}\nReference ID: ${referenceCode}\n\nAfter review, we are unable to move forward with your application for this opportunity at this time.\n\nWe appreciate your interest and encourage you to apply again in the future.\n\nWarm regards,\nSovir Technologies Team`,
+                    ? `Dear ${name},\n\nCongratulations. Your application for the ${internshipTitle} internship has been accepted.\nMode: ${formattedMode}\nReference ID: ${referenceCode}\n\nOur team will share the next steps with you soon.\n\nWarm regards,\nSoVir Skilling & Training Center Team`
+                    : `Dear ${name},\n\nThank you for applying for the ${internshipTitle} internship at SoVir Skilling & Training Center.\nMode: ${formattedMode}\nReference ID: ${referenceCode}\n\nAfter review, we are unable to move forward with your application for this opportunity at this time.\n\nWe appreciate your interest and encourage you to apply again in the future.\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
             };
             try {
                 yield this.transporter.sendMail(mailOptions);
@@ -1040,11 +1040,11 @@ class EmailService {
                 },
             });
             const mailOptions = {
-                from: `"Sovir Technologies" <${env_1.env.EMAIL_USER}>`,
+                from: `"SoVir Skilling & Training Center" <${env_1.env.EMAIL_USER}>`,
                 to: params.to,
                 subject,
                 html,
-                text: `Dear ${params.name},\n\nWe were unable to complete the payment step for the ${params.internshipTitle} internship.\nMode: ${formattedMode}\nAmount: ${amountLabel}\nStatus: ${isCancelled ? 'Not Completed' : 'Payment Failed'}\nGateway Status: ${params.paymentStatus || 'Not available'}\nPayment Method: ${params.paymentMethod || 'Not available'}\nReason: ${params.failureReason || 'Payment could not be completed.'}\n\nNo internship application was submitted. Please return to the internship page and try again.\n\nStudent Dashboard: ${dashboardLink}\nCareers Page: ${careersLink}\n\nWarm regards,\nSovir Technologies Team`,
+                text: `Dear ${params.name},\n\nWe were unable to complete the payment step for the ${params.internshipTitle} internship.\nMode: ${formattedMode}\nAmount: ${amountLabel}\nStatus: ${isCancelled ? 'Not Completed' : 'Payment Failed'}\nGateway Status: ${params.paymentStatus || 'Not available'}\nPayment Method: ${params.paymentMethod || 'Not available'}\nReason: ${params.failureReason || 'Payment could not be completed.'}\n\nNo internship application was submitted. Please return to the internship page and try again.\n\nStudent Dashboard: ${dashboardLink}\nCareers Page: ${careersLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
             };
             try {
                 yield this.transporter.sendMail(mailOptions);

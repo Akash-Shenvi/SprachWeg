@@ -12,10 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.joinTrainerBatchClass = exports.updateTrainerBatchAttendance = exports.endTrainerBatchClass = exports.deleteTrainerBatchClass = exports.scheduleTrainerBatchClass = exports.deleteTrainerBatchMaterial = exports.addTrainerBatchMaterial = exports.deleteTrainerBatchAnnouncement = exports.addTrainerBatchAnnouncement = exports.getTrainerBatchClasses = exports.getTrainerBatchStudents = exports.getTrainerBatchMaterials = exports.getTrainerBatchAnnouncements = exports.getTrainerBatchDetails = exports.getTrainerBatches = void 0;
+exports.joinTrainerBatchClass = exports.updateTrainerBatchAttendance = exports.endTrainerBatchClass = exports.deleteTrainerBatchClass = exports.scheduleTrainerBatchClass = exports.deleteTrainerBatchMaterial = exports.addTrainerBatchMaterial = exports.deleteTrainerBatchAnnouncement = exports.addTrainerBatchAnnouncement = exports.submitTrainerBatchAssessment = exports.getTrainerBatchAssessmentDetail = exports.createTrainerBatchAssessment = exports.getTrainerBatchAssessments = exports.getTrainerBatchClasses = exports.getTrainerBatchStudents = exports.getTrainerBatchMaterials = exports.getTrainerBatchAnnouncements = exports.getTrainerBatchDetails = exports.getTrainerBatches = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const announcement_model_1 = __importDefault(require("../models/announcement.model"));
+const assessment_model_1 = __importDefault(require("../models/assessment.model"));
+const assessmentAttempt_model_1 = __importDefault(require("../models/assessmentAttempt.model"));
 const assignment_model_1 = __importDefault(require("../models/assignment.model"));
 const attendance_model_1 = __importDefault(require("../models/attendance.model"));
 const batch_model_1 = __importDefault(require("../models/batch.model"));
@@ -99,6 +101,46 @@ const getSkillBatchAccess = (req, batchId) => __awaiter(void 0, void 0, void 0, 
         isTrainer,
         isStudent,
     };
+});
+const getLanguageBatchAccess = (req, batchId) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    const batch = yield language_batch_model_1.default.findById(batchId)
+        .populate('trainerId', 'name email')
+        .populate('students', 'name email phoneNumber avatar germanLevel guardianName guardianPhone qualification dateOfBirth');
+    if (!batch) {
+        return null;
+    }
+    const userId = getObjectIdString((_a = req.user) === null || _a === void 0 ? void 0 : _a._id);
+    const trainer = batch.trainerId;
+    const trainerId = getObjectIdString(trainer);
+    const isAdmin = ((_b = req.user) === null || _b === void 0 ? void 0 : _b.role) === 'admin';
+    const isTrainer = !!userId && !!trainerId && userId === trainerId;
+    const isStudent = !!userId && batch.students.some((student) => getObjectIdString(student) === userId);
+    if (!isAdmin && !isTrainer && !isStudent) {
+        return null;
+    }
+    return {
+        batch,
+        trainer,
+        isAdmin,
+        isTrainer,
+        isStudent,
+    };
+});
+const getSharedBatchAccess = (req, trainingType, batchId) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    if (trainingType === 'language') {
+        const access = yield getLanguageBatchAccess(req, batchId);
+        if (!access) {
+            return null;
+        }
+        return Object.assign(Object.assign({}, access), { studentCount: Array.isArray(access.batch.students) ? access.batch.students.length : 0, courseTitle: String(access.batch.courseTitle || '').trim() || 'Language Training', batchName: String(access.batch.name || '').trim() });
+    }
+    const access = yield getSkillBatchAccess(req, batchId);
+    if (!access) {
+        return null;
+    }
+    return Object.assign(Object.assign({}, access), { studentCount: Array.isArray(access.batch.students) ? access.batch.students.length : 0, courseTitle: String(((_a = access.course) === null || _a === void 0 ? void 0 : _a.title) || 'Skill Training').trim(), batchName: String(access.batch.name || '').trim() });
 });
 const mapSkillStudent = (student, includePrivateFields) => {
     if (!student) {
@@ -221,6 +263,184 @@ const buildPaginationResponse = (items, page, limit) => {
         page,
         pages: Math.ceil(total / limit),
         hasMore: page * limit < total,
+    };
+};
+const normalizeBlankAnswer = (value) => String(value || '').trim().toLowerCase();
+const normalizeAssessmentQuestions = (input) => {
+    if (!Array.isArray(input) || input.length === 0) {
+        return {
+            error: 'At least one question is required.',
+            questions: [],
+        };
+    }
+    const questions = [];
+    for (let index = 0; index < input.length; index += 1) {
+        const rawQuestion = input[index];
+        const type = String((rawQuestion === null || rawQuestion === void 0 ? void 0 : rawQuestion.type) || '').trim();
+        const prompt = String((rawQuestion === null || rawQuestion === void 0 ? void 0 : rawQuestion.prompt) || '').trim();
+        if (!['mcq', 'true_false', 'fill_blank'].includes(type)) {
+            return {
+                error: `Question ${index + 1} has an invalid type.`,
+                questions: [],
+            };
+        }
+        if (!prompt) {
+            return {
+                error: `Question ${index + 1} must include a prompt.`,
+                questions: [],
+            };
+        }
+        if (type === 'mcq') {
+            const options = Array.isArray(rawQuestion === null || rawQuestion === void 0 ? void 0 : rawQuestion.options)
+                ? rawQuestion.options.map((option) => String(option || '').trim()).filter(Boolean)
+                : [];
+            const correctOptionIndex = Number(rawQuestion === null || rawQuestion === void 0 ? void 0 : rawQuestion.correctOptionIndex);
+            if (options.length < 2) {
+                return {
+                    error: `Question ${index + 1} must have at least two options.`,
+                    questions: [],
+                };
+            }
+            if (!Number.isInteger(correctOptionIndex) || correctOptionIndex < 0 || correctOptionIndex >= options.length) {
+                return {
+                    error: `Question ${index + 1} must have exactly one valid correct option.`,
+                    questions: [],
+                };
+            }
+            questions.push({
+                type,
+                prompt,
+                options,
+                correctOptionIndex,
+            });
+            continue;
+        }
+        if (type === 'true_false') {
+            if (typeof (rawQuestion === null || rawQuestion === void 0 ? void 0 : rawQuestion.correctBoolean) !== 'boolean') {
+                return {
+                    error: `Question ${index + 1} must have a true or false answer.`,
+                    questions: [],
+                };
+            }
+            questions.push({
+                type,
+                prompt,
+                options: [],
+                correctBoolean: rawQuestion.correctBoolean,
+            });
+            continue;
+        }
+        const blankAnswer = String((rawQuestion === null || rawQuestion === void 0 ? void 0 : rawQuestion.blankAnswer) || '').trim();
+        if (!blankAnswer) {
+            return {
+                error: `Question ${index + 1} must have a fill-in-the-blank answer.`,
+                questions: [],
+            };
+        }
+        questions.push({
+            type,
+            prompt,
+            options: [],
+            blankAnswer,
+        });
+    }
+    return {
+        questions,
+        error: '',
+    };
+};
+const mapAssessmentQuestionForResponse = (question, includeAnswerKey) => {
+    const response = {
+        _id: String(question._id),
+        type: question.type,
+        prompt: question.prompt,
+    };
+    if (question.type === 'mcq') {
+        response.options = Array.isArray(question.options) ? question.options : [];
+    }
+    if (!includeAnswerKey) {
+        return response;
+    }
+    if (question.type === 'mcq') {
+        response.correctOptionIndex = question.correctOptionIndex;
+    }
+    else if (question.type === 'true_false') {
+        response.correctBoolean = question.correctBoolean;
+    }
+    else if (question.type === 'fill_blank') {
+        response.blankAnswer = question.blankAnswer || '';
+    }
+    return response;
+};
+const mapAssessmentAttemptSummary = (attempt) => ({
+    _id: String(attempt._id),
+    attemptNumber: attempt.attemptNumber,
+    correctCount: attempt.correctCount,
+    totalQuestions: attempt.totalQuestions,
+    scorePercentage: attempt.scorePercentage,
+    status: attempt.status,
+    createdAt: attempt.createdAt,
+});
+const buildTrainerAssessmentSummary = (attempts, studentCount) => {
+    const passedStudentIds = new Set(attempts
+        .filter((attempt) => attempt.status === 'passed')
+        .map((attempt) => String(attempt.studentId)));
+    return {
+        attemptCount: attempts.length,
+        passedStudents: passedStudentIds.size,
+        studentsPendingPass: Math.max(studentCount - passedStudentIds.size, 0),
+    };
+};
+const buildStudentAssessmentProgress = (attempts) => {
+    const sortedAttempts = [...attempts].sort((left, right) => {
+        if (right.attemptNumber !== left.attemptNumber) {
+            return right.attemptNumber - left.attemptNumber;
+        }
+        return new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime();
+    });
+    const latestAttempt = sortedAttempts[0] || null;
+    const passedAttempt = sortedAttempts.find((attempt) => attempt.status === 'passed') || null;
+    return {
+        attemptCount: sortedAttempts.length,
+        latestAttempt: latestAttempt ? mapAssessmentAttemptSummary(latestAttempt) : null,
+        latestScore: latestAttempt ? latestAttempt.scorePercentage : null,
+        passed: !!passedAttempt,
+        finalized: !!passedAttempt,
+        canRetry: !passedAttempt,
+        attempts: sortedAttempts.map(mapAssessmentAttemptSummary),
+    };
+};
+const gradeAssessmentQuestion = (question, submittedAnswer) => {
+    if (question.type === 'mcq') {
+        const selectedOptionIndex = typeof (submittedAnswer === null || submittedAnswer === void 0 ? void 0 : submittedAnswer.selectedOptionIndex) === 'number'
+            ? submittedAnswer.selectedOptionIndex
+            : undefined;
+        return {
+            questionId: question._id,
+            questionType: question.type,
+            selectedOptionIndex,
+            isCorrect: selectedOptionIndex === question.correctOptionIndex,
+        };
+    }
+    if (question.type === 'true_false') {
+        const booleanAnswer = typeof (submittedAnswer === null || submittedAnswer === void 0 ? void 0 : submittedAnswer.booleanAnswer) === 'boolean'
+            ? submittedAnswer.booleanAnswer
+            : undefined;
+        return {
+            questionId: question._id,
+            questionType: question.type,
+            booleanAnswer,
+            isCorrect: booleanAnswer === question.correctBoolean,
+        };
+    }
+    const textAnswer = typeof (submittedAnswer === null || submittedAnswer === void 0 ? void 0 : submittedAnswer.textAnswer) === 'string'
+        ? submittedAnswer.textAnswer.trim()
+        : '';
+    return {
+        questionId: question._id,
+        questionType: question.type,
+        textAnswer,
+        isCorrect: normalizeBlankAnswer(textAnswer) === normalizeBlankAnswer(question.blankAnswer || ''),
     };
 };
 const getTrainerEventAttendees = (batch, trainerId) => __awaiter(void 0, void 0, void 0, function* () {
@@ -428,8 +648,291 @@ const getTrainerBatchClasses = (req, res) => __awaiter(void 0, void 0, void 0, f
     }
 });
 exports.getTrainerBatchClasses = getTrainerBatchClasses;
-const addTrainerBatchAnnouncement = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getTrainerBatchAssessments = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
+    const trainingType = normalizeTrainingType(req.params.trainingType);
+    if (!trainingType) {
+        return res.status(400).json({ message: 'Invalid trainingType provided.' });
+    }
+    try {
+        const access = yield getSharedBatchAccess(req, trainingType, req.params.batchId);
+        if (!access) {
+            return res.status(404).json({ message: 'Batch not found or access denied' });
+        }
+        const { page, limit, skip } = getPagination(req);
+        const filter = { trainingType, batchId: req.params.batchId };
+        const [assessments, total] = yield Promise.all([
+            assessment_model_1.default.find(filter)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit),
+            assessment_model_1.default.countDocuments(filter),
+        ]);
+        const assessmentIds = assessments.map((assessment) => assessment._id);
+        if (assessmentIds.length === 0) {
+            return res.status(200).json({
+                data: [],
+                total,
+                page,
+                pages: Math.ceil(total / limit),
+                hasMore: false,
+            });
+        }
+        if (access.isTrainer || access.isAdmin) {
+            const attempts = yield assessmentAttempt_model_1.default.find({ assessmentId: { $in: assessmentIds } })
+                .select('assessmentId studentId status');
+            const attemptsByAssessmentId = new Map();
+            attempts.forEach((attempt) => {
+                const assessmentId = String(attempt.assessmentId);
+                const existingAttempts = attemptsByAssessmentId.get(assessmentId) || [];
+                existingAttempts.push(attempt);
+                attemptsByAssessmentId.set(assessmentId, existingAttempts);
+            });
+            return res.status(200).json({
+                data: assessments.map((assessment) => {
+                    const summary = buildTrainerAssessmentSummary(attemptsByAssessmentId.get(String(assessment._id)) || [], access.studentCount);
+                    return Object.assign({ _id: String(assessment._id), batchId: String(assessment.batchId), trainingType, title: assessment.title, description: assessment.description || '', passPercentage: assessment.passPercentage, publishedAt: assessment.publishedAt, createdAt: assessment.createdAt, questionCount: assessment.questions.length }, summary);
+                }),
+                total,
+                page,
+                pages: Math.ceil(total / limit),
+                hasMore: skip + assessments.length < total,
+            });
+        }
+        const attempts = yield assessmentAttempt_model_1.default.find({
+            assessmentId: { $in: assessmentIds },
+            studentId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
+        }).sort({ attemptNumber: -1, createdAt: -1 });
+        const attemptsByAssessmentId = new Map();
+        attempts.forEach((attempt) => {
+            const assessmentId = String(attempt.assessmentId);
+            const existingAttempts = attemptsByAssessmentId.get(assessmentId) || [];
+            existingAttempts.push(attempt);
+            attemptsByAssessmentId.set(assessmentId, existingAttempts);
+        });
+        return res.status(200).json({
+            data: assessments.map((assessment) => {
+                var _a;
+                const progress = buildStudentAssessmentProgress(attemptsByAssessmentId.get(String(assessment._id)) || []);
+                return {
+                    _id: String(assessment._id),
+                    batchId: String(assessment.batchId),
+                    trainingType,
+                    title: assessment.title,
+                    description: assessment.description || '',
+                    passPercentage: assessment.passPercentage,
+                    publishedAt: assessment.publishedAt,
+                    createdAt: assessment.createdAt,
+                    questionCount: assessment.questions.length,
+                    attemptCount: progress.attemptCount,
+                    latestScore: progress.latestScore,
+                    latestStatus: ((_a = progress.latestAttempt) === null || _a === void 0 ? void 0 : _a.status) || null,
+                    passed: progress.passed,
+                    finalized: progress.finalized,
+                    canRetry: progress.canRetry,
+                    canStart: progress.attemptCount === 0,
+                };
+            }),
+            total,
+            page,
+            pages: Math.ceil(total / limit),
+            hasMore: skip + assessments.length < total,
+        });
+    }
+    catch (error) {
+        console.error('Failed to fetch trainer batch assessments:', error);
+        return res.status(500).json({ message: 'Failed to fetch trainer batch assessments', error });
+    }
+});
+exports.getTrainerBatchAssessments = getTrainerBatchAssessments;
+const createTrainerBatchAssessment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const trainingType = normalizeTrainingType(req.params.trainingType);
+    if (!trainingType) {
+        return res.status(400).json({ message: 'Invalid trainingType provided.' });
+    }
+    try {
+        const { batchId, title, description, questions } = req.body;
+        const normalizedTitle = String(title || '').trim();
+        if (!batchId) {
+            return res.status(400).json({ message: 'batchId is required.' });
+        }
+        if (!normalizedTitle) {
+            return res.status(400).json({ message: 'Assessment title is required.' });
+        }
+        const access = yield getSharedBatchAccess(req, trainingType, String(batchId));
+        if (!access || (!access.isTrainer && !access.isAdmin)) {
+            return res.status(403).json({ message: 'Not authorized to create assessments for this batch' });
+        }
+        const normalizedQuestions = normalizeAssessmentQuestions(questions);
+        if (normalizedQuestions.error) {
+            return res.status(400).json({ message: normalizedQuestions.error });
+        }
+        const assessment = yield assessment_model_1.default.create({
+            trainingType,
+            batchId,
+            title: normalizedTitle,
+            description: String(description || '').trim() || undefined,
+            passPercentage: 40,
+            createdBy: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
+            publishedAt: new Date(),
+            questions: normalizedQuestions.questions,
+        });
+        return res.status(201).json({
+            _id: String(assessment._id),
+            batchId: String(assessment.batchId),
+            trainingType,
+            title: assessment.title,
+            description: assessment.description || '',
+            passPercentage: assessment.passPercentage,
+            publishedAt: assessment.publishedAt,
+            createdAt: assessment.createdAt,
+            questionCount: assessment.questions.length,
+            attemptCount: 0,
+            passedStudents: 0,
+            studentsPendingPass: access.studentCount,
+        });
+    }
+    catch (error) {
+        console.error('Failed to create trainer batch assessment:', error);
+        return res.status(500).json({ message: 'Failed to create trainer batch assessment', error });
+    }
+});
+exports.createTrainerBatchAssessment = createTrainerBatchAssessment;
+const getTrainerBatchAssessmentDetail = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const trainingType = normalizeTrainingType(req.params.trainingType);
+    if (!trainingType) {
+        return res.status(400).json({ message: 'Invalid trainingType provided.' });
+    }
+    try {
+        const assessment = yield assessment_model_1.default.findOne({
+            _id: req.params.assessmentId,
+            trainingType,
+        });
+        if (!assessment) {
+            return res.status(404).json({ message: 'Assessment not found' });
+        }
+        const access = yield getSharedBatchAccess(req, trainingType, String(assessment.batchId));
+        if (!access) {
+            return res.status(404).json({ message: 'Batch not found or access denied' });
+        }
+        const includeAnswerKey = access.isTrainer || access.isAdmin;
+        const basePayload = {
+            _id: String(assessment._id),
+            batchId: String(assessment.batchId),
+            trainingType,
+            title: assessment.title,
+            description: assessment.description || '',
+            passPercentage: assessment.passPercentage,
+            publishedAt: assessment.publishedAt,
+            createdAt: assessment.createdAt,
+            courseTitle: access.courseTitle,
+            batchName: access.batchName,
+            questionCount: assessment.questions.length,
+            questions: assessment.questions.map((question) => (mapAssessmentQuestionForResponse(question, includeAnswerKey))),
+        };
+        if (includeAnswerKey) {
+            const attempts = yield assessmentAttempt_model_1.default.find({ assessmentId: assessment._id })
+                .select('assessmentId studentId status');
+            return res.status(200).json(Object.assign(Object.assign({}, basePayload), { summary: buildTrainerAssessmentSummary(attempts, access.studentCount) }));
+        }
+        const studentAttempts = yield assessmentAttempt_model_1.default.find({
+            assessmentId: assessment._id,
+            studentId: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
+        }).sort({ attemptNumber: -1, createdAt: -1 });
+        return res.status(200).json(Object.assign(Object.assign({}, basePayload), { studentProgress: buildStudentAssessmentProgress(studentAttempts) }));
+    }
+    catch (error) {
+        console.error('Failed to fetch trainer batch assessment detail:', error);
+        return res.status(500).json({ message: 'Failed to fetch trainer batch assessment detail', error });
+    }
+});
+exports.getTrainerBatchAssessmentDetail = getTrainerBatchAssessmentDetail;
+const submitTrainerBatchAssessment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d, _e;
+    const trainingType = normalizeTrainingType(req.params.trainingType);
+    if (!trainingType) {
+        return res.status(400).json({ message: 'Invalid trainingType provided.' });
+    }
+    try {
+        const assessment = yield assessment_model_1.default.findOne({
+            _id: req.params.assessmentId,
+            trainingType,
+        });
+        if (!assessment) {
+            return res.status(404).json({ message: 'Assessment not found' });
+        }
+        const access = yield getSharedBatchAccess(req, trainingType, String(assessment.batchId));
+        if (!access || !access.isStudent || ((_a = req.user) === null || _a === void 0 ? void 0 : _a.role) !== 'student') {
+            return res.status(403).json({ message: 'Only enrolled students can submit this assessment' });
+        }
+        const existingPassedAttempt = yield assessmentAttempt_model_1.default.findOne({
+            assessmentId: assessment._id,
+            studentId: (_b = req.user) === null || _b === void 0 ? void 0 : _b._id,
+            status: 'passed',
+        }).select('_id');
+        if (existingPassedAttempt) {
+            return res.status(400).json({ message: 'Assessment already passed and finalized.' });
+        }
+        const rawAnswers = Array.isArray((_c = req.body) === null || _c === void 0 ? void 0 : _c.answers) ? req.body.answers : [];
+        const answersByQuestionId = new Map();
+        rawAnswers.forEach((rawAnswer) => {
+            const questionId = String((rawAnswer === null || rawAnswer === void 0 ? void 0 : rawAnswer.questionId) || '').trim();
+            if (!questionId || answersByQuestionId.has(questionId)) {
+                return;
+            }
+            const normalizedAnswer = { questionId };
+            const answerRecord = rawAnswer;
+            const parsedOptionIndex = Number(answerRecord === null || answerRecord === void 0 ? void 0 : answerRecord.selectedOptionIndex);
+            if (Number.isInteger(parsedOptionIndex)) {
+                normalizedAnswer.selectedOptionIndex = parsedOptionIndex;
+            }
+            if (typeof (answerRecord === null || answerRecord === void 0 ? void 0 : answerRecord.booleanAnswer) === 'boolean') {
+                normalizedAnswer.booleanAnswer = answerRecord.booleanAnswer;
+            }
+            if (typeof (answerRecord === null || answerRecord === void 0 ? void 0 : answerRecord.textAnswer) === 'string') {
+                normalizedAnswer.textAnswer = answerRecord.textAnswer;
+            }
+            answersByQuestionId.set(questionId, normalizedAnswer);
+        });
+        const gradedAnswers = assessment.questions.map((question) => (gradeAssessmentQuestion(question, answersByQuestionId.get(String(question._id)) || null)));
+        const correctCount = gradedAnswers.filter((answer) => answer.isCorrect).length;
+        const totalQuestions = assessment.questions.length;
+        const scorePercentage = Math.round((correctCount / totalQuestions) * 100);
+        const status = scorePercentage >= assessment.passPercentage ? 'passed' : 'failed';
+        const attemptNumber = (yield assessmentAttempt_model_1.default.countDocuments({
+            assessmentId: assessment._id,
+            studentId: (_d = req.user) === null || _d === void 0 ? void 0 : _d._id,
+        })) + 1;
+        const attempt = yield assessmentAttempt_model_1.default.create({
+            assessmentId: assessment._id,
+            trainingType,
+            batchId: assessment.batchId,
+            studentId: (_e = req.user) === null || _e === void 0 ? void 0 : _e._id,
+            attemptNumber,
+            answers: gradedAnswers,
+            correctCount,
+            totalQuestions,
+            scorePercentage,
+            status,
+        });
+        return res.status(201).json({
+            message: status === 'passed' ? 'Assessment passed and finalized.' : 'Assessment failed. Retry is available.',
+            attempt: mapAssessmentAttemptSummary(attempt),
+            passed: status === 'passed',
+            finalized: status === 'passed',
+            canRetry: status !== 'passed',
+        });
+    }
+    catch (error) {
+        console.error('Failed to submit trainer batch assessment:', error);
+        return res.status(500).json({ message: 'Failed to submit trainer batch assessment', error });
+    }
+});
+exports.submitTrainerBatchAssessment = submitTrainerBatchAssessment;
+const addTrainerBatchAnnouncement = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
     const trainingType = normalizeTrainingType(req.params.trainingType);
     if (!trainingType) {
         return res.status(400).json({ message: 'Invalid trainingType provided.' });
@@ -440,7 +943,10 @@ const addTrainerBatchAnnouncement = (req, res) => __awaiter(void 0, void 0, void
     try {
         const { batchId, title, content } = req.body;
         const trainerId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
-        const batch = yield batch_model_1.default.findOne({ _id: batchId, trainerId });
+        const isAdmin = ((_b = req.user) === null || _b === void 0 ? void 0 : _b.role) === 'admin';
+        const batch = isAdmin
+            ? yield batch_model_1.default.findById(batchId)
+            : yield batch_model_1.default.findOne({ _id: batchId, trainerId });
         if (!batch) {
             return res.status(403).json({ message: 'Not authorized to add announcement to this batch' });
         }
@@ -487,7 +993,7 @@ const deleteTrainerBatchAnnouncement = (req, res) => __awaiter(void 0, void 0, v
 });
 exports.deleteTrainerBatchAnnouncement = deleteTrainerBatchAnnouncement;
 const addTrainerBatchMaterial = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     const trainingType = normalizeTrainingType(req.params.trainingType);
     if (!trainingType) {
         return res.status(400).json({ message: 'Invalid trainingType provided.' });
@@ -498,7 +1004,10 @@ const addTrainerBatchMaterial = (req, res) => __awaiter(void 0, void 0, void 0, 
     try {
         const { batchId, title, subtitle, description } = req.body;
         const trainerId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
-        const batch = yield batch_model_1.default.findOne({ _id: batchId, trainerId });
+        const isAdmin = ((_b = req.user) === null || _b === void 0 ? void 0 : _b.role) === 'admin';
+        const batch = isAdmin
+            ? yield batch_model_1.default.findById(batchId)
+            : yield batch_model_1.default.findOne({ _id: batchId, trainerId });
         if (!batch) {
             return res.status(403).json({ message: 'Not authorized to add material to this batch' });
         }
@@ -548,7 +1057,7 @@ const deleteTrainerBatchMaterial = (req, res) => __awaiter(void 0, void 0, void 
 });
 exports.deleteTrainerBatchMaterial = deleteTrainerBatchMaterial;
 const scheduleTrainerBatchClass = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c;
     const trainingType = normalizeTrainingType(req.params.trainingType);
     if (!trainingType) {
         return res.status(400).json({ message: 'Invalid trainingType provided.' });
@@ -558,17 +1067,21 @@ const scheduleTrainerBatchClass = (req, res) => __awaiter(void 0, void 0, void 0
     }
     try {
         const { batchId, topic, startTime } = req.body;
-        const trainerId = String(((_a = req.user) === null || _a === void 0 ? void 0 : _a._id) || '');
-        const batch = yield batch_model_1.default.findOne({ _id: batchId, trainerId }).populate('students', 'email');
+        const isAdmin = ((_a = req.user) === null || _a === void 0 ? void 0 : _a.role) === 'admin';
+        const trainerId = String(((_b = req.user) === null || _b === void 0 ? void 0 : _b._id) || '');
+        const batch = isAdmin
+            ? yield batch_model_1.default.findById(batchId).populate('students', 'email')
+            : yield batch_model_1.default.findOne({ _id: batchId, trainerId }).populate('students', 'email');
         if (!batch) {
             return res.status(403).json({ message: 'Not authorized to schedule class for this batch' });
         }
-        const { trainer, attendeeEmails } = yield getTrainerEventAttendees(batch, trainerId);
+        const actualTrainerId = String(batch.trainerId);
+        const { trainer, attendeeEmails } = yield getTrainerEventAttendees(batch, actualTrainerId);
         let meetingLink = '';
         let eventId = '';
         if (trainer === null || trainer === void 0 ? void 0 : trainer.googleRefreshToken) {
             googleService.setCredentials(trainer.googleRefreshToken);
-            const event = yield googleService.createMeeting(`Class: ${topic}`, `Live class for ${((_b = batch.courseId) === null || _b === void 0 ? void 0 : _b.title) || 'Skill Training'} - ${batch.name}`, new Date(startTime), 60, attendeeEmails);
+            const event = yield googleService.createMeeting(`Class: ${topic}`, `Live class for ${((_c = batch.courseId) === null || _c === void 0 ? void 0 : _c.title) || 'Skill Training'} - ${batch.name}`, new Date(startTime), 60, attendeeEmails);
             meetingLink = event.meetLink;
             eventId = event.eventId;
         }
@@ -580,7 +1093,7 @@ const scheduleTrainerBatchClass = (req, res) => __awaiter(void 0, void 0, void 0
         }
         const newClass = yield classSession_model_1.default.create({
             batchId,
-            trainerId,
+            trainerId: actualTrainerId,
             topic,
             startTime,
             endTime: new Date(new Date(startTime).getTime() + 60 * 60 * 1000),
@@ -708,7 +1221,7 @@ const updateTrainerBatchAttendance = (req, res) => __awaiter(void 0, void 0, voi
 });
 exports.updateTrainerBatchAttendance = updateTrainerBatchAttendance;
 const joinTrainerBatchClass = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     const trainingType = normalizeTrainingType(req.params.trainingType);
     if (!trainingType) {
         return res.status(400).json({ message: 'Invalid trainingType provided.' });
@@ -728,8 +1241,15 @@ const joinTrainerBatchClass = (req, res) => __awaiter(void 0, void 0, void 0, fu
         }
         const isTrainer = String(skillClass.trainerId) === userId;
         const isStudent = batch.students.some((studentId) => String(studentId) === userId);
-        if (!isTrainer && !isStudent) {
+        const isAdmin = ((_b = req.user) === null || _b === void 0 ? void 0 : _b.role) === 'admin';
+        if (!isTrainer && !isStudent && !isAdmin) {
             return res.status(403).json({ message: 'Not authorized to join this class' });
+        }
+        if (isAdmin) {
+            return res.status(200).json({
+                message: 'Admin monitoring — attendance not recorded',
+                link: skillClass.meetingLink || '',
+            });
         }
         if (isStudent) {
             yield attendance_model_1.default.findOneAndUpdate({ classSessionId: skillClass._id, studentId: userId }, { $set: { status: 'present' } }, { upsert: true, new: true, setDefaultsOnInsert: true });

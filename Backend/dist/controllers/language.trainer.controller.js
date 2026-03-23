@@ -58,7 +58,7 @@ const getStudentBatches = (req, res) => __awaiter(void 0, void 0, void 0, functi
 exports.getStudentBatches = getStudentBatches;
 // Add Material to a Batch
 const addMaterial = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     try {
         const { batchId, title, subtitle, description } = req.body;
         const trainerId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
@@ -67,8 +67,11 @@ const addMaterial = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             // Store relative path so frontend can prepend API URL
             fileUrl = `/uploads/materials/${req.file.filename}`;
         }
-        // Verify trainer owns the batch
-        const batch = yield language_batch_model_1.default.findOne({ _id: batchId, trainerId });
+        // Verify trainer owns the batch (or admin)
+        const isAdmin = ((_b = req.user) === null || _b === void 0 ? void 0 : _b.role) === 'admin';
+        const batch = isAdmin
+            ? yield language_batch_model_1.default.findById(batchId)
+            : yield language_batch_model_1.default.findOne({ _id: batchId, trainerId });
         if (!batch) {
             return res.status(403).json({ message: 'Not authorized to add material to this batch' });
         }
@@ -91,12 +94,15 @@ const addMaterial = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 exports.addMaterial = addMaterial;
 // Add Announcement to a Batch
 const addAnnouncement = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     try {
         const { batchId, title, content } = req.body;
         const trainerId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
-        // Verify trainer owns the batch
-        const batch = yield language_batch_model_1.default.findOne({ _id: batchId, trainerId });
+        // Verify trainer owns the batch (or admin)
+        const isAdmin = ((_b = req.user) === null || _b === void 0 ? void 0 : _b.role) === 'admin';
+        const batch = isAdmin
+            ? yield language_batch_model_1.default.findById(batchId)
+            : yield language_batch_model_1.default.findOne({ _id: batchId, trainerId });
         if (!batch) {
             return res.status(403).json({ message: 'Not authorized to add announcement to this batch' });
         }
@@ -116,7 +122,7 @@ const addAnnouncement = (req, res) => __awaiter(void 0, void 0, void 0, function
 exports.addAnnouncement = addAnnouncement;
 // Get specific batch details (for both Student and Trainer)
 const getBatchDetails = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c;
     try {
         const { batchId } = req.params;
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
@@ -128,17 +134,18 @@ const getBatchDetails = (req, res) => __awaiter(void 0, void 0, void 0, function
         if (!batch) {
             return res.status(404).json({ message: 'Batch not found' });
         }
-        // Check access: Must be Trainer of the batch OR a Student in the batch
+        // Check access: Must be Trainer of the batch OR a Student in the batch OR an Admin
         const isTrainer = ((_b = batch.trainerId) === null || _b === void 0 ? void 0 : _b.toString()) === (userId === null || userId === void 0 ? void 0 : userId.toString());
         const isStudent = batch.students.some((s) => s._id.toString() === (userId === null || userId === void 0 ? void 0 : userId.toString()) || s.toString() === (userId === null || userId === void 0 ? void 0 : userId.toString()));
-        if (!isTrainer && !isStudent) {
+        const isAdmin = ((_c = req.user) === null || _c === void 0 ? void 0 : _c.role) === 'admin';
+        if (!isTrainer && !isStudent && !isAdmin) {
             return res.status(403).json({ message: 'Not authorized to view this batch' });
         }
         // Explicitly map response to ensure all fields are sent
         const batchObj = batch.toObject();
-        // Trainers get full student data; students only see name + avatar
+        // Trainers and admins get full student data; students only see name + avatar
         batchObj.students = batch.students.map((s) => {
-            if (isTrainer) {
+            if (isTrainer || isAdmin) {
                 return {
                     _id: s._id,
                     name: s.name,
@@ -241,17 +248,21 @@ const deleteAnnouncement = (req, res) => __awaiter(void 0, void 0, void 0, funct
 exports.deleteAnnouncement = deleteAnnouncement;
 // Schedule a Class
 const scheduleClass = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b, _c;
     try {
         const { batchId, topic, startTime } = req.body; // Remove meetLink from req.body
         const trainerId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
-        // Verify trainer owns the batch
-        const batch = yield language_batch_model_1.default.findOne({ _id: batchId, trainerId }).populate('students');
+        // Verify trainer owns the batch (or admin)
+        const isAdmin = ((_b = req.user) === null || _b === void 0 ? void 0 : _b.role) === 'admin';
+        const batch = isAdmin
+            ? yield ((_c = language_batch_model_1.default.findById(batchId)) === null || _c === void 0 ? void 0 : _c.populate('students'))
+            : yield language_batch_model_1.default.findOne({ _id: batchId, trainerId }).populate('students');
         if (!batch) {
             return res.status(403).json({ message: 'Not authorized to schedule class for this batch' });
         }
+        const actualTrainerId = String(batch.trainerId);
         // Check if trainer has connected Google Calendar
-        const trainer = yield user_model_1.default.findById(trainerId).select('+googleRefreshToken');
+        const trainer = yield user_model_1.default.findById(actualTrainerId).select('+googleRefreshToken');
         let meetLink = '';
         let eventId = '';
         if (trainer === null || trainer === void 0 ? void 0 : trainer.googleRefreshToken) {
@@ -291,7 +302,7 @@ const scheduleClass = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }
         const newClass = new language_class_model_1.default({
             batchId,
-            trainerId,
+            trainerId: actualTrainerId,
             topic,
             startTime,
             meetLink,
@@ -404,13 +415,17 @@ const updateAttendance = (req, res) => __awaiter(void 0, void 0, void 0, functio
 exports.updateAttendance = updateAttendance;
 // Join Class (Record Attendance)
 const joinClass = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     try {
         const { classId } = req.params;
         const studentId = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id;
         const languageClass = yield language_class_model_1.default.findById(classId);
         if (!languageClass) {
             return res.status(404).json({ message: 'Class not found' });
+        }
+        // Skip attendance recording for admin (they are monitoring, not attending)
+        if (((_b = req.user) === null || _b === void 0 ? void 0 : _b.role) === 'admin') {
+            return res.json({ message: 'Admin monitoring — attendance not recorded', link: languageClass.meetLink });
         }
         // Check if already joined
         const alreadyJoined = languageClass.attendees.some(a => a.studentId.toString() === (studentId === null || studentId === void 0 ? void 0 : studentId.toString()));
@@ -429,27 +444,28 @@ const joinClass = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.joinClass = joinClass;
 // ─── Paginated Tab Endpoints ──────────────────────────────────────────────────
-const verifyBatchAccess = (batchId, userId) => __awaiter(void 0, void 0, void 0, function* () {
+const verifyBatchAccess = (batchId, userId, userRole) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const batch = yield language_batch_model_1.default.findById(batchId);
     if (!batch)
         return null;
+    const isAdmin = userRole === 'admin';
     const isTrainer = ((_a = batch.trainerId) === null || _a === void 0 ? void 0 : _a.toString()) === userId;
     const isStudent = batch.students.some((s) => s.toString() === userId);
-    if (!isTrainer && !isStudent)
+    if (!isTrainer && !isStudent && !isAdmin)
         return null;
     return batch;
 });
 // GET /batch/:batchId/announcements?page=1&limit=10
 const getBatchAnnouncements = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c;
     try {
         const { batchId } = req.params;
         const page = Math.max(1, parseInt(req.query.page) || 1);
         const limit = Math.min(50, parseInt(req.query.limit) || 10);
         const skip = (page - 1) * limit;
         const userId = (_b = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id) === null || _b === void 0 ? void 0 : _b.toString();
-        const batch = yield verifyBatchAccess(batchId, userId);
+        const batch = yield verifyBatchAccess(batchId, userId, (_c = req.user) === null || _c === void 0 ? void 0 : _c.role);
         if (!batch)
             return res.status(403).json({ message: 'Not authorized' });
         const total = yield language_announcement_model_1.default.countDocuments({ batchId });
@@ -466,14 +482,14 @@ const getBatchAnnouncements = (req, res) => __awaiter(void 0, void 0, void 0, fu
 exports.getBatchAnnouncements = getBatchAnnouncements;
 // GET /batch/:batchId/materials?page=1&limit=10
 const getBatchMaterials = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c;
     try {
         const { batchId } = req.params;
         const page = Math.max(1, parseInt(req.query.page) || 1);
         const limit = Math.min(50, parseInt(req.query.limit) || 10);
         const skip = (page - 1) * limit;
         const userId = (_b = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id) === null || _b === void 0 ? void 0 : _b.toString();
-        const batch = yield verifyBatchAccess(batchId, userId);
+        const batch = yield verifyBatchAccess(batchId, userId, (_c = req.user) === null || _c === void 0 ? void 0 : _c.role);
         if (!batch)
             return res.status(403).json({ message: 'Not authorized' });
         const total = yield language_material_model_1.default.countDocuments({ batchId });
@@ -490,7 +506,7 @@ const getBatchMaterials = (req, res) => __awaiter(void 0, void 0, void 0, functi
 exports.getBatchMaterials = getBatchMaterials;
 // GET /batch/:batchId/students?page=1&limit=10
 const getBatchStudents = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e;
     try {
         const { batchId } = req.params;
         const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -505,20 +521,21 @@ const getBatchStudents = (req, res) => __awaiter(void 0, void 0, void 0, functio
         });
         if (!batch)
             return res.status(404).json({ message: 'Batch not found' });
-        const isTrainer = ((_c = batch.trainerId) === null || _c === void 0 ? void 0 : _c.toString()) === userId;
+        const isAdmin = ((_c = req.user) === null || _c === void 0 ? void 0 : _c.role) === 'admin';
+        const isTrainer = ((_d = batch.trainerId) === null || _d === void 0 ? void 0 : _d.toString()) === userId;
         const isStudent = batch.students.some(s => { var _a; return ((_a = s._id) === null || _a === void 0 ? void 0 : _a.toString()) === userId; }) ||
             (yield language_batch_model_1.default.findOne({ _id: batchId, students: userId })) !== null;
-        if (!isTrainer && !isStudent)
+        if (!isTrainer && !isStudent && !isAdmin)
             return res.status(403).json({ message: 'Not authorized' });
         const total = batch.students.length + skip; // approximate — use raw count below
         const totalCount = yield language_batch_model_1.default.aggregate([
             { $match: { _id: batch._id } },
             { $project: { count: { $size: '$students' } } }
         ]);
-        const trueTotal = ((_d = totalCount[0]) === null || _d === void 0 ? void 0 : _d.count) || 0;
+        const trueTotal = ((_e = totalCount[0]) === null || _e === void 0 ? void 0 : _e.count) || 0;
         // Trainers see full data; students viewing classmates only see name + avatar
         const data = batch.students.map(s => {
-            if (isTrainer) {
+            if (isTrainer || isAdmin) {
                 return {
                     _id: s._id,
                     name: s.name,
@@ -549,14 +566,14 @@ const getBatchStudents = (req, res) => __awaiter(void 0, void 0, void 0, functio
 exports.getBatchStudents = getBatchStudents;
 // GET /batch/:batchId/classes?page=1&limit=10
 const getBatchClasses = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c;
     try {
         const { batchId } = req.params;
         const page = Math.max(1, parseInt(req.query.page) || 1);
         const limit = Math.min(50, parseInt(req.query.limit) || 10);
         const skip = (page - 1) * limit;
         const userId = (_b = (_a = req.user) === null || _a === void 0 ? void 0 : _a._id) === null || _b === void 0 ? void 0 : _b.toString();
-        const batch = yield verifyBatchAccess(batchId, userId);
+        const batch = yield verifyBatchAccess(batchId, userId, (_c = req.user) === null || _c === void 0 ? void 0 : _c.role);
         if (!batch)
             return res.status(403).json({ message: 'Not authorized' });
         const total = yield language_class_model_1.default.countDocuments({ batchId });

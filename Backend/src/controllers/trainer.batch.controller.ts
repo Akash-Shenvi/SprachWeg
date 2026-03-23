@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { Response } from 'express';
 import Announcement from '../models/announcement.model';
+import Assessment from '../models/assessment.model';
+import AssessmentAttempt from '../models/assessmentAttempt.model';
 import Assignment from '../models/assignment.model';
 import Attendance from '../models/attendance.model';
 import Batch from '../models/batch.model';
@@ -44,9 +46,35 @@ type SkillBatchAccess = {
     isStudent: boolean;
 };
 
+type LanguageBatchAccess = {
+    batch: any;
+    trainer: any;
+    isAdmin: boolean;
+    isTrainer: boolean;
+    isStudent: boolean;
+};
+
+type SharedBatchAccess = {
+    batch: any;
+    trainer: any;
+    isAdmin: boolean;
+    isTrainer: boolean;
+    isStudent: boolean;
+    studentCount: number;
+    courseTitle: string;
+    batchName: string;
+};
+
 type SkillAttendanceEntry = {
     studentId: string;
     joinedAt: Date;
+};
+
+type SubmittedAssessmentAnswer = {
+    questionId: string;
+    selectedOptionIndex?: number;
+    booleanAnswer?: boolean;
+    textAnswer?: string;
 };
 
 const getObjectIdString = (value: any): string | null => {
@@ -126,6 +154,69 @@ const getSkillBatchAccess = async (req: AuthRequest, batchId: string): Promise<S
         isAdmin,
         isTrainer,
         isStudent,
+    };
+};
+
+const getLanguageBatchAccess = async (req: AuthRequest, batchId: string): Promise<LanguageBatchAccess | null> => {
+    const batch = await LanguageBatch.findById(batchId)
+        .populate('trainerId', 'name email')
+        .populate('students', 'name email phoneNumber avatar germanLevel guardianName guardianPhone qualification dateOfBirth');
+
+    if (!batch) {
+        return null;
+    }
+
+    const userId = getObjectIdString(req.user?._id);
+    const trainer = batch.trainerId as any;
+    const trainerId = getObjectIdString(trainer);
+    const isAdmin = req.user?.role === 'admin';
+    const isTrainer = !!userId && !!trainerId && userId === trainerId;
+    const isStudent = !!userId && (batch.students as any[]).some((student) => getObjectIdString(student) === userId);
+
+    if (!isAdmin && !isTrainer && !isStudent) {
+        return null;
+    }
+
+    return {
+        batch,
+        trainer,
+        isAdmin,
+        isTrainer,
+        isStudent,
+    };
+};
+
+const getSharedBatchAccess = async (
+    req: AuthRequest,
+    trainingType: TrainingType,
+    batchId: string
+): Promise<SharedBatchAccess | null> => {
+    if (trainingType === 'language') {
+        const access = await getLanguageBatchAccess(req, batchId);
+
+        if (!access) {
+            return null;
+        }
+
+        return {
+            ...access,
+            studentCount: Array.isArray(access.batch.students) ? access.batch.students.length : 0,
+            courseTitle: String(access.batch.courseTitle || '').trim() || 'Language Training',
+            batchName: String(access.batch.name || '').trim(),
+        };
+    }
+
+    const access = await getSkillBatchAccess(req, batchId);
+
+    if (!access) {
+        return null;
+    }
+
+    return {
+        ...access,
+        studentCount: Array.isArray(access.batch.students) ? access.batch.students.length : 0,
+        courseTitle: String((access.course as any)?.title || 'Skill Training').trim(),
+        batchName: String(access.batch.name || '').trim(),
     };
 };
 
@@ -272,6 +363,217 @@ const buildPaginationResponse = <T,>(items: T[], page: number, limit: number) =>
         page,
         pages: Math.ceil(total / limit),
         hasMore: page * limit < total,
+    };
+};
+
+const normalizeBlankAnswer = (value: string) => String(value || '').trim().toLowerCase();
+
+const normalizeAssessmentQuestions = (input: unknown) => {
+    if (!Array.isArray(input) || input.length === 0) {
+        return {
+            error: 'At least one question is required.',
+            questions: [],
+        };
+    }
+
+    const questions = [] as Array<Record<string, unknown>>;
+
+    for (let index = 0; index < input.length; index += 1) {
+        const rawQuestion = input[index] as Record<string, unknown>;
+        const type = String(rawQuestion?.type || '').trim();
+        const prompt = String(rawQuestion?.prompt || '').trim();
+
+        if (!['mcq', 'true_false', 'fill_blank'].includes(type)) {
+            return {
+                error: `Question ${index + 1} has an invalid type.`,
+                questions: [],
+            };
+        }
+
+        if (!prompt) {
+            return {
+                error: `Question ${index + 1} must include a prompt.`,
+                questions: [],
+            };
+        }
+
+        if (type === 'mcq') {
+            const options = Array.isArray(rawQuestion?.options)
+                ? rawQuestion.options.map((option) => String(option || '').trim()).filter(Boolean)
+                : [];
+            const correctOptionIndex = Number(rawQuestion?.correctOptionIndex);
+
+            if (options.length < 2) {
+                return {
+                    error: `Question ${index + 1} must have at least two options.`,
+                    questions: [],
+                };
+            }
+
+            if (!Number.isInteger(correctOptionIndex) || correctOptionIndex < 0 || correctOptionIndex >= options.length) {
+                return {
+                    error: `Question ${index + 1} must have exactly one valid correct option.`,
+                    questions: [],
+                };
+            }
+
+            questions.push({
+                type,
+                prompt,
+                options,
+                correctOptionIndex,
+            });
+            continue;
+        }
+
+        if (type === 'true_false') {
+            if (typeof rawQuestion?.correctBoolean !== 'boolean') {
+                return {
+                    error: `Question ${index + 1} must have a true or false answer.`,
+                    questions: [],
+                };
+            }
+
+            questions.push({
+                type,
+                prompt,
+                options: [],
+                correctBoolean: rawQuestion.correctBoolean,
+            });
+            continue;
+        }
+
+        const blankAnswer = String(rawQuestion?.blankAnswer || '').trim();
+
+        if (!blankAnswer) {
+            return {
+                error: `Question ${index + 1} must have a fill-in-the-blank answer.`,
+                questions: [],
+            };
+        }
+
+        questions.push({
+            type,
+            prompt,
+            options: [],
+            blankAnswer,
+        });
+    }
+
+    return {
+        questions,
+        error: '',
+    };
+};
+
+const mapAssessmentQuestionForResponse = (question: any, includeAnswerKey: boolean) => {
+    const response: Record<string, unknown> = {
+        _id: String(question._id),
+        type: question.type,
+        prompt: question.prompt,
+    };
+
+    if (question.type === 'mcq') {
+        response.options = Array.isArray(question.options) ? question.options : [];
+    }
+
+    if (!includeAnswerKey) {
+        return response;
+    }
+
+    if (question.type === 'mcq') {
+        response.correctOptionIndex = question.correctOptionIndex;
+    } else if (question.type === 'true_false') {
+        response.correctBoolean = question.correctBoolean;
+    } else if (question.type === 'fill_blank') {
+        response.blankAnswer = question.blankAnswer || '';
+    }
+
+    return response;
+};
+
+const mapAssessmentAttemptSummary = (attempt: any) => ({
+    _id: String(attempt._id),
+    attemptNumber: attempt.attemptNumber,
+    correctCount: attempt.correctCount,
+    totalQuestions: attempt.totalQuestions,
+    scorePercentage: attempt.scorePercentage,
+    status: attempt.status,
+    createdAt: attempt.createdAt,
+});
+
+const buildTrainerAssessmentSummary = (attempts: any[], studentCount: number) => {
+    const passedStudentIds = new Set(
+        attempts
+            .filter((attempt) => attempt.status === 'passed')
+            .map((attempt) => String(attempt.studentId))
+    );
+
+    return {
+        attemptCount: attempts.length,
+        passedStudents: passedStudentIds.size,
+        studentsPendingPass: Math.max(studentCount - passedStudentIds.size, 0),
+    };
+};
+
+const buildStudentAssessmentProgress = (attempts: any[]) => {
+    const sortedAttempts = [...attempts].sort((left, right) => {
+        if (right.attemptNumber !== left.attemptNumber) {
+            return right.attemptNumber - left.attemptNumber;
+        }
+
+        return new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime();
+    });
+    const latestAttempt = sortedAttempts[0] || null;
+    const passedAttempt = sortedAttempts.find((attempt) => attempt.status === 'passed') || null;
+
+    return {
+        attemptCount: sortedAttempts.length,
+        latestAttempt: latestAttempt ? mapAssessmentAttemptSummary(latestAttempt) : null,
+        latestScore: latestAttempt ? latestAttempt.scorePercentage : null,
+        passed: !!passedAttempt,
+        finalized: !!passedAttempt,
+        canRetry: !passedAttempt,
+        attempts: sortedAttempts.map(mapAssessmentAttemptSummary),
+    };
+};
+
+const gradeAssessmentQuestion = (question: any, submittedAnswer?: SubmittedAssessmentAnswer | null) => {
+    if (question.type === 'mcq') {
+        const selectedOptionIndex = typeof submittedAnswer?.selectedOptionIndex === 'number'
+            ? submittedAnswer.selectedOptionIndex
+            : undefined;
+
+        return {
+            questionId: question._id,
+            questionType: question.type,
+            selectedOptionIndex,
+            isCorrect: selectedOptionIndex === question.correctOptionIndex,
+        };
+    }
+
+    if (question.type === 'true_false') {
+        const booleanAnswer = typeof submittedAnswer?.booleanAnswer === 'boolean'
+            ? submittedAnswer.booleanAnswer
+            : undefined;
+
+        return {
+            questionId: question._id,
+            questionType: question.type,
+            booleanAnswer,
+            isCorrect: booleanAnswer === question.correctBoolean,
+        };
+    }
+
+    const textAnswer = typeof submittedAnswer?.textAnswer === 'string'
+        ? submittedAnswer.textAnswer.trim()
+        : '';
+
+    return {
+        questionId: question._id,
+        questionType: question.type,
+        textAnswer,
+        isCorrect: normalizeBlankAnswer(textAnswer) === normalizeBlankAnswer(question.blankAnswer || ''),
     };
 };
 
@@ -511,6 +813,357 @@ export const getTrainerBatchClasses = async (req: AuthRequest, res: Response) =>
     } catch (error) {
         console.error('Failed to fetch trainer batch classes:', error);
         return res.status(500).json({ message: 'Failed to fetch trainer batch classes', error });
+    }
+};
+
+export const getTrainerBatchAssessments = async (req: AuthRequest, res: Response) => {
+    const trainingType = normalizeTrainingType(req.params.trainingType);
+
+    if (!trainingType) {
+        return res.status(400).json({ message: 'Invalid trainingType provided.' });
+    }
+
+    try {
+        const access = await getSharedBatchAccess(req, trainingType, req.params.batchId);
+
+        if (!access) {
+            return res.status(404).json({ message: 'Batch not found or access denied' });
+        }
+
+        const { page, limit, skip } = getPagination(req);
+        const filter = { trainingType, batchId: req.params.batchId };
+        const [assessments, total] = await Promise.all([
+            Assessment.find(filter)
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit),
+            Assessment.countDocuments(filter),
+        ]);
+        const assessmentIds = assessments.map((assessment) => assessment._id);
+
+        if (assessmentIds.length === 0) {
+            return res.status(200).json({
+                data: [],
+                total,
+                page,
+                pages: Math.ceil(total / limit),
+                hasMore: false,
+            });
+        }
+
+        if (access.isTrainer || access.isAdmin) {
+            const attempts = await AssessmentAttempt.find({ assessmentId: { $in: assessmentIds } })
+                .select('assessmentId studentId status');
+            const attemptsByAssessmentId = new Map<string, any[]>();
+
+            attempts.forEach((attempt) => {
+                const assessmentId = String(attempt.assessmentId);
+                const existingAttempts = attemptsByAssessmentId.get(assessmentId) || [];
+                existingAttempts.push(attempt);
+                attemptsByAssessmentId.set(assessmentId, existingAttempts);
+            });
+
+            return res.status(200).json({
+                data: assessments.map((assessment) => {
+                    const summary = buildTrainerAssessmentSummary(
+                        attemptsByAssessmentId.get(String(assessment._id)) || [],
+                        access.studentCount
+                    );
+
+                    return {
+                        _id: String(assessment._id),
+                        batchId: String(assessment.batchId),
+                        trainingType,
+                        title: assessment.title,
+                        description: assessment.description || '',
+                        passPercentage: assessment.passPercentage,
+                        publishedAt: assessment.publishedAt,
+                        createdAt: assessment.createdAt,
+                        questionCount: assessment.questions.length,
+                        ...summary,
+                    };
+                }),
+                total,
+                page,
+                pages: Math.ceil(total / limit),
+                hasMore: skip + assessments.length < total,
+            });
+        }
+
+        const attempts = await AssessmentAttempt.find({
+            assessmentId: { $in: assessmentIds },
+            studentId: req.user?._id,
+        }).sort({ attemptNumber: -1, createdAt: -1 });
+        const attemptsByAssessmentId = new Map<string, any[]>();
+
+        attempts.forEach((attempt) => {
+            const assessmentId = String(attempt.assessmentId);
+            const existingAttempts = attemptsByAssessmentId.get(assessmentId) || [];
+            existingAttempts.push(attempt);
+            attemptsByAssessmentId.set(assessmentId, existingAttempts);
+        });
+
+        return res.status(200).json({
+            data: assessments.map((assessment) => {
+                const progress = buildStudentAssessmentProgress(
+                    attemptsByAssessmentId.get(String(assessment._id)) || []
+                );
+
+                return {
+                    _id: String(assessment._id),
+                    batchId: String(assessment.batchId),
+                    trainingType,
+                    title: assessment.title,
+                    description: assessment.description || '',
+                    passPercentage: assessment.passPercentage,
+                    publishedAt: assessment.publishedAt,
+                    createdAt: assessment.createdAt,
+                    questionCount: assessment.questions.length,
+                    attemptCount: progress.attemptCount,
+                    latestScore: progress.latestScore,
+                    latestStatus: progress.latestAttempt?.status || null,
+                    passed: progress.passed,
+                    finalized: progress.finalized,
+                    canRetry: progress.canRetry,
+                    canStart: progress.attemptCount === 0,
+                };
+            }),
+            total,
+            page,
+            pages: Math.ceil(total / limit),
+            hasMore: skip + assessments.length < total,
+        });
+    } catch (error) {
+        console.error('Failed to fetch trainer batch assessments:', error);
+        return res.status(500).json({ message: 'Failed to fetch trainer batch assessments', error });
+    }
+};
+
+export const createTrainerBatchAssessment = async (req: AuthRequest, res: Response) => {
+    const trainingType = normalizeTrainingType(req.params.trainingType);
+
+    if (!trainingType) {
+        return res.status(400).json({ message: 'Invalid trainingType provided.' });
+    }
+
+    try {
+        const { batchId, title, description, questions } = req.body;
+        const normalizedTitle = String(title || '').trim();
+
+        if (!batchId) {
+            return res.status(400).json({ message: 'batchId is required.' });
+        }
+
+        if (!normalizedTitle) {
+            return res.status(400).json({ message: 'Assessment title is required.' });
+        }
+
+        const access = await getSharedBatchAccess(req, trainingType, String(batchId));
+
+        if (!access || (!access.isTrainer && !access.isAdmin)) {
+            return res.status(403).json({ message: 'Not authorized to create assessments for this batch' });
+        }
+
+        const normalizedQuestions = normalizeAssessmentQuestions(questions);
+
+        if (normalizedQuestions.error) {
+            return res.status(400).json({ message: normalizedQuestions.error });
+        }
+
+        const assessment = await Assessment.create({
+            trainingType,
+            batchId,
+            title: normalizedTitle,
+            description: String(description || '').trim() || undefined,
+            passPercentage: 40,
+            createdBy: req.user?._id,
+            publishedAt: new Date(),
+            questions: normalizedQuestions.questions,
+        });
+
+        return res.status(201).json({
+            _id: String(assessment._id),
+            batchId: String(assessment.batchId),
+            trainingType,
+            title: assessment.title,
+            description: assessment.description || '',
+            passPercentage: assessment.passPercentage,
+            publishedAt: assessment.publishedAt,
+            createdAt: assessment.createdAt,
+            questionCount: assessment.questions.length,
+            attemptCount: 0,
+            passedStudents: 0,
+            studentsPendingPass: access.studentCount,
+        });
+    } catch (error) {
+        console.error('Failed to create trainer batch assessment:', error);
+        return res.status(500).json({ message: 'Failed to create trainer batch assessment', error });
+    }
+};
+
+export const getTrainerBatchAssessmentDetail = async (req: AuthRequest, res: Response) => {
+    const trainingType = normalizeTrainingType(req.params.trainingType);
+
+    if (!trainingType) {
+        return res.status(400).json({ message: 'Invalid trainingType provided.' });
+    }
+
+    try {
+        const assessment = await Assessment.findOne({
+            _id: req.params.assessmentId,
+            trainingType,
+        });
+
+        if (!assessment) {
+            return res.status(404).json({ message: 'Assessment not found' });
+        }
+
+        const access = await getSharedBatchAccess(req, trainingType, String(assessment.batchId));
+
+        if (!access) {
+            return res.status(404).json({ message: 'Batch not found or access denied' });
+        }
+
+        const includeAnswerKey = access.isTrainer || access.isAdmin;
+        const basePayload = {
+            _id: String(assessment._id),
+            batchId: String(assessment.batchId),
+            trainingType,
+            title: assessment.title,
+            description: assessment.description || '',
+            passPercentage: assessment.passPercentage,
+            publishedAt: assessment.publishedAt,
+            createdAt: assessment.createdAt,
+            courseTitle: access.courseTitle,
+            batchName: access.batchName,
+            questionCount: assessment.questions.length,
+            questions: assessment.questions.map((question) => (
+                mapAssessmentQuestionForResponse(question, includeAnswerKey)
+            )),
+        };
+
+        if (includeAnswerKey) {
+            const attempts = await AssessmentAttempt.find({ assessmentId: assessment._id })
+                .select('assessmentId studentId status');
+
+            return res.status(200).json({
+                ...basePayload,
+                summary: buildTrainerAssessmentSummary(attempts, access.studentCount),
+            });
+        }
+
+        const studentAttempts = await AssessmentAttempt.find({
+            assessmentId: assessment._id,
+            studentId: req.user?._id,
+        }).sort({ attemptNumber: -1, createdAt: -1 });
+
+        return res.status(200).json({
+            ...basePayload,
+            studentProgress: buildStudentAssessmentProgress(studentAttempts),
+        });
+    } catch (error) {
+        console.error('Failed to fetch trainer batch assessment detail:', error);
+        return res.status(500).json({ message: 'Failed to fetch trainer batch assessment detail', error });
+    }
+};
+
+export const submitTrainerBatchAssessment = async (req: AuthRequest, res: Response) => {
+    const trainingType = normalizeTrainingType(req.params.trainingType);
+
+    if (!trainingType) {
+        return res.status(400).json({ message: 'Invalid trainingType provided.' });
+    }
+
+    try {
+        const assessment = await Assessment.findOne({
+            _id: req.params.assessmentId,
+            trainingType,
+        });
+
+        if (!assessment) {
+            return res.status(404).json({ message: 'Assessment not found' });
+        }
+
+        const access = await getSharedBatchAccess(req, trainingType, String(assessment.batchId));
+
+        if (!access || !access.isStudent || req.user?.role !== 'student') {
+            return res.status(403).json({ message: 'Only enrolled students can submit this assessment' });
+        }
+
+        const existingPassedAttempt = await AssessmentAttempt.findOne({
+            assessmentId: assessment._id,
+            studentId: req.user?._id,
+            status: 'passed',
+        }).select('_id');
+
+        if (existingPassedAttempt) {
+            return res.status(400).json({ message: 'Assessment already passed and finalized.' });
+        }
+
+        const rawAnswers = Array.isArray(req.body?.answers) ? req.body.answers : [];
+        const answersByQuestionId = new Map<string, SubmittedAssessmentAnswer>();
+
+        rawAnswers.forEach((rawAnswer: unknown) => {
+            const questionId = String((rawAnswer as Record<string, unknown>)?.questionId || '').trim();
+
+            if (!questionId || answersByQuestionId.has(questionId)) {
+                return;
+            }
+
+            const normalizedAnswer: SubmittedAssessmentAnswer = { questionId };
+            const answerRecord = rawAnswer as Record<string, unknown>;
+            const parsedOptionIndex = Number(answerRecord?.selectedOptionIndex);
+
+            if (Number.isInteger(parsedOptionIndex)) {
+                normalizedAnswer.selectedOptionIndex = parsedOptionIndex;
+            }
+
+            if (typeof answerRecord?.booleanAnswer === 'boolean') {
+                normalizedAnswer.booleanAnswer = answerRecord.booleanAnswer;
+            }
+
+            if (typeof answerRecord?.textAnswer === 'string') {
+                normalizedAnswer.textAnswer = answerRecord.textAnswer;
+            }
+
+            answersByQuestionId.set(questionId, normalizedAnswer);
+        });
+
+        const gradedAnswers = assessment.questions.map((question) => (
+            gradeAssessmentQuestion(question, answersByQuestionId.get(String(question._id)) || null)
+        ));
+        const correctCount = gradedAnswers.filter((answer) => answer.isCorrect).length;
+        const totalQuestions = assessment.questions.length;
+        const scorePercentage = Math.round((correctCount / totalQuestions) * 100);
+        const status = scorePercentage >= assessment.passPercentage ? 'passed' : 'failed';
+        const attemptNumber = await AssessmentAttempt.countDocuments({
+            assessmentId: assessment._id,
+            studentId: req.user?._id,
+        }) + 1;
+
+        const attempt = await AssessmentAttempt.create({
+            assessmentId: assessment._id,
+            trainingType,
+            batchId: assessment.batchId,
+            studentId: req.user?._id,
+            attemptNumber,
+            answers: gradedAnswers,
+            correctCount,
+            totalQuestions,
+            scorePercentage,
+            status,
+        });
+
+        return res.status(201).json({
+            message: status === 'passed' ? 'Assessment passed and finalized.' : 'Assessment failed. Retry is available.',
+            attempt: mapAssessmentAttemptSummary(attempt),
+            passed: status === 'passed',
+            finalized: status === 'passed',
+            canRetry: status !== 'passed',
+        });
+    } catch (error) {
+        console.error('Failed to submit trainer batch assessment:', error);
+        return res.status(500).json({ message: 'Failed to submit trainer batch assessment', error });
     }
 };
 

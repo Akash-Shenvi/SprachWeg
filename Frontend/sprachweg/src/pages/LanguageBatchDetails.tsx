@@ -4,11 +4,13 @@ import {
     Video,
     FileText,
     Bell,
+    ClipboardList,
     Plus,
     X,
     Trash2,
     Users,
     Download,
+    BadgeCheck,
     CheckCircle,
     XCircle,
     UserCheck,
@@ -20,8 +22,10 @@ import {
     GraduationCap,
     User as UserIcon,
     Eye,
+    ExternalLink,
     MessageCircle,
     LayoutDashboard,
+    RotateCcw,
     Settings,
     Moon,
     Sun
@@ -87,6 +91,27 @@ interface LanguageClass {
     status: 'scheduled' | 'live' | 'completed' | 'cancelled';
 }
 
+interface AssessmentListItem {
+    _id: string;
+    batchId: string;
+    trainingType: TrainingType;
+    title: string;
+    description?: string;
+    passPercentage: number;
+    publishedAt: string;
+    createdAt: string;
+    questionCount: number;
+    attemptCount: number;
+    passedStudents?: number;
+    studentsPendingPass?: number;
+    latestScore?: number | null;
+    latestStatus?: 'passed' | 'failed' | null;
+    passed?: boolean;
+    finalized?: boolean;
+    canRetry?: boolean;
+    canStart?: boolean;
+}
+
 interface LanguageBatchDetailsProps {
     trainingType?: TrainingType;
 }
@@ -97,10 +122,11 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
     const { user } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const trainerBatchBasePath = `/trainer-batches/${trainingType}`;
+    const batchRouteBasePath = trainingType === 'language' ? '/language-batch' : '/skill-batch';
     const [batch, setBatch] = useState<BatchDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const isAdminUser = user?.role === 'admin';
-    const [activeTab, setActiveTab] = useState<'announcements' | 'materials' | 'students' | 'classes'>(isAdminUser ? 'classes' : 'announcements');
+    const [activeTab, setActiveTab] = useState<'announcements' | 'materials' | 'students' | 'classes' | 'assessments'>(isAdminUser ? 'classes' : 'announcements');
     const contentContainerRef = useRef<HTMLDivElement>(null);
     const tabsContainerRef = useRef<HTMLDivElement>(null);
     const quickActionsRef = useRef<HTMLDivElement>(null);
@@ -150,6 +176,11 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
     const [clsHasMore, setClsHasMore] = useState(false);
     const [clsLoading, setClsLoading] = useState(false);
 
+    const [assessments, setAssessments] = useState<AssessmentListItem[]>([]);
+    const [asmPage, setAsmPage] = useState(1);
+    const [asmHasMore, setAsmHasMore] = useState(false);
+    const [asmLoading, setAsmLoading] = useState(false);
+
     const isTrainer = user?.role === 'trainer' || user?._id === batch?.trainerId;
     const isAdmin = user?.role === 'admin';
     const isStudent = user?.role === 'student';
@@ -160,7 +191,8 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
         const setLoading = tab === 'announcements' ? setAnnLoading
             : tab === 'materials' ? setMatLoading
             : tab === 'students' ? setStuLoading
-            : setClsLoading;
+            : tab === 'classes' ? setClsLoading
+            : setAsmLoading;
 
         setLoading(true);
         try {
@@ -180,10 +212,14 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                 setStudents(prev => append ? [...prev, ...data] : data);
                 setStuHasMore(hasMore);
                 setStuPage(page);
-            } else {
+            } else if (tab === 'classes') {
                 setClasses(prev => append ? [...prev, ...data] : data);
                 setClsHasMore(hasMore);
                 setClsPage(page);
+            } else {
+                setAssessments(prev => append ? [...prev, ...data] : data);
+                setAsmHasMore(hasMore);
+                setAsmPage(page);
             }
         } catch (err) {
             console.error(`Failed to fetch ${tab}`, err);
@@ -207,6 +243,22 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
     useEffect(() => {
         if (batchId) fetchTab(activeTab, 1, false);
     }, [batchId, activeTab, trainingType]);
+
+    useEffect(() => {
+        if (activeTab !== 'assessments' || !batchId) {
+            return;
+        }
+
+        const handleWindowFocus = () => {
+            void fetchTab('assessments', 1, false);
+        };
+
+        window.addEventListener('focus', handleWindowFocus);
+
+        return () => {
+            window.removeEventListener('focus', handleWindowFocus);
+        };
+    }, [activeTab, batchId, trainingType]);
 
     const fetchBatchDetails = async () => {
         try {
@@ -413,6 +465,20 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
         }
     };
 
+    const openAssessmentPathInNewTab = (path: string) => {
+        window.open(path, '_blank', 'noopener,noreferrer');
+    };
+
+    const handleCreateAssessment = () => {
+        if (!batchId) return;
+        openAssessmentPathInNewTab(`${batchRouteBasePath}/${batchId}/assessments/new`);
+    };
+
+    const handleOpenAssessment = (assessmentId: string) => {
+        if (!batchId) return;
+        openAssessmentPathInNewTab(`${batchRouteBasePath}/${batchId}/assessments/${assessmentId}`);
+    };
+
     const getFileIcon = (filename: string = '') => {
         const ext = filename.split('.').pop()?.toLowerCase();
         if (['jpg', 'jpeg', 'png', 'gif'].includes(ext || '')) return <img className="h-6 w-6" />;
@@ -554,7 +620,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                         `}</style>
 
                         <div className="flex space-x-1 min-w-max px-0 tab-scroll">
-                            {(['announcements', 'materials', 'students', 'classes'] as const).map((tab) => (
+                            {(['announcements', 'materials', 'students', 'classes', 'assessments'] as const).map((tab) => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
@@ -581,13 +647,25 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                 {(isTrainer || isAdmin) && activeTab !== 'students' && (
                     <div className="mb-8 flex justify-end animate-in fade-in slide-in-from-bottom duration-500 delay-150">
                         <button
-                            onClick={() => { resetForm(); setShowAddModal(true); }}
+                            onClick={() => {
+                                if (activeTab === 'assessments') {
+                                    handleCreateAssessment();
+                                    return;
+                                }
+
+                                resetForm();
+                                setShowAddModal(true);
+                            }}
                             className="group inline-flex items-center gap-2 px-6 sm:px-8 py-3 rounded-xl font-semibold bg-gradient-to-r from-[#d6b161] to-[#c4a055] text-[#0a192f] hover:shadow-lg hover:shadow-[#d6b161]/20 hover:-translate-y-0.5 transition-all duration-300 border border-[#d6b161]/50 dark:border-[#d6b161]/30"
                             role="button"
                             aria-label={`Add new ${activeTab}`}
                         >
                             <Plus className="h-5 w-5 transition-transform group-hover:rotate-90 duration-300" />
-                            <span className="hidden sm:inline">Add {activeTab === 'announcements' ? 'Announcement' : activeTab === 'classes' ? 'Class' : 'Material'}</span>
+                            <span className="hidden sm:inline">
+                                {activeTab === 'assessments'
+                                    ? 'Create Assessment'
+                                    : `Add ${activeTab === 'announcements' ? 'Announcement' : activeTab === 'classes' ? 'Class' : 'Material'}`}
+                            </span>
                             <span className="sm:hidden">Add</span>
                         </button>
                     </div>
@@ -803,6 +881,142 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                                 <div className="col-span-full flex justify-center mt-6 pb-4">
                                     <button onClick={() => fetchTab('materials', matPage + 1, true)} disabled={matLoading} className="px-6 py-2.5 bg-white dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold rounded-xl border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors shadow-sm disabled:opacity-50">
                                         {matLoading ? 'Loading...' : 'Load More'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ) : activeTab === 'assessments' ? (
+                        <div className="space-y-4 sm:space-y-5">
+                            {!asmLoading && assessments.length === 0 && (
+                                <div className="text-center py-12 sm:py-16 bg-white dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700/50 backdrop-blur-xl">
+                                    <ClipboardList className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                                    <p className="text-gray-500 dark:text-gray-400 text-base font-medium">No assessments published for this batch yet.</p>
+                                    {(isTrainer || isAdmin) && (
+                                        <button
+                                            type="button"
+                                            onClick={handleCreateAssessment}
+                                            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#d6b161] px-5 py-3 text-sm font-bold text-[#0a192f] transition hover:bg-[#c4a055]"
+                                        >
+                                            <Plus className="h-4 w-4" />
+                                            Create Assessment
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
+                            {assessments.map((assessment, idx) => (
+                                <div
+                                    key={assessment._id}
+                                    className="group relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-800/50 backdrop-blur-xl p-5 sm:p-6 lg:p-7 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-bottom duration-500"
+                                    style={{ animationDelay: `${idx * 50}ms` }}
+                                >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-[#d6b161]/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                    <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="mb-3 flex flex-wrap items-center gap-2">
+                                                <span className="inline-flex items-center gap-2 rounded-full bg-[#d6b161]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#d6b161]">
+                                                    <ClipboardList className="h-3.5 w-3.5" />
+                                                    Assessment
+                                                </span>
+                                                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
+                                                    Pass {assessment.passPercentage}%
+                                                </span>
+                                                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600 dark:bg-gray-700/60 dark:text-gray-200">
+                                                    {assessment.questionCount} Questions
+                                                </span>
+                                            </div>
+
+                                            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-[#d6b161] transition-colors">
+                                                {assessment.title}
+                                            </h3>
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                                {assessment.description || 'No description added for this assessment.'}
+                                            </p>
+
+                                            <div className="mt-4 flex flex-wrap items-center gap-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                                                <span className="inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg font-medium">
+                                                    Published {new Date(assessment.publishedAt || assessment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                </span>
+                                                {isStudent && typeof assessment.latestScore === 'number' && (
+                                                    <span className="inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg font-medium">
+                                                        Latest Score {assessment.latestScore}%
+                                                    </span>
+                                                )}
+                                                {isStudent && assessment.finalized && (
+                                                    <span className="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1.5 rounded-lg font-bold text-xs uppercase tracking-wider">
+                                                        <BadgeCheck className="h-4 w-4" />
+                                                        Finalized
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {(isTrainer || isAdmin) && (
+                                                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                                                    <div className="rounded-xl bg-gray-50 dark:bg-gray-900/30 px-4 py-3">
+                                                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Attempts</p>
+                                                        <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">{assessment.attemptCount}</p>
+                                                    </div>
+                                                    <div className="rounded-xl bg-gray-50 dark:bg-gray-900/30 px-4 py-3">
+                                                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Passed</p>
+                                                        <p className="mt-1 text-xl font-bold text-green-600 dark:text-green-400">{assessment.passedStudents ?? 0}</p>
+                                                    </div>
+                                                    <div className="rounded-xl bg-gray-50 dark:bg-gray-900/30 px-4 py-3">
+                                                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Pending</p>
+                                                        <p className="mt-1 text-xl font-bold text-orange-500">{assessment.studentsPendingPass ?? 0}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {isStudent && (
+                                                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                                                    <span className="rounded-xl bg-gray-100 dark:bg-gray-700/50 px-4 py-2 font-semibold">
+                                                        Attempts: {assessment.attemptCount}
+                                                    </span>
+                                                    {assessment.latestStatus && (
+                                                        <span className={`rounded-xl px-4 py-2 font-semibold ${
+                                                            assessment.latestStatus === 'passed'
+                                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+                                                        }`}>
+                                                            {assessment.latestStatus === 'passed' ? 'Passed' : 'Needs Retry'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center gap-3 lg:flex-col lg:items-stretch">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenAssessment(assessment._id)}
+                                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#d6b161] px-5 py-3 text-sm font-bold text-[#0a192f] transition hover:bg-[#c4a055]"
+                                            >
+                                                <ExternalLink className="h-4 w-4" />
+                                                {isStudent
+                                                    ? assessment.finalized
+                                                        ? 'View Final Result'
+                                                        : assessment.attemptCount === 0
+                                                            ? 'Start Assessment'
+                                                            : assessment.canRetry
+                                                                ? 'Retry Assessment'
+                                                                : 'Open Assessment'
+                                                    : 'Open Assessment'}
+                                            </button>
+                                            {isStudent && assessment.canRetry && assessment.attemptCount > 0 && !assessment.finalized && (
+                                                <span className="inline-flex items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-semibold text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-300">
+                                                    <RotateCcw className="h-3.5 w-3.5" />
+                                                    Retry available
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {asmHasMore && (
+                                <div className="flex justify-center mt-6 pb-4">
+                                    <button onClick={() => fetchTab('assessments', asmPage + 1, true)} disabled={asmLoading} className="px-6 py-2.5 bg-white dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold rounded-xl border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors shadow-sm disabled:opacity-50">
+                                        {asmLoading ? 'Loading...' : 'Load More'}
                                     </button>
                                 </div>
                             )}

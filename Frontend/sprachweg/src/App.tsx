@@ -22,6 +22,7 @@ import LanguageEnrollmentDetails from './pages/Admin/LanguageEnrollmentDetails';
 import LanguageBatches from './pages/Admin/LanguageBatches';
 import LanguageBatchDetails from './pages/LanguageBatchDetails';
 import SkillBatchDetails from './pages/SkillBatchDetails';
+import BatchAssessmentPage from './pages/BatchAssessmentPage';
 import LanguageTraining from './pages/LanguageTraining';
 import CourseEnglishPage from './pages/CourseEnglishPage';
 import CourseGermanPage from './pages/CourseGermanPage';
@@ -332,10 +333,42 @@ const AppContent = () => {
           }
         />
         <Route
+          path="/language-batch/:batchId/assessments/new"
+          element={
+            <ProtectedRoute>
+              <BatchAssessmentPage trainingType="language" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/language-batch/:batchId/assessments/:assessmentId"
+          element={
+            <ProtectedRoute>
+              <BatchAssessmentPage trainingType="language" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/skill-batch/:batchId"
           element={
             <ProtectedRoute>
               <SkillBatchDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/skill-batch/:batchId/assessments/new"
+          element={
+            <ProtectedRoute>
+              <BatchAssessmentPage trainingType="skill" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/skill-batch/:batchId/assessments/:assessmentId"
+          element={
+            <ProtectedRoute>
+              <BatchAssessmentPage trainingType="skill" />
             </ProtectedRoute>
           }
         />
