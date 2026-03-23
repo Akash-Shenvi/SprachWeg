@@ -99,7 +99,8 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
     const trainerBatchBasePath = `/trainer-batches/${trainingType}`;
     const [batch, setBatch] = useState<BatchDetails | null>(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'announcements' | 'materials' | 'students' | 'classes'>('announcements');
+    const isAdminUser = user?.role === 'admin';
+    const [activeTab, setActiveTab] = useState<'announcements' | 'materials' | 'students' | 'classes'>(isAdminUser ? 'classes' : 'announcements');
     const contentContainerRef = useRef<HTMLDivElement>(null);
     const tabsContainerRef = useRef<HTMLDivElement>(null);
     const quickActionsRef = useRef<HTMLDivElement>(null);
@@ -150,6 +151,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
     const [clsLoading, setClsLoading] = useState(false);
 
     const isTrainer = user?.role === 'trainer' || user?._id === batch?.trainerId;
+    const isAdmin = user?.role === 'admin';
     const isStudent = user?.role === 'student';
 
     // --- Paginated fetch helpers ---
@@ -500,11 +502,11 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                 <div className="mb-8 animate-in fade-in slide-in-from-top duration-500">
                     {!isStudent && (
                         <button
-                            onClick={() => navigate(-1)}
+                            onClick={() => isAdmin ? navigate('/admin-dashboard') : navigate(-1)}
                             className="group inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-all duration-300 hover:gap-3 mb-6"
                         >
                             <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
-                            <span className="font-medium">Back to Dashboard</span>
+                            <span className="font-medium">{isAdmin ? 'Back to Admin Dashboard' : 'Back to Dashboard'}</span>
                         </button>
                     )}
 

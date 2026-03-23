@@ -12,7 +12,8 @@ import {
     ChevronRight,
     Activity,
     Layers,
-    ArrowLeft
+    ArrowLeft,
+    Eye
 } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
@@ -496,13 +497,24 @@ const AdminDashboard: React.FC = () => {
                                                         <p className="text-xs text-gray-400 dark:text-gray-500">{batch.name}</p>
                                                     </div>
                                                 </div>
-                                                <div className="text-right shrink-0 ml-4">
-                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                        {batch.students?.length || 0} <span className="text-xs font-normal text-gray-400">students</span>
-                                                    </p>
-                                                    <p className="text-xs text-gray-400 mt-0.5">
-                                                        {trainers.find(t => t._id === batch.trainerId)?.name || 'Unassigned'}
-                                                    </p>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="text-right shrink-0">
+                                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                            {batch.students?.length || 0} <span className="text-xs font-normal text-gray-400">students</span>
+                                                        </p>
+                                                        <p className="text-xs text-gray-400 mt-0.5">
+                                                            {trainers.find(t => t._id === batch.trainerId)?.name || 'Unassigned'}
+                                                        </p>
+                                                    </div>
+                                                    <Link
+                                                        to={`/language-batch/${batch._id}`}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="inline-flex items-center gap-1.5 rounded-lg bg-[#d6b161]/10 px-3 py-1.5 text-xs font-semibold text-[#d6b161] border border-[#d6b161]/20 hover:bg-[#d6b161]/20 hover:border-[#d6b161]/40 transition-all duration-200 shrink-0"
+                                                        title="Visit this class as admin"
+                                                    >
+                                                        <Eye className="h-3.5 w-3.5" />
+                                                        Visit
+                                                    </Link>
                                                 </div>
                                             </motion.div>
                                         ))
