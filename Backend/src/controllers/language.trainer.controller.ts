@@ -122,11 +122,12 @@ export const getBatchDetails = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: 'Batch not found' });
         }
 
-        // Check access: Must be Trainer of the batch OR a Student in the batch
+        // Check access: Must be Trainer of the batch OR a Student in the batch OR an Admin
         const isTrainer = batch.trainerId?.toString() === userId?.toString();
         const isStudent = batch.students.some((s: any) => s._id.toString() === userId?.toString() || s.toString() === userId?.toString());
+        const isAdmin = req.user?.role === 'admin';
 
-        if (!isTrainer && !isStudent) {
+        if (!isTrainer && !isStudent && !isAdmin) {
             return res.status(403).json({ message: 'Not authorized to view this batch' });
         }
 
@@ -135,9 +136,9 @@ export const getBatchDetails = async (req: AuthRequest, res: Response) => {
         const batchObj: any = batch.toObject();
 
 
-        // Trainers get full student data; students only see name + avatar
+        // Trainers and admins get full student data; students only see name + avatar
         batchObj.students = batch.students.map((s: any) => {
-            if (isTrainer) {
+            if (isTrainer || isAdmin) {
                 return {
                     _id: s._id,
                     name: s.name,
@@ -429,6 +430,11 @@ export const joinClass = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ message: 'Class not found' });
         }
 
+        // Skip attendance recording for admin (they are monitoring, not attending)
+        if (req.user?.role === 'admin') {
+            return res.json({ message: 'Admin monitoring — attendance not recorded', link: languageClass.meetLink });
+        }
+
         // Check if already joined
         const alreadyJoined = languageClass.attendees.some(a => a.studentId.toString() === studentId?.toString());
 
@@ -448,12 +454,13 @@ export const joinClass = async (req: AuthRequest, res: Response) => {
 
 // ─── Paginated Tab Endpoints ──────────────────────────────────────────────────
 
-const verifyBatchAccess = async (batchId: string, userId: string) => {
+const verifyBatchAccess = async (batchId: string, userId: string, userRole?: string) => {
     const batch = await LanguageBatch.findById(batchId);
     if (!batch) return null;
+    const isAdmin = userRole === 'admin';
     const isTrainer = batch.trainerId?.toString() === userId;
     const isStudent = batch.students.some((s: any) => s.toString() === userId);
-    if (!isTrainer && !isStudent) return null;
+    if (!isTrainer && !isStudent && !isAdmin) return null;
     return batch;
 };
 
@@ -466,7 +473,7 @@ export const getBatchAnnouncements = async (req: AuthRequest, res: Response) => 
         const skip = (page - 1) * limit;
         const userId = req.user?._id?.toString();
 
-        const batch = await verifyBatchAccess(batchId, userId!);
+        const batch = await verifyBatchAccess(batchId, userId!, req.user?.role);
         if (!batch) return res.status(403).json({ message: 'Not authorized' });
 
         const total = await LanguageAnnouncement.countDocuments({ batchId });
@@ -490,7 +497,7 @@ export const getBatchMaterials = async (req: AuthRequest, res: Response) => {
         const skip = (page - 1) * limit;
         const userId = req.user?._id?.toString();
 
-        const batch = await verifyBatchAccess(batchId, userId!);
+        const batch = await verifyBatchAccess(batchId, userId!, req.user?.role);
         if (!batch) return res.status(403).json({ message: 'Not authorized' });
 
         const total = await LanguageMaterial.countDocuments({ batchId });
@@ -522,10 +529,11 @@ export const getBatchStudents = async (req: AuthRequest, res: Response) => {
             });
         if (!batch) return res.status(404).json({ message: 'Batch not found' });
 
+        const isAdmin = req.user?.role === 'admin';
         const isTrainer = batch.trainerId?.toString() === userId;
         const isStudent = (batch.students as any[]).some(s => s._id?.toString() === userId) ||
             (await LanguageBatch.findOne({ _id: batchId, students: userId })) !== null;
-        if (!isTrainer && !isStudent) return res.status(403).json({ message: 'Not authorized' });
+        if (!isTrainer && !isStudent && !isAdmin) return res.status(403).json({ message: 'Not authorized' });
 
         const total = batch.students.length + skip; // approximate — use raw count below
         const totalCount = await LanguageBatch.aggregate([
@@ -536,7 +544,7 @@ export const getBatchStudents = async (req: AuthRequest, res: Response) => {
 
         // Trainers see full data; students viewing classmates only see name + avatar
         const data = (batch.students as any[]).map(s => {
-            if (isTrainer) {
+            if (isTrainer || isAdmin) {
                 return {
                     _id: s._id,
                     name: s.name,
@@ -573,7 +581,7 @@ export const getBatchClasses = async (req: AuthRequest, res: Response) => {
         const skip = (page - 1) * limit;
         const userId = req.user?._id?.toString();
 
-        const batch = await verifyBatchAccess(batchId, userId!);
+        const batch = await verifyBatchAccess(batchId, userId!, req.user?.role);
         if (!batch) return res.status(403).json({ message: 'Not authorized' });
 
         const total = await LanguageClass.countDocuments({ batchId });
