@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import api, { getAssetUrl } from '../../lib/api';
 import AdminLayout from '../../components/admin/AdminLayout';
+import { Link } from 'react-router-dom';
 
 interface Student {
     _id: string;
@@ -104,6 +105,8 @@ const activeClassTypeMeta = (trainingType: BatchListItem['trainingType']) =>
             badgeClassName: 'border-blue-200 bg-blue-100 text-blue-700 dark:border-blue-900/50 dark:bg-blue-900/30 dark:text-blue-300',
             iconClassName: 'bg-[#d6b161]/10 text-[#d6b161]',
         };
+const getBatchDetailsPath = (batch: Pick<BatchListItem, '_id' | 'trainingType'>) =>
+    batch.trainingType === 'skill' ? `/skill-batch/${batch._id}` : `/language-batch/${batch._id}`;
 
 const LanguageBatches: React.FC = () => {
     const [batches, setBatches] = useState<BatchListItem[]>([]);
@@ -604,6 +607,14 @@ const LanguageBatches: React.FC = () => {
                                         </button>
 
                                         <div className="flex items-center justify-end gap-3">
+                                            <Link
+                                                to={getBatchDetailsPath(batch)}
+                                                className="inline-flex items-center gap-2 rounded-lg border border-[#d6b161]/30 bg-[#d6b161]/10 px-3 py-1.5 text-sm font-medium text-[#d6b161] transition-colors hover:bg-[#d6b161]/20"
+                                                title="Visit this class as admin"
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                                View
+                                            </Link>
                                             <button
                                                 type="button"
                                                 onClick={(event) => openAssignModal(batch, event)}
