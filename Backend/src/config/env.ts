@@ -16,8 +16,10 @@ export const env = {
     RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || '',
     RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || '',
     RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET || '',
-    PAYU_ACCOUNT_ID: process.env.PAYU_ACCOUNT_ID || '',
-    PAYU_SALT: process.env.PAYU_SALT || '',
+    // PayU expects the merchant "key" in payment requests and hash generation.
+    // Keep PAYU_ACCOUNT_ID for backward compatibility, but also accept the common names.
+    PAYU_ACCOUNT_ID: process.env.PAYU_ACCOUNT_ID || process.env.PAYU_KEY || process.env.PAYU_MERCHANT_KEY || '',
+    PAYU_SALT: process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || '',
     PAYU_ENV: process.env.PAYU_ENV || 'test',
     FRONTEND_BASE_URL: process.env.FRONTEND_BASE_URL || 'http://localhost:5173',
 };
