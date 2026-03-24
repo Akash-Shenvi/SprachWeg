@@ -25,6 +25,7 @@ import {
     mapInternalStatusToPaymentResult,
     type PaymentResult,
 } from '../utils/payment.urls';
+import { buildDisplayPaymentPricing, buildPaymentPricingBreakdown } from '../utils/payment.pricing';
 
 const emailService = new EmailService();
 const trainingPortalBaseUrl = String(env.FRONTEND_BASE_URL || 'http://localhost:5173').replace(/\/+$/, '');
@@ -287,13 +288,16 @@ const resolveLanguageSelection = async (origin: string, selectedLevel: string) =
         };
     }
 
+    const pricing = buildPaymentPricingBreakdown(Math.round(resolvedPrice * 100));
+
     return {
         trainingType: 'language' as const,
         origin,
         courseTitle: mapping.courseTitle,
         displayCourseTitle: course.title,
         levelName: level.name,
-        amount: Math.round(resolvedPrice * 100),
+        amount: pricing.totalAmount,
+        pricing,
         currency: normalizeCurrency(),
     };
 };
@@ -346,13 +350,16 @@ const resolveSkillSelection = async (origin: string) => {
         };
     }
 
+    const pricing = buildPaymentPricingBreakdown(Math.round(resolvedPrice * 100));
+
     return {
         trainingType: 'skill' as const,
         origin,
         courseTitle: String(course.title).trim(),
         displayCourseTitle: String(course.title).trim(),
         skillCourseId: course._id,
-        amount: Math.round(resolvedPrice * 100),
+        amount: pricing.totalAmount,
+        pricing,
         currency: normalizeCurrency(),
     };
 };
@@ -793,6 +800,7 @@ export const createTrainingCheckout = async (req: Request, res: Response) => {
                 transactionId: attempt.transactionId,
                 amount: attempt.amount,
                 currency: attempt.currency,
+                pricing: buildDisplayPaymentPricing(resolvedSelection.pricing),
             },
         });
     } catch (error: any) {

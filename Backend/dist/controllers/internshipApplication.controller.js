@@ -22,6 +22,7 @@ const email_service_1 = require("../utils/email.service");
 const payment_helpers_1 = require("../utils/payment.helpers");
 const payu_1 = require("../utils/payu");
 const payment_urls_1 = require("../utils/payment.urls");
+const payment_pricing_1 = require("../utils/payment.pricing");
 const fileServeRoot = '/home/sovirtraining/file_serve';
 const adminDecisionStatuses = ['accepted', 'rejected'];
 const internshipModes = ['remote', 'hybrid', 'onsite'];
@@ -492,11 +493,13 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
             return res.status(400).json({ message: 'Please provide a valid date of birth.' });
         }
         const currency = normalizeCurrency(selectedInternship.currency);
-        const amount = Math.round(Number(selectedInternship.price) * 100);
-        if (!Number.isFinite(amount) || amount < 0) {
+        const baseAmount = Math.round(Number(selectedInternship.price) * 100);
+        if (!Number.isFinite(baseAmount) || baseAmount < 0) {
             removeStoredResume(toStoredResumeUrl(req.file.filename));
             return res.status(400).json({ message: 'The internship fee is not configured correctly for checkout.' });
         }
+        const pricing = (0, payment_pricing_1.buildPaymentPricingBreakdown)(baseAmount);
+        const amount = pricing.totalAmount;
         const existingApplication = yield internshipApplication_model_1.default.findOne(buildInternshipApplicationLookup(req.user._id, selectedInternship.slug, selectedInternship.title));
         if (existingApplication && existingApplication.status !== 'rejected') {
             removeStoredResume(toStoredResumeUrl(req.file.filename));
@@ -506,7 +509,7 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
             });
         }
         const resumeUrl = toStoredResumeUrl(req.file.filename);
-        if (amount === 0) {
+        if (baseAmount === 0) {
             const { application, shouldSendApplicationEmail } = yield upsertFreeApplication({
                 userId: req.user._id,
                 accountName: req.user.name,
@@ -591,6 +594,7 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
                 transactionId: createdAttempt.transactionId,
                 amount: createdAttempt.amount,
                 currency: createdAttempt.currency,
+                pricing: (0, payment_pricing_1.buildDisplayPaymentPricing)(pricing),
             },
         });
     }

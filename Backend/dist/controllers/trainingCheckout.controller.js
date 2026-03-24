@@ -25,6 +25,7 @@ const email_service_1 = require("../utils/email.service");
 const payment_helpers_1 = require("../utils/payment.helpers");
 const payu_1 = require("../utils/payu");
 const payment_urls_1 = require("../utils/payment.urls");
+const payment_pricing_1 = require("../utils/payment.pricing");
 const emailService = new email_service_1.EmailService();
 const trainingPortalBaseUrl = String(env_1.env.FRONTEND_BASE_URL || 'http://localhost:5173').replace(/\/+$/, '');
 const extractNumericPrice = (value) => {
@@ -235,13 +236,15 @@ const resolveLanguageSelection = (origin, selectedLevel) => __awaiter(void 0, vo
             error: `The payment amount for ${mapping.courseTitle} ${level.name} is not configured correctly.`,
         };
     }
+    const pricing = (0, payment_pricing_1.buildPaymentPricingBreakdown)(Math.round(resolvedPrice * 100));
     return {
         trainingType: 'language',
         origin,
         courseTitle: mapping.courseTitle,
         displayCourseTitle: course.title,
         levelName: level.name,
-        amount: Math.round(resolvedPrice * 100),
+        amount: pricing.totalAmount,
+        pricing,
         currency: normalizeCurrency(),
     };
 });
@@ -283,13 +286,15 @@ const resolveSkillSelection = (origin) => __awaiter(void 0, void 0, void 0, func
             error: `The payment amount for ${course.title} is not configured correctly. Please set a single course price or a single fee amount in skill details.`,
         };
     }
+    const pricing = (0, payment_pricing_1.buildPaymentPricingBreakdown)(Math.round(resolvedPrice * 100));
     return {
         trainingType: 'skill',
         origin,
         courseTitle: String(course.title).trim(),
         displayCourseTitle: String(course.title).trim(),
         skillCourseId: course._id,
-        amount: Math.round(resolvedPrice * 100),
+        amount: pricing.totalAmount,
+        pricing,
         currency: normalizeCurrency(),
     };
 });
@@ -639,6 +644,7 @@ const createTrainingCheckout = (req, res) => __awaiter(void 0, void 0, void 0, f
                 transactionId: attempt.transactionId,
                 amount: attempt.amount,
                 currency: attempt.currency,
+                pricing: (0, payment_pricing_1.buildDisplayPaymentPricing)(resolvedSelection.pricing),
             },
         });
     }

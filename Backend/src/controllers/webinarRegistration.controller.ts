@@ -18,6 +18,7 @@ import {
     type PaymentResult,
 } from '../utils/payment.urls';
 import { getTrainerCalendarState, syncWebinarCalendarEvent } from '../utils/webinar.calendar';
+import { buildDisplayPaymentPricing, buildPaymentPricingBreakdown } from '../utils/payment.pricing';
 
 const normalizeCurrency = (currency?: string) => String(currency || 'INR').trim().toUpperCase();
 
@@ -368,7 +369,13 @@ export const createWebinarCheckout = async (req: Request, res: Response) => {
             }
         );
 
-        const amount = Math.round(Number(webinar.price) * 100);
+        const baseAmount = Math.round(Number(webinar.price) * 100);
+        if (!Number.isFinite(baseAmount) || baseAmount <= 0) {
+            return res.status(400).json({ message: 'The selected webinar fee is not configured correctly for checkout.' });
+        }
+
+        const pricing = buildPaymentPricingBreakdown(baseAmount);
+        const amount = pricing.totalAmount;
         attempt = await WebinarPaymentAttempt.create({
             userId: user._id,
             webinarId: webinar._id,
@@ -393,6 +400,7 @@ export const createWebinarCheckout = async (req: Request, res: Response) => {
                 transactionId: attempt.transactionId,
                 amount: attempt.amount,
                 currency: attempt.currency,
+                pricing: buildDisplayPaymentPricing(pricing),
             },
         });
     } catch (error: any) {

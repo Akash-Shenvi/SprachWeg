@@ -23,6 +23,7 @@ import {
     mapInternalStatusToPaymentResult,
     type PaymentResult,
 } from '../utils/payment.urls';
+import { buildDisplayPaymentPricing, buildPaymentPricingBreakdown } from '../utils/payment.pricing';
 
 const fileServeRoot = '/home/sovirtraining/file_serve';
 const adminDecisionStatuses = ['accepted', 'rejected'] as const;
@@ -682,12 +683,14 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
         }
 
         const currency = normalizeCurrency(selectedInternship.currency);
-        const amount = Math.round(Number(selectedInternship.price) * 100);
-
-        if (!Number.isFinite(amount) || amount < 0) {
+        const baseAmount = Math.round(Number(selectedInternship.price) * 100);
+        if (!Number.isFinite(baseAmount) || baseAmount < 0) {
             removeStoredResume(toStoredResumeUrl(req.file.filename));
             return res.status(400).json({ message: 'The internship fee is not configured correctly for checkout.' });
         }
+
+        const pricing = buildPaymentPricingBreakdown(baseAmount);
+        const amount = pricing.totalAmount;
 
         const existingApplication = await InternshipApplication.findOne(
             buildInternshipApplicationLookup(req.user._id, selectedInternship.slug, selectedInternship.title)
@@ -703,7 +706,7 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
 
         const resumeUrl = toStoredResumeUrl(req.file.filename);
 
-        if (amount === 0) {
+        if (baseAmount === 0) {
             const { application, shouldSendApplicationEmail } = await upsertFreeApplication({
                 userId: req.user._id,
                 accountName: req.user.name,
@@ -804,6 +807,7 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
                 transactionId: createdAttempt.transactionId,
                 amount: createdAttempt.amount,
                 currency: createdAttempt.currency,
+                pricing: buildDisplayPaymentPricing(pricing),
             },
         });
     } catch (error: any) {

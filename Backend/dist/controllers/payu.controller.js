@@ -136,7 +136,7 @@ const launchPayUCheckout = (req, res) => __awaiter(void 0, void 0, void 0, funct
         return res
             .status(200)
             .type('html')
-            .set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action 'self' https://test.payu.in https://secure.payu.in; base-uri 'none'; object-src 'none'; frame-ancestors 'self'")
+            .set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action *; base-uri 'none'; object-src 'none'; frame-ancestors 'self'")
             .set('Cache-Control', 'no-store')
             .send(buildHostedCheckoutPage(checkoutForm));
     }

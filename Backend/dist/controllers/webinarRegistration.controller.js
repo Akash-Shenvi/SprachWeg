@@ -21,6 +21,7 @@ const payment_helpers_1 = require("../utils/payment.helpers");
 const payu_1 = require("../utils/payu");
 const payment_urls_1 = require("../utils/payment.urls");
 const webinar_calendar_1 = require("../utils/webinar.calendar");
+const payment_pricing_1 = require("../utils/payment.pricing");
 const normalizeCurrency = (currency) => String(currency || 'INR').trim().toUpperCase();
 const normalizePhoneNumber = (value) => {
     const digitsOnly = String(value !== null && value !== void 0 ? value : '').replace(/\D/g, '');
@@ -292,7 +293,12 @@ const createWebinarCheckout = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 failureReason: 'Superseded by a newer checkout attempt.',
             },
         });
-        const amount = Math.round(Number(webinar.price) * 100);
+        const baseAmount = Math.round(Number(webinar.price) * 100);
+        if (!Number.isFinite(baseAmount) || baseAmount <= 0) {
+            return res.status(400).json({ message: 'The selected webinar fee is not configured correctly for checkout.' });
+        }
+        const pricing = (0, payment_pricing_1.buildPaymentPricingBreakdown)(baseAmount);
+        const amount = pricing.totalAmount;
         attempt = yield webinarPaymentAttempt_model_1.default.create({
             userId: user._id,
             webinarId: webinar._id,
@@ -315,6 +321,7 @@ const createWebinarCheckout = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 transactionId: attempt.transactionId,
                 amount: attempt.amount,
                 currency: attempt.currency,
+                pricing: (0, payment_pricing_1.buildDisplayPaymentPricing)(pricing),
             },
         });
     }

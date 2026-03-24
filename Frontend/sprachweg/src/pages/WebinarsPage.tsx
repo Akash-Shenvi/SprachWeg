@@ -191,6 +191,7 @@ const WebinarsPage: React.FC = () => {
                     origin="webinars"
                     originPath="/webinars"
                     paymentAmount={formatWebinarPrice(selectedWebinar.price, selectedWebinar.currency || 'INR')}
+                    paymentCurrency={selectedWebinar.currency || 'INR'}
                     mode="webinar"
                     webinar={{
                         webinarId: selectedWebinar._id,

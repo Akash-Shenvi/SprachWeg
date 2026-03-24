@@ -4,6 +4,7 @@ import { ChevronLeft, Check, AlertCircle, GraduationCap, Phone, Mail, User, Book
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { trainingCheckoutAPI, webinarRegistrationAPI } from '../../lib/api';
+import { buildPaymentBreakdown } from '../../lib/paymentPricing';
 
 // Tokens
 // --brand-navy: #0a192f
@@ -25,6 +26,7 @@ interface EnrollmentModalProps {
     originPath?: string;
     selectedLevel?: string;
     paymentAmount?: string;
+    paymentCurrency?: string;
     mode?: EnrollmentMode;
     webinar?: WebinarRegistrationContext;
 }
@@ -62,6 +64,7 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({
     originPath,
     selectedLevel,
     paymentAmount,
+    paymentCurrency = 'INR',
     mode = 'training',
     webinar,
 }) => {
@@ -73,6 +76,7 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({
     const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const isWebinarMode = mode === 'webinar';
+    const paymentBreakdown = buildPaymentBreakdown(paymentAmount, paymentCurrency);
 
 
     // Autofill from User Context
@@ -478,7 +482,7 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({
                                             </div>
                                         </div>
 
-                                        {paymentAmount && (
+                                        {paymentBreakdown && (
                                             <div className="md:col-span-2 rounded-xl border border-[#d6b161]/30 bg-gradient-to-r from-[#d6b161]/10 to-transparent p-4 dark:from-[#d6b161]/15">
                                                 <h4 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[#0a192f] dark:text-[#f2d48c]">
                                                     <CreditCard className="h-4 w-4" /> Payment Summary
@@ -510,14 +514,30 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({
                                                         </div>
                                                     )}
                                                     <div className={selectedLevel ? '' : 'md:col-span-2'}>
-                                                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                                            Payment Amount
-                                                        </p>
-                                                        <p className="text-xl font-bold text-[#0a192f] dark:text-white">
-                                                            {paymentAmount}
-                                                        </p>
-                                                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                                            This amount will be shown again on the hosted payment page before confirmation.
+                                                        <div className="space-y-3 rounded-xl border border-white/60 bg-white/60 p-4 dark:border-white/10 dark:bg-[#112240]/70">
+                                                            <div className="flex items-center justify-between gap-4 text-sm">
+                                                                <span className="text-gray-500 dark:text-gray-400">Base Price</span>
+                                                                <span className="font-semibold text-[#0a192f] dark:text-white">
+                                                                    {paymentBreakdown.formattedBaseAmount}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center justify-between gap-4 text-sm">
+                                                                <span className="text-gray-500 dark:text-gray-400">GST @ {paymentBreakdown.gstRate}%</span>
+                                                                <span className="font-semibold text-[#0a192f] dark:text-white">
+                                                                    {paymentBreakdown.formattedGstAmount}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center justify-between gap-4 border-t border-[#d6b161]/20 pt-3">
+                                                                <span className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                                                    Total Payable
+                                                                </span>
+                                                                <span className="text-xl font-bold text-[#0a192f] dark:text-white">
+                                                                    {paymentBreakdown.formattedTotalAmount}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                                            This total includes GST and will be shown again on the hosted payment page before confirmation.
                                                         </p>
                                                     </div>
                                                 </div>

@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { internshipApplicationAPI, internshipCatalogAPI } from '../../lib/api';
+import { buildPaymentBreakdown } from '../../lib/paymentPricing';
 import {
   formatInternshipPrice,
   formatInternshipMode,
@@ -242,6 +243,9 @@ const InternshipApplicationPage: React.FC = () => {
   const internshipResponsibilities = internship ? getInternshipResponsibilities(internship).slice(0, 3) : [];
   const internshipBenefits = internship ? getInternshipBenefits(internship).slice(0, 3) : [];
   const isFreeInternship = !!internship && Number(internship.price) <= 0;
+  const internshipPaymentBreakdown = !isFreeInternship
+    ? buildPaymentBreakdown(internship?.price, internship?.currency || 'INR')
+    : null;
   const requestedMode = searchParams.get('mode')?.trim().toLowerCase();
   const initialInternshipMode = normalizeInternshipMode(requestedMode);
   const availableInternshipModes = getInternshipModeOptions(internship?.location);
@@ -1211,7 +1215,24 @@ const InternshipApplicationPage: React.FC = () => {
                   {isFreeInternship ? (
                     <>This internship is <span className="font-semibold">free</span>. No payment checkout is required.</>
                   ) : (
-                    <>Checkout amount: <span className="font-semibold">{formatInternshipPrice(internship.price, internship.currency)}</span></>
+                    internshipPaymentBreakdown ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-4">
+                          <span>Base price</span>
+                          <span className="font-semibold">{internshipPaymentBreakdown.formattedBaseAmount}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <span>GST @ {internshipPaymentBreakdown.gstRate}%</span>
+                          <span className="font-semibold">{internshipPaymentBreakdown.formattedGstAmount}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4 border-t border-[#d6b161]/20 pt-2">
+                          <span className="font-semibold">Total payable</span>
+                          <span className="font-semibold">{internshipPaymentBreakdown.formattedTotalAmount}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <>Checkout amount: <span className="font-semibold">{formatInternshipPrice(internship.price, internship.currency)}</span></>
+                    )
                   )}
                 </div>
                 <button
@@ -1232,7 +1253,7 @@ const InternshipApplicationPage: React.FC = () => {
                       <SendIcon />
                       {isFreeInternship
                         ? 'Submit Free Application'
-                        : `Pay ${formatInternshipPrice(internship.price, internship.currency)} & Submit Application`}
+                        : `Pay ${internshipPaymentBreakdown?.formattedTotalAmount || formatInternshipPrice(internship.price, internship.currency)} & Submit Application`}
                     </>
                   )}
                 </button>
