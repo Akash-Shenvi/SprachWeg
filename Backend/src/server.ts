@@ -11,6 +11,23 @@ import { canAccessChatPair } from './utils/chat-access';
 
 type SocketAck<T> = ((payload: T) => void) | undefined;
 
+const socketAllowedOrigins = Array.from(
+    new Set(
+        [
+            env.FRONTEND_BASE_URL,
+            'https://training.sovirtechnologies.in',
+        ]
+            .map((value) => {
+                try {
+                    return new URL(value).origin;
+                } catch {
+                    return '';
+                }
+            })
+            .filter(Boolean)
+    )
+);
+
 const startServer = async () => {
     await connectDB();
 
@@ -19,9 +36,7 @@ const startServer = async () => {
     const io = new SocketIOServer(httpServer, {
         path: '/api/socket.io',   // must match nginx /api/* proxy rule
         cors: {
-            origin: [
-                'https://training.sovirtechnologies.in'
-            ],
+            origin: socketAllowedOrigins,
             credentials: true,
         }
     });

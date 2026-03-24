@@ -15,6 +15,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EmailService = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const env_1 = require("../config/env");
+const frontendBaseUrl = String(env_1.env.FRONTEND_BASE_URL || 'http://localhost:5173').replace(/\/+$/, '');
+const frontendHostLabel = (() => {
+    try {
+        return new URL(frontendBaseUrl).host;
+    }
+    catch (_a) {
+        return frontendBaseUrl;
+    }
+})();
+const studentDashboardLink = `${frontendBaseUrl}/student-dashboard`;
+const institutionDashboardLink = `${frontendBaseUrl}/institution-dashboard`;
+const careersPageLink = `${frontendBaseUrl}/careers`;
+const languageTrainingLink = `${frontendBaseUrl}/language-training`;
+const skillTrainingLink = `${frontendBaseUrl}/skill-training`;
 const formatInternshipMode = (mode) => {
     const normalizedMode = String(mode !== null && mode !== void 0 ? mode : '').trim().toLowerCase();
     if (normalizedMode === 'remote' || normalizedMode === 'online') {
@@ -322,7 +336,7 @@ class EmailService {
                 </div>
                 <div class="footer">
                     &copy; ${new Date().getFullYear()} SoVir Skilling & Training Center. All rights reserved.<br>
-                    <a href="https://training.sovirtechnologies.in" style="color: #666; text-decoration: none;">www.training.sovirtechnologies.in</a>
+                    <a href="${frontendBaseUrl}" style="color: #666; text-decoration: none;">${frontendHostLabel}</a>
                 </div>
             </div>
         </body>
@@ -351,18 +365,18 @@ class EmailService {
     sendEnrollmentEmail(to, name, courseTitle, status, paymentDetails) {
         return __awaiter(this, void 0, void 0, function* () {
             const isApproved = status === 'APPROVED';
-            const dashboardLink = "https://training.sovirtechnologies.in/student-dashboard";
             const hasPaymentDetails = !!((paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount) !== undefined
                 || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod)
-                || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId)
-                || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId));
+                || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.transactionId)
+                || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentId));
             if (hasPaymentDetails) {
                 const paymentRows = [
                     { label: 'Payment Status', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid' },
                     { label: 'Amount', value: formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR') },
                     { label: 'Payment Method', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available' },
-                    { label: 'Order ID', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId) || 'Not available' },
-                    { label: 'Payment ID', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId) || 'Not available' },
+                    { label: 'Transaction ID', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.transactionId) || 'Not available' },
+                    { label: 'Payment ID', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentId) || 'Not available' },
+                    { label: 'Bank Reference Number', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.bankReferenceNumber) || 'Not available' },
                     { label: 'Paid At', value: formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt) },
                 ];
                 const subject = isApproved
@@ -391,7 +405,7 @@ class EmailService {
                     ],
                     actionButton: {
                         label: 'Open Student Dashboard',
-                        href: dashboardLink,
+                        href: studentDashboardLink,
                     },
                 });
                 const mailOptions = {
@@ -400,8 +414,8 @@ class EmailService {
                     subject,
                     html,
                     text: isApproved
-                        ? `Dear ${name},\n\nYour enrollment for ${courseTitle} has been approved and your payment is confirmed.\nStatus: Approved\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nOrder ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}\n\nStudent Dashboard: ${dashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`
-                        : `Dear ${name},\n\nWe have received your enrollment request and payment for ${courseTitle} successfully.\nStatus: Pending Approval\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nOrder ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}\n\nOur admissions team will contact you with the next updates.\nStudent Dashboard: ${dashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
+                        ? `Dear ${name},\n\nYour enrollment for ${courseTitle} has been approved and your payment is confirmed.\nStatus: Approved\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nTransaction ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.transactionId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentId) || 'Not available'}\nBank Reference Number: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.bankReferenceNumber) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}\n\nStudent Dashboard: ${studentDashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`
+                        : `Dear ${name},\n\nWe have received your enrollment request and payment for ${courseTitle} successfully.\nStatus: Pending Approval\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nTransaction ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.transactionId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentId) || 'Not available'}\nBank Reference Number: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.bankReferenceNumber) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}\n\nOur admissions team will contact you with the next updates.\nStudent Dashboard: ${studentDashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
                 };
                 try {
                     yield this.transporter.sendMail(mailOptions);
@@ -419,7 +433,7 @@ class EmailService {
             // The user provided text is a "Welcome" message.
             const actionButton = isApproved
                 ? `
-            <a href="${dashboardLink}" style="display:inline-block; background-color:#d6b161; color:#0a192f; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold; margin-top:20px;">
+            <a href="${studentDashboardLink}" style="display:inline-block; background-color:#d6b161; color:#0a192f; padding:12px 24px; text-decoration:none; border-radius:6px; font-weight:bold; margin-top:20px;">
                 Access Student Dashboard
             </a>
             `
@@ -565,7 +579,7 @@ class EmailService {
                 ],
                 actionButton: {
                     label: 'Open Institution Portal',
-                    href: 'https://training.sovirtechnologies.in/institution-dashboard',
+                    href: institutionDashboardLink,
                 },
             });
             try {
@@ -574,7 +588,7 @@ class EmailService {
                     to: params.to,
                     subject,
                     html,
-                    text: `Dear ${params.institutionName},\n\nYour institution request for ${params.courseTitle} - ${params.levelName} has been ${isApproved ? 'approved' : 'rejected'}.\nStudents in request: ${params.studentCount}\n\nInstitution Portal: https://training.sovirtechnologies.in/institution-dashboard\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
+                    text: `Dear ${params.institutionName},\n\nYour institution request for ${params.courseTitle} - ${params.levelName} has been ${isApproved ? 'approved' : 'rejected'}.\nStudents in request: ${params.studentCount}\n\nInstitution Portal: ${institutionDashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
                 });
                 return true;
             }
@@ -586,7 +600,6 @@ class EmailService {
     }
     sendInstitutionStudentWelcomeEmail(params) {
         return __awaiter(this, void 0, void 0, function* () {
-            const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
             const html = this.getProgramEmailTemplate({
                 name: params.studentName,
                 title: 'Your student account is now active.',
@@ -602,7 +615,7 @@ class EmailService {
                 ],
                 actionButton: {
                     label: 'Open Student Portal',
-                    href: dashboardLink,
+                    href: studentDashboardLink,
                 },
             });
             try {
@@ -611,7 +624,7 @@ class EmailService {
                     to: params.to,
                     subject: `Student Account Activated - ${params.courseTitle} ${params.levelName}`,
                     html,
-                    text: `Dear ${params.studentName},\n\nYour student account has been created and enrolled in ${params.courseTitle} - ${params.levelName}.\nYour institution has the password for this account. Please contact them if you need your login credentials.\n\nStudent Dashboard: ${dashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
+                    text: `Dear ${params.studentName},\n\nYour student account has been created and enrolled in ${params.courseTitle} - ${params.levelName}.\nYour institution has the password for this account. Please contact them if you need your login credentials.\n\nStudent Dashboard: ${studentDashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
                 });
                 return true;
             }
@@ -624,10 +637,9 @@ class EmailService {
     sendTrainingPaymentFailureEmail(params) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
-            const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
             const fallbackRetryUrl = params.trainingType === 'language'
-                ? 'https://training.sovirtechnologies.in/language-training'
-                : 'https://training.sovirtechnologies.in/skill-training';
+                ? languageTrainingLink
+                : skillTrainingLink;
             const retryUrl = params.retryUrl || fallbackRetryUrl;
             const normalizedStatus = String((_a = params.status) !== null && _a !== void 0 ? _a : '').trim().toLowerCase();
             const isCancelled = normalizedStatus === 'cancelled';
@@ -670,7 +682,7 @@ class EmailService {
                 to: params.to,
                 subject,
                 html,
-                text: `Dear ${params.name},\n\nWe were unable to complete the payment step for ${displayCourseTitle}.\nProgram Type: ${trainingTypeLabel}\nAmount: ${amountLabel}\nStatus: ${isCancelled ? 'Not Completed' : 'Payment Failed'}\nGateway Status: ${params.paymentStatus || 'Not available'}\nPayment Method: ${params.paymentMethod || 'Not available'}\nReason: ${params.failureReason || 'Payment could not be completed.'}\n\nNo enrollment request was submitted. Please try again from the course page.\nStudent Dashboard: ${dashboardLink}\nRetry Link: ${retryUrl}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
+                text: `Dear ${params.name},\n\nWe were unable to complete the payment step for ${displayCourseTitle}.\nProgram Type: ${trainingTypeLabel}\nAmount: ${amountLabel}\nStatus: ${isCancelled ? 'Not Completed' : 'Payment Failed'}\nGateway Status: ${params.paymentStatus || 'Not available'}\nPayment Method: ${params.paymentMethod || 'Not available'}\nReason: ${params.failureReason || 'Payment could not be completed.'}\n\nNo enrollment request was submitted. Please try again from the course page.\nStudent Dashboard: ${studentDashboardLink}\nRetry Link: ${retryUrl}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
             };
             try {
                 yield this.transporter.sendMail(mailOptions);
@@ -891,12 +903,11 @@ class EmailService {
     }
     sendInternshipApplicationEmail(to, name, internshipTitle, referenceCode, internshipMode, paymentDetails) {
         return __awaiter(this, void 0, void 0, function* () {
-            const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
             const formattedMode = formatInternshipMode(internshipMode);
             const hasPaymentDetails = !!((paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount) !== undefined
                 || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod)
-                || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId)
-                || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId));
+                || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.transactionId)
+                || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentId));
             const subject = hasPaymentDetails
                 ? `Internship Application and Payment Received - ${internshipTitle}`
                 : `Internship Application Received - ${internshipTitle}`;
@@ -905,8 +916,9 @@ class EmailService {
                     { label: 'Payment Status', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid' },
                     { label: 'Amount', value: formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR') },
                     { label: 'Payment Method', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available' },
-                    { label: 'Order ID', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId) || 'Not available' },
-                    { label: 'Payment ID', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId) || 'Not available' },
+                    { label: 'Transaction ID', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.transactionId) || 'Not available' },
+                    { label: 'Payment ID', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentId) || 'Not available' },
+                    { label: 'Bank Reference Number', value: (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.bankReferenceNumber) || 'Not available' },
                     { label: 'Paid At', value: formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt) },
                 ]
                 : [];
@@ -930,7 +942,7 @@ class EmailService {
                 ],
                 actionButton: {
                     label: 'Open Student Dashboard',
-                    href: dashboardLink,
+                    href: studentDashboardLink,
                 },
             });
             const mailOptions = {
@@ -938,7 +950,7 @@ class EmailService {
                 to,
                 subject,
                 html,
-                text: `Dear ${name},\n\nThank you for applying for the ${internshipTitle} internship at SoVir Skilling & Training Center.\n\nWe have received your application successfully.\nMode: ${formattedMode}\nReference ID: ${referenceCode}\nStatus: Application Received${hasPaymentDetails ? `\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nOrder ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayOrderId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.razorpayPaymentId) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}` : ''}\n\nOur team will review your profile and update you through your registered email.\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
+                text: `Dear ${name},\n\nThank you for applying for the ${internshipTitle} internship at SoVir Skilling & Training Center.\n\nWe have received your application successfully.\nMode: ${formattedMode}\nReference ID: ${referenceCode}\nStatus: Application Received${hasPaymentDetails ? `\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nTransaction ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.transactionId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentId) || 'Not available'}\nBank Reference Number: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.bankReferenceNumber) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}` : ''}\n\nOur team will review your profile and update you through your registered email.\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
             };
             try {
                 yield this.transporter.sendMail(mailOptions);
@@ -951,8 +963,6 @@ class EmailService {
     sendInternshipStatusEmail(to, name, internshipTitle, referenceCode, internshipMode, status) {
         return __awaiter(this, void 0, void 0, function* () {
             const isAccepted = status === 'accepted';
-            const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
-            const careersLink = 'https://training.sovirtechnologies.in/careers';
             const formattedMode = formatInternshipMode(internshipMode);
             const subject = isAccepted
                 ? `Internship Application Accepted - ${internshipTitle}`
@@ -981,7 +991,7 @@ class EmailService {
                 ],
                 actionButton: {
                     label: isAccepted ? 'Open Student Dashboard' : 'View Careers Page',
-                    href: isAccepted ? dashboardLink : careersLink,
+                    href: isAccepted ? studentDashboardLink : careersPageLink,
                 },
             });
             const mailOptions = {
@@ -1004,8 +1014,6 @@ class EmailService {
     sendInternshipPaymentFailureEmail(params) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
-            const dashboardLink = 'https://training.sovirtechnologies.in/student-dashboard';
-            const careersLink = 'https://training.sovirtechnologies.in/careers';
             const formattedMode = formatInternshipMode(params.internshipMode);
             const amountLabel = formatCurrencyAmount(params.amount, params.currency || 'INR');
             const normalizedStatus = String((_a = params.status) !== null && _a !== void 0 ? _a : '').trim().toLowerCase();
@@ -1036,7 +1044,7 @@ class EmailService {
                 ],
                 actionButton: {
                     label: 'Try Again',
-                    href: careersLink,
+                    href: careersPageLink,
                 },
             });
             const mailOptions = {
@@ -1044,7 +1052,7 @@ class EmailService {
                 to: params.to,
                 subject,
                 html,
-                text: `Dear ${params.name},\n\nWe were unable to complete the payment step for the ${params.internshipTitle} internship.\nMode: ${formattedMode}\nAmount: ${amountLabel}\nStatus: ${isCancelled ? 'Not Completed' : 'Payment Failed'}\nGateway Status: ${params.paymentStatus || 'Not available'}\nPayment Method: ${params.paymentMethod || 'Not available'}\nReason: ${params.failureReason || 'Payment could not be completed.'}\n\nNo internship application was submitted. Please return to the internship page and try again.\n\nStudent Dashboard: ${dashboardLink}\nCareers Page: ${careersLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
+                text: `Dear ${params.name},\n\nWe were unable to complete the payment step for the ${params.internshipTitle} internship.\nMode: ${formattedMode}\nAmount: ${amountLabel}\nStatus: ${isCancelled ? 'Not Completed' : 'Payment Failed'}\nGateway Status: ${params.paymentStatus || 'Not available'}\nPayment Method: ${params.paymentMethod || 'Not available'}\nReason: ${params.failureReason || 'Payment could not be completed.'}\n\nNo internship application was submitted. Please return to the internship page and try again.\n\nStudent Dashboard: ${studentDashboardLink}\nCareers Page: ${careersPageLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
             };
             try {
                 yield this.transporter.sendMail(mailOptions);

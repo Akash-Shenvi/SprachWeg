@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ChevronLeft, Check, AlertCircle, GraduationCap, Phone, Mail, User, BookOpen, CreditCard } from 'lucide-react';
+import { ChevronLeft, AlertCircle, GraduationCap, Phone, Mail, User, BookOpen, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { trainingCheckoutAPI, webinarRegistrationAPI } from '../../lib/api';
-import { loadRazorpayCheckoutScript } from '../../lib/razorpay';
 
 // Tokens
 // --brand-navy: #0a192f
@@ -28,9 +27,6 @@ interface EnrollmentModalProps {
     paymentAmount?: string;
     mode?: EnrollmentMode;
     webinar?: WebinarRegistrationContext;
-    successTitle?: string;
-    successDescription?: string;
-    onPaymentVerified?: () => void;
 }
 
 
@@ -68,9 +64,6 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({
     paymentAmount,
     mode = 'training',
     webinar,
-    successTitle,
-    successDescription,
-    onPaymentVerified,
 }) => {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -79,14 +72,7 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({
     const [formData, setFormData] = useState<FormData>(initialFormData);
     const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
     const isWebinarMode = mode === 'webinar';
-    const resolvedSuccessTitle = successTitle || (isWebinarMode ? 'Registration Submitted!' : 'Payment Successful!');
-    const resolvedSuccessDescription = successDescription || (
-        isWebinarMode
-            ? 'Your payment is confirmed and your webinar registration is pending admin approval. The calendar invite will be sent after approval.'
-            : 'Your payment is confirmed and your enrollment request has been received. Our admissions team will contact you shortly to finalize your schedule.'
-    );
 
 
     // Autofill from User Context
@@ -121,7 +107,6 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({
         if (!isOpen) {
             setErrors({});
             setIsSubmitting(false);
-            setShowSuccess(false);
         }
     }, [isOpen]);
 
@@ -227,149 +212,25 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({
             const response = isWebinarMode
                 ? await webinarRegistrationAPI.createCheckout({
                     webinarId: webinar!.webinarId,
+                    payerName: formData.name,
+                    payerEmail: formData.email,
+                    payerPhone: formData.phone,
                 })
                 : await trainingCheckoutAPI.create({
                     origin,
                     selectedLevel,
+                    payerName: formData.name,
+                    payerEmail: formData.email,
+                    payerPhone: formData.phone,
                 });
 
             const checkout = response.checkout;
 
-            if (!checkout?.attemptId || !checkout?.orderId || !checkout?.keyId) {
+            if (!checkout?.attemptId || !checkout?.redirectUrl || !checkout?.transactionId) {
                 throw new Error('Payment checkout details are incomplete.');
             }
 
-            const scriptLoaded = await loadRazorpayCheckoutScript();
-
-            if (!scriptLoaded || !(window as any).Razorpay) {
-                const failurePayload = {
-                    attemptId: checkout.attemptId,
-                    status: 'cancelled' as const,
-                    reason: 'Razorpay checkout failed to load on the browser.',
-                };
-
-                await (isWebinarMode
-                    ? webinarRegistrationAPI.recordPaymentFailure(failurePayload)
-                    : trainingCheckoutAPI.recordFailure(failurePayload)
-                ).catch(() => undefined);
-
-                throw new Error('Unable to load Razorpay checkout right now. Please try again.');
-            }
-
-            let failureHandled = false;
-
-            const handleCheckoutFailure = async (failure: {
-                status: 'failed' | 'cancelled';
-                reason?: string;
-                error?: Record<string, unknown>;
-                message: string;
-            }) => {
-                if (failureHandled) {
-                    return;
-                }
-
-                failureHandled = true;
-
-                const failurePayload = {
-                    attemptId: checkout.attemptId,
-                    status: failure.status,
-                    reason: failure.reason,
-                    error: failure.error,
-                };
-
-                await (isWebinarMode
-                    ? webinarRegistrationAPI.recordPaymentFailure(failurePayload)
-                    : trainingCheckoutAPI.recordFailure(failurePayload)
-                ).catch(() => undefined);
-
-                setIsSubmitting(false);
-                alert(failure.message);
-            };
-
-            const razorpay = new (window as any).Razorpay({
-                key: checkout.keyId,
-                order_id: checkout.orderId,
-                amount: checkout.amount,
-                currency: checkout.currency,
-                name: 'Sovir Technologies',
-                description: isWebinarMode
-                    ? `Webinar Registration - ${checkout.webinarTitle || webinar?.webinarTitle || 'Webinar'}`
-                    : selectedLevel
-                        ? `Course Enrollment - ${checkout.displayCourseTitle} (${selectedLevel})`
-                        : `Course Enrollment - ${checkout.displayCourseTitle}`,
-                prefill: {
-                    name: formData.name || checkout.applicant?.name || '',
-                    email: formData.email || checkout.applicant?.email || '',
-                    contact: formData.phone.replace(/\D/g, '') || checkout.applicant?.contact || '',
-                },
-                notes: isWebinarMode
-                    ? {
-                        webinarTitle: checkout.webinarTitle || webinar?.webinarTitle || '',
-                        scheduledAt: checkout.scheduledAt || webinar?.scheduledAt || '',
-                    }
-                    : {
-                        trainingType: checkout.trainingType,
-                        courseTitle: checkout.displayCourseTitle,
-                        levelName: selectedLevel || '',
-                    },
-                theme: {
-                    color: '#d6b161',
-                },
-                modal: {
-                    ondismiss: () => {
-                        void handleCheckoutFailure({
-                            status: 'cancelled',
-                            reason: 'The user closed the Razorpay checkout before completing payment.',
-                            message: 'Payment was cancelled before completion.',
-                        });
-                    },
-                },
-                handler: async (paymentResponse: {
-                    razorpay_order_id: string;
-                    razorpay_payment_id: string;
-                    razorpay_signature: string;
-                }) => {
-                    failureHandled = true;
-
-                    try {
-                        const verificationPayload = {
-                            attemptId: checkout.attemptId,
-                            razorpay_order_id: paymentResponse.razorpay_order_id,
-                            razorpay_payment_id: paymentResponse.razorpay_payment_id,
-                            razorpay_signature: paymentResponse.razorpay_signature,
-                        };
-
-                        await (isWebinarMode
-                            ? webinarRegistrationAPI.verifyPayment(verificationPayload)
-                            : trainingCheckoutAPI.verify(verificationPayload)
-                        );
-
-                        onPaymentVerified?.();
-                        setShowSuccess(true);
-                    } catch (error: any) {
-                        console.error('Enrollment verification error:', error);
-                        alert(
-                            error.response?.data?.message
-                            || (isWebinarMode
-                                ? 'Payment was completed, but webinar verification is still pending. Please check your dashboard in a moment.'
-                                : 'Payment was completed, but enrollment verification is still pending. Please check your dashboard in a moment.')
-                        );
-                    } finally {
-                        setIsSubmitting(false);
-                    }
-                },
-            });
-
-            razorpay.on('payment.failed', (event: any) => {
-                void handleCheckoutFailure({
-                    status: 'failed',
-                    reason: event?.error?.description || event?.error?.reason || 'Razorpay reported a payment failure.',
-                    error: event?.error,
-                    message: event?.error?.description || 'Payment failed. Please try again with a different method.',
-                });
-            });
-
-            razorpay.open();
+            window.location.assign(checkout.redirectUrl);
         } catch (error: any) {
             console.error('Enrollment error:', error);
             alert(error.response?.data?.message || error.message || 'Failed to start payment');
@@ -422,14 +283,7 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({
                     transition={{ type: 'spring', damping: 25, stiffness: 300, duration: shouldReduceMotion ? 0 : 0.5 }}
                     className="relative flex h-full w-full flex-col overflow-y-auto bg-white dark:bg-[#0a192f] md:h-auto md:max-h-[90vh] md:w-full md:max-w-4xl md:rounded-2xl shadow-2xl"
                 >
-                    {showSuccess ? (
-                        <SuccessView
-                            onClose={handleBack}
-                            title={resolvedSuccessTitle}
-                            description={resolvedSuccessDescription}
-                        />
-                    ) : (
-                        <>
+                    <>
                             {/* Sticky Mobile Header / Desktop Header */}
                             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white/95 px-6 py-4 backdrop-blur dark:border-gray-800 dark:bg-[#0a192f]/95">
                                 <button
@@ -663,7 +517,7 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({
                                                             {paymentAmount}
                                                         </p>
                                                         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                                            This amount will be shown again in Razorpay before payment confirmation.
+                                                            This amount will be shown again on the hosted payment page before confirmation.
                                                         </p>
                                                     </div>
                                                 </div>
@@ -709,8 +563,7 @@ const EnrollmentModal: React.FC<EnrollmentModalProps> = ({
                                     </div>
                                 </form>
                             </div>
-                        </>
-                    )}
+                    </>
                 </motion.div>
             </div>
         </AnimatePresence>
@@ -741,37 +594,6 @@ const InputField = ({ label, type = 'text', required, error, value, onChange, ic
         </div>
         {error && <span className="mt-1 text-xs text-red-500">{error}</span>}
     </div>
-);
-
-// Success View
-const SuccessView = ({
-    onClose,
-    title,
-    description,
-}: {
-    onClose: () => void;
-    title: string;
-    description: string;
-}) => (
-    <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex h-full flex-col items-center justify-center p-8 text-center"
-    >
-        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
-            <Check className="h-10 w-10" />
-        </div>
-        <h2 className="mb-2 text-3xl font-bold text-[#0a192f] dark:text-white">{title}</h2>
-        <p className="mb-8 max-w-sm text-gray-600 dark:text-gray-300">
-            {description}
-        </p>
-        <button
-            onClick={onClose}
-            className="rounded-lg bg-[#0a192f] px-8 py-3 font-semibold text-white transition-transform hover:scale-105 hover:shadow-lg dark:bg-gray-700"
-        >
-            Return
-        </button>
-    </motion.div>
 );
 
 const ShieldIcon = (props: any) => (

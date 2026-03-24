@@ -20,7 +20,7 @@ const WebinarsPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [feedback, setFeedback] = useState<FeedbackState>(null);
-    const [submittedWebinarIds, setSubmittedWebinarIds] = useState<string[]>([]);
+    const [submittedWebinarIds] = useState<string[]>([]);
     const [selectedWebinar, setSelectedWebinar] = useState<WebinarListing | null>(null);
     const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
 
@@ -74,7 +74,7 @@ const WebinarsPage: React.FC = () => {
                         <div className="mt-8 flex flex-wrap gap-4 text-sm text-gray-300">
                             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2">
                                 <ShieldCheck className="h-4 w-4 text-[#d6b161]" />
-                                Razorpay-secured checkout
+                                Hosted payment checkout
                             </div>
                             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2">
                                 <Clock3 className="h-4 w-4 text-[#d6b161]" />
@@ -196,17 +196,6 @@ const WebinarsPage: React.FC = () => {
                         webinarId: selectedWebinar._id,
                         webinarTitle: selectedWebinar.title,
                         scheduledAt: selectedWebinar.scheduledAt,
-                    }}
-                    successTitle="Registration Submitted!"
-                    successDescription="Your webinar payment is confirmed. Admin approval is still required, and the calendar invite will be sent after approval."
-                    onPaymentVerified={() => {
-                        setSubmittedWebinarIds((currentIds) =>
-                            currentIds.includes(selectedWebinar._id) ? currentIds : [...currentIds, selectedWebinar._id]
-                        );
-                        setFeedback({
-                            type: 'success',
-                            message: 'Payment confirmed. Your webinar registration is now pending admin approval.',
-                        });
                     }}
                 />
             )}

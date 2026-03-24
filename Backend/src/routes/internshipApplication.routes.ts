@@ -7,10 +7,7 @@ import {
     getAllInternshipPaymentAttempts,
     getMyEnrolledInternships,
     getMyInternshipApplications,
-    handleInternshipPaymentWebhook,
-    recordInternshipPaymentFailure,
     submitInternshipApplication,
-    verifyInternshipPayment,
     updateInternshipApplicationStatus,
 } from '../controllers/internshipApplication.controller';
 import { protect, isAdmin } from '../middlewares/auth.middleware';
@@ -34,10 +31,7 @@ const handleResumeUpload: express.RequestHandler = (req, res, next) => {
     });
 };
 
-router.post('/webhook', handleInternshipPaymentWebhook);
 router.post('/', protect, handleResumeUpload, submitInternshipApplication);
-router.post('/verify-payment', protect, verifyInternshipPayment);
-router.post('/payment-failure', protect, recordInternshipPaymentFailure);
 router.get('/me', protect, getMyInternshipApplications);
 router.get('/me/enrolled', protect, getMyEnrolledInternships);
 router.get('/admin', protect, isAdmin, getAllInternshipApplications);

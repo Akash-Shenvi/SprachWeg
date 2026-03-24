@@ -17,7 +17,7 @@ interface RegistrationWebinar { _id: string; title: string; scheduledAt: string;
 interface WebinarRegistrationItem {
     _id: string; userId?: RegistrationUser | null; webinarId?: RegistrationWebinar | null; webinarTitle: string;
     scheduledAt: string; price: number; currency: string; paymentStatus?: string; paymentAmount?: number;
-    paymentCurrency?: string; paymentMethod?: string; razorpayOrderId?: string; razorpayPaymentId?: string;
+    paymentCurrency?: string; paymentMethod?: string; transactionId?: string; paymentId?: string; bankReferenceNumber?: string;
     paidAt?: string; status: WebinarRegistrationStatus; referenceCode: string; createdAt: string;
 }
 interface PaginationState {
@@ -221,8 +221,8 @@ const AdminWebinarRegistrations: React.FC = () => {
                                             <div><p className="mb-1 text-xs text-gray-500">Gateway Status</p><p className="font-bold text-gray-900 dark:text-white">{formatPaymentState(selectedRegistration.paymentStatus)}</p></div>
                                             <div><p className="mb-1 text-xs text-gray-500">Method</p><p className="font-bold text-gray-900 dark:text-white">{selectedRegistration.paymentMethod || 'Not available'}</p></div>
                                             <div><p className="mb-1 text-xs text-gray-500">Paid At</p><p className="font-bold text-gray-900 dark:text-white">{selectedRegistration.paidAt ? formatWebinarDateTime(selectedRegistration.paidAt) : 'Not available'}</p></div>
-                                            <div><p className="mb-1 flex items-center gap-1 text-xs text-gray-500"><Hash className="h-3.5 w-3.5" />Order ID</p><p className="font-mono text-xs font-bold text-gray-900 dark:text-white">{selectedRegistration.razorpayOrderId || 'Not available'}</p></div>
-                                            <div><p className="mb-1 flex items-center gap-1 text-xs text-gray-500"><Hash className="h-3.5 w-3.5" />Payment ID</p><p className="font-mono text-xs font-bold text-gray-900 dark:text-white">{selectedRegistration.razorpayPaymentId || 'Not available'}</p></div>
+                                            <div><p className="mb-1 flex items-center gap-1 text-xs text-gray-500"><Hash className="h-3.5 w-3.5" />Transaction ID</p><p className="font-mono text-xs font-bold text-gray-900 dark:text-white">{selectedRegistration.transactionId || 'Not available'}</p></div>
+                                            <div><p className="mb-1 flex items-center gap-1 text-xs text-gray-500"><Hash className="h-3.5 w-3.5" />Payment ID</p><p className="font-mono text-xs font-bold text-gray-900 dark:text-white">{selectedRegistration.paymentId || 'Not available'}</p></div>
                                         </div>
                                     </div>
                                 </div>

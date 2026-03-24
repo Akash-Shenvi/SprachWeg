@@ -10,9 +10,13 @@ export interface IWebinarPaymentAttempt extends Document {
     amount: number;
     currency: string;
     status: WebinarPaymentAttemptStatus;
-    paymentGateway: 'razorpay';
+    paymentGateway: 'razorpay' | 'payu';
     paymentStatus?: string;
     paymentMethod?: string;
+    transactionId?: string;
+    paymentId?: string;
+    gatewaySignature?: string;
+    bankReferenceNumber?: string;
     razorpayOrderId?: string;
     razorpayPaymentId?: string;
     razorpaySignature?: string;
@@ -44,12 +48,16 @@ const WebinarPaymentAttemptSchema = new Schema<IWebinarPaymentAttempt>({
     },
     paymentGateway: {
         type: String,
-        enum: ['razorpay'],
-        default: 'razorpay',
+        enum: ['razorpay', 'payu'],
+        default: 'payu',
         required: true,
     },
     paymentStatus: { type: String, trim: true },
     paymentMethod: { type: String, trim: true },
+    transactionId: { type: String, trim: true, index: true, sparse: true },
+    paymentId: { type: String, trim: true, index: true, sparse: true },
+    gatewaySignature: { type: String, trim: true },
+    bankReferenceNumber: { type: String, trim: true },
     razorpayOrderId: { type: String, trim: true, index: true, sparse: true },
     razorpayPaymentId: { type: String, trim: true, index: true, sparse: true },
     razorpaySignature: { type: String, trim: true },

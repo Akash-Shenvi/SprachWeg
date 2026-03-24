@@ -4,6 +4,7 @@ import Batch from "../models/language.batch.model";
 import TrainingPaymentAttempt from "../models/trainingPaymentAttempt.model";
 import User from "../models/user.model";
 import { EmailService } from "../utils/email.service";
+import { buildPaymentSnapshot } from "../utils/payment.helpers";
 
 const emailService = new EmailService();
 
@@ -169,16 +170,7 @@ export const getEnrollments = async (req: Request, res: Response) => {
         .lean()
       : [];
 
-    const paymentSnapshotByKey = new Map<string, {
-      status: string;
-      amount: number | null;
-      currency: string;
-      method: string | null;
-      gateway: string;
-      razorpayOrderId: string | null;
-      razorpayPaymentId: string | null;
-      paidAt: Date | null;
-    }>();
+    const paymentSnapshotByKey = new Map<string, ReturnType<typeof buildPaymentSnapshot>>();
 
     for (const attempt of matchingPaymentAttempts) {
       const paymentKey = buildLanguagePaymentKey({
@@ -191,16 +183,7 @@ export const getEnrollments = async (req: Request, res: Response) => {
         continue;
       }
 
-      paymentSnapshotByKey.set(paymentKey, {
-        status: String(attempt.paymentStatus || attempt.status || '').trim(),
-        amount: toDisplayAmount(attempt.amount),
-        currency: String(attempt.currency || 'INR').trim().toUpperCase(),
-        method: attempt.paymentMethod || null,
-        gateway: String(attempt.paymentGateway || 'razorpay').trim(),
-        razorpayOrderId: attempt.razorpayOrderId || null,
-        razorpayPaymentId: attempt.razorpayPaymentId || null,
-        paidAt: attempt.paidAt || attempt.createdAt || null,
-      });
+      paymentSnapshotByKey.set(paymentKey, buildPaymentSnapshot(attempt));
     }
 
     const enrollmentsWithPayment = enrollments.map((enrollment) => ({

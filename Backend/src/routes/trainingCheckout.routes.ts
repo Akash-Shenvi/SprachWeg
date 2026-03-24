@@ -3,16 +3,12 @@ import {
     createTrainingCheckout,
     deleteTrainingPaymentAttempt,
     getAllTrainingPaymentAttempts,
-    verifyTrainingPayment,
-    recordTrainingPaymentFailure,
 } from '../controllers/trainingCheckout.controller';
 import { isAdmin, isAuth } from '../middlewares/auth.middleware';
 
 const router = express.Router();
 
 router.post('/create', isAuth, createTrainingCheckout);
-router.post('/verify', isAuth, verifyTrainingPayment);
-router.post('/failure', isAuth, recordTrainingPaymentFailure);
 router.get('/admin/payment-attempts', isAuth, isAdmin, getAllTrainingPaymentAttempts);
 router.delete('/admin/payment-attempts/:id', isAuth, isAdmin, deleteTrainingPaymentAttempt);
 

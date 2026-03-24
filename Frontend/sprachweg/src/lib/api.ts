@@ -167,26 +167,14 @@ export const skillTrainingDetailAPI = {
 };
 
 export const trainingCheckoutAPI = {
-    async create(data: { origin: string; selectedLevel?: string }) {
+    async create(data: {
+        origin: string;
+        selectedLevel?: string;
+        payerName?: string;
+        payerEmail?: string;
+        payerPhone?: string;
+    }) {
         const response = await api.post('/training-checkout/create', data);
-        return response.data;
-    },
-    async verify(data: {
-        attemptId: string;
-        razorpay_order_id: string;
-        razorpay_payment_id: string;
-        razorpay_signature: string;
-    }) {
-        const response = await api.post('/training-checkout/verify', data);
-        return response.data;
-    },
-    async recordFailure(data: {
-        attemptId: string;
-        status: 'failed' | 'cancelled';
-        reason?: string;
-        error?: Record<string, unknown>;
-    }) {
-        const response = await api.post('/training-checkout/failure', data);
         return response.data;
     },
     async getAllPaymentAttemptsAdmin(params?: { page?: number; limit?: number; issuesOnly?: boolean; status?: string }) {
@@ -227,24 +215,6 @@ export const internshipApplicationAPI = {
                 'Content-Type': 'multipart/form-data',
             },
         });
-        return response.data;
-    },
-    async verifyPayment(data: {
-        attemptId: string;
-        razorpay_order_id: string;
-        razorpay_payment_id: string;
-        razorpay_signature: string;
-    }) {
-        const response = await api.post('/internship-applications/verify-payment', data);
-        return response.data;
-    },
-    async recordPaymentFailure(data: {
-        attemptId: string;
-        status: 'failed' | 'cancelled';
-        reason?: string;
-        error?: Record<string, unknown>;
-    }) {
-        const response = await api.post('/internship-applications/payment-failure', data);
         return response.data;
     },
     async getMine() {
@@ -353,26 +323,13 @@ export const webinarCatalogAPI = {
 };
 
 export const webinarRegistrationAPI = {
-    async createCheckout(data: { webinarId: string }) {
+    async createCheckout(data: {
+        webinarId: string;
+        payerName?: string;
+        payerEmail?: string;
+        payerPhone?: string;
+    }) {
         const response = await api.post('/webinar-registrations/checkout', data);
-        return response.data;
-    },
-    async verifyPayment(data: {
-        attemptId: string;
-        razorpay_order_id: string;
-        razorpay_payment_id: string;
-        razorpay_signature: string;
-    }) {
-        const response = await api.post('/webinar-registrations/verify-payment', data);
-        return response.data;
-    },
-    async recordPaymentFailure(data: {
-        attemptId: string;
-        status: 'failed' | 'cancelled';
-        reason?: string;
-        error?: Record<string, unknown>;
-    }) {
-        const response = await api.post('/webinar-registrations/payment-failure', data);
         return response.data;
     },
     async getApprovedMine() {

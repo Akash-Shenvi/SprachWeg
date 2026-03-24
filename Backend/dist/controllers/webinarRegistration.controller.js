@@ -12,51 +12,29 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMyApprovedWebinars = exports.updateWebinarRegistrationStatus = exports.getAdminWebinarRegistrations = exports.recordWebinarPaymentFailure = exports.verifyWebinarPayment = exports.createWebinarCheckout = void 0;
-const env_1 = require("../config/env");
+exports.getMyApprovedWebinars = exports.updateWebinarRegistrationStatus = exports.getAdminWebinarRegistrations = exports.createWebinarCheckout = exports.processWebinarPayUPayment = void 0;
 const webinar_model_1 = __importDefault(require("../models/webinar.model"));
 const webinarPaymentAttempt_model_1 = __importDefault(require("../models/webinarPaymentAttempt.model"));
 const webinarRegistration_model_1 = __importDefault(require("../models/webinarRegistration.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
+const payment_helpers_1 = require("../utils/payment.helpers");
+const payu_1 = require("../utils/payu");
+const payment_urls_1 = require("../utils/payment.urls");
 const webinar_calendar_1 = require("../utils/webinar.calendar");
-const razorpay_1 = require("../utils/razorpay");
-const successfulPaymentStatuses = ['authorized', 'captured'];
 const normalizeCurrency = (currency) => String(currency || 'INR').trim().toUpperCase();
-const isSuccessfulPaymentStatus = (status) => successfulPaymentStatuses.includes(String(status !== null && status !== void 0 ? status : '').trim().toLowerCase());
-const syncAttemptWithPayment = (attempt, payment, options) => {
-    if (payment.id)
-        attempt.razorpayPaymentId = payment.id;
-    if (payment.order_id)
-        attempt.razorpayOrderId = payment.order_id;
-    if (payment.status)
-        attempt.paymentStatus = payment.status;
-    if (payment.method)
-        attempt.paymentMethod = payment.method;
-    if (payment.email)
-        attempt.paymentEmail = payment.email;
-    if (payment.contact)
-        attempt.paymentContact = payment.contact;
-    if (payment.error_code)
-        attempt.paymentErrorCode = payment.error_code;
-    if (payment.error_description)
-        attempt.paymentErrorDescription = payment.error_description;
-    if (payment.error_source)
-        attempt.paymentErrorSource = payment.error_source;
-    if (payment.error_step)
-        attempt.paymentErrorStep = payment.error_step;
-    if (payment.error_reason)
-        attempt.paymentErrorReason = payment.error_reason;
-    if (options === null || options === void 0 ? void 0 : options.signature)
-        attempt.razorpaySignature = options.signature;
-    if (options === null || options === void 0 ? void 0 : options.failureReason)
-        attempt.failureReason = options.failureReason;
-    if ((options === null || options === void 0 ? void 0 : options.status) === 'paid') {
-        attempt.status = 'paid';
-        attempt.paidAt = attempt.paidAt || new Date();
+const normalizePhoneNumber = (value) => {
+    const digitsOnly = String(value !== null && value !== void 0 ? value : '').replace(/\D/g, '');
+    if (!digitsOnly) {
+        return '9999999999';
     }
-    else if (options === null || options === void 0 ? void 0 : options.status) {
-        attempt.status = options.status;
-    }
+    return digitsOnly.slice(-10) || digitsOnly;
+};
+const splitName = (value) => {
+    const parts = String(value !== null && value !== void 0 ? value : '').trim().split(/\s+/).filter(Boolean);
+    return {
+        firstName: parts[0] || 'Student',
+        lastName: parts.slice(1).join(' '),
+    };
 };
 const buildPaymentFailureReason = (payload) => payload.reason
     || payload.description
@@ -96,8 +74,9 @@ const upsertRegistrationFromAttempt = (attempt) => __awaiter(void 0, void 0, voi
             paymentAmount: Number((attempt.amount / 100).toFixed(2)),
             paymentCurrency: attempt.currency,
             paymentMethod: attempt.paymentMethod,
-            razorpayOrderId: attempt.razorpayOrderId,
-            razorpayPaymentId: attempt.razorpayPaymentId,
+            transactionId: attempt.transactionId,
+            paymentId: attempt.paymentId,
+            bankReferenceNumber: attempt.bankReferenceNumber,
             paidAt: attempt.paidAt,
             status: 'submitted',
         });
@@ -112,8 +91,9 @@ const upsertRegistrationFromAttempt = (attempt) => __awaiter(void 0, void 0, voi
     existingRegistration.paymentAmount = Number((attempt.amount / 100).toFixed(2));
     existingRegistration.paymentCurrency = attempt.currency;
     existingRegistration.paymentMethod = attempt.paymentMethod;
-    existingRegistration.razorpayOrderId = attempt.razorpayOrderId;
-    existingRegistration.razorpayPaymentId = attempt.razorpayPaymentId;
+    existingRegistration.transactionId = attempt.transactionId;
+    existingRegistration.paymentId = attempt.paymentId;
+    existingRegistration.bankReferenceNumber = attempt.bankReferenceNumber;
     existingRegistration.paidAt = attempt.paidAt;
     if (existingRegistration.status === 'rejected') {
         existingRegistration.status = 'submitted';
@@ -121,14 +101,140 @@ const upsertRegistrationFromAttempt = (attempt) => __awaiter(void 0, void 0, voi
     yield existingRegistration.save();
     return existingRegistration;
 });
+const findWebinarAttempt = (attemptId, transactionId) => __awaiter(void 0, void 0, void 0, function* () {
+    const orConditions = [];
+    if (attemptId) {
+        orConditions.push({ _id: attemptId });
+    }
+    if (transactionId) {
+        orConditions.push({ transactionId });
+    }
+    if (orConditions.length === 0) {
+        return null;
+    }
+    return webinarPaymentAttempt_model_1.default.findOne({ $or: orConditions });
+});
+const processWebinarPayUPayment = (params) => __awaiter(void 0, void 0, void 0, function* () {
+    const attempt = yield findWebinarAttempt(params.attemptId, params.transactionId);
+    if (!attempt) {
+        return {
+            result: 'failure',
+            message: 'Webinar payment attempt not found.',
+            attempt: null,
+        };
+    }
+    const transactionId = String(params.transactionId || attempt.transactionId || '').trim();
+    if (!transactionId) {
+        return {
+            result: 'failure',
+            message: 'Webinar payment transaction ID is missing.',
+            attempt,
+        };
+    }
+    if (attempt.transactionId && attempt.transactionId !== transactionId) {
+        (0, payment_helpers_1.applyGenericPaymentUpdate)(attempt, {
+            transactionId,
+            gatewaySignature: (0, payu_1.extractPayUPayloadValue)(params.payload, 'hash'),
+        }, {
+            status: 'failed',
+            failureReason: 'The PayU transaction ID does not match this webinar checkout attempt.',
+        });
+        attempt.paymentGateway = 'payu';
+        yield attempt.save();
+        return {
+            result: 'failure',
+            message: 'The PayU transaction did not match this webinar checkout attempt.',
+            attempt,
+        };
+    }
+    const verification = yield (0, payu_1.verifyPayUTransaction)(transactionId, params.resultHint || undefined);
+    const paymentUpdate = {
+        transactionId: verification.transactionId,
+        paymentId: verification.paymentId,
+        paymentStatus: verification.paymentStatus || verification.status,
+        paymentMethod: verification.paymentMethod,
+        paymentEmail: (0, payu_1.extractPayUPayloadValue)(params.payload, 'email') || attempt.paymentEmail,
+        paymentContact: (0, payu_1.extractPayUPayloadValue)(params.payload, 'phone') || attempt.paymentContact,
+        gatewaySignature: (0, payu_1.extractPayUPayloadValue)(params.payload, 'hash'),
+        bankReferenceNumber: verification.bankReferenceNumber,
+    };
+    if (!(0, payu_1.compareExpectedAmount)(attempt.amount, verification.amount)) {
+        (0, payment_helpers_1.applyGenericPaymentUpdate)(attempt, paymentUpdate, {
+            status: 'failed',
+            failureReason: 'The verified PayU amount did not match this webinar checkout attempt.',
+        });
+        attempt.paymentGateway = 'payu';
+        yield attempt.save();
+        return {
+            result: 'failure',
+            message: 'The verified payment amount did not match this webinar checkout attempt.',
+            attempt,
+        };
+    }
+    if (verification.currency && normalizeCurrency(verification.currency) !== attempt.currency) {
+        (0, payment_helpers_1.applyGenericPaymentUpdate)(attempt, paymentUpdate, {
+            status: 'failed',
+            failureReason: 'The verified PayU currency did not match this webinar checkout attempt.',
+        });
+        attempt.paymentGateway = 'payu';
+        yield attempt.save();
+        return {
+            result: 'failure',
+            message: 'The verified payment currency did not match this webinar checkout attempt.',
+            attempt,
+        };
+    }
+    attempt.paymentGateway = 'payu';
+    if (verification.internalStatus === 'pending') {
+        (0, payment_helpers_1.applyGenericPaymentUpdate)(attempt, paymentUpdate, { status: 'created' });
+        yield attempt.save();
+        return {
+            result: 'pending',
+            message: 'Payment is pending confirmation from PayU.',
+            attempt,
+        };
+    }
+    if (verification.internalStatus !== 'paid') {
+        (0, payment_helpers_1.applyGenericPaymentUpdate)(attempt, paymentUpdate, {
+            status: verification.internalStatus === 'cancelled' ? 'cancelled' : 'failed',
+            failureReason: verification.internalStatus === 'cancelled'
+                ? 'Payment was cancelled before completion.'
+                : buildPaymentFailureReason({
+                    reason: verification.errorMessage || 'Payment was not completed successfully.',
+                }),
+        });
+        yield attempt.save();
+        return {
+            result: (0, payment_urls_1.mapInternalStatusToPaymentResult)(verification.internalStatus),
+            message: verification.internalStatus === 'cancelled'
+                ? 'Payment was cancelled before completion.'
+                : 'Payment was not completed successfully.',
+            attempt,
+        };
+    }
+    (0, payment_helpers_1.applyGenericPaymentUpdate)(attempt, paymentUpdate, { status: 'paid' });
+    yield attempt.save();
+    const registration = yield upsertRegistrationFromAttempt(attempt);
+    return {
+        result: 'success',
+        message: 'Payment verified and webinar registration submitted successfully.',
+        attempt,
+        registration,
+    };
+});
+exports.processWebinarPayUPayment = processWebinarPayUPayment;
 const createWebinarCheckout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b;
+    var _a, _b, _c, _d, _e;
+    let attempt = null;
     try {
         const user = req.user;
         if (!user) {
             return res.status(401).json({ message: 'Please log in to continue with webinar payment.' });
         }
         const webinarId = String((_b = (_a = req.body) === null || _a === void 0 ? void 0 : _a.webinarId) !== null && _b !== void 0 ? _b : '').trim();
+        const payerName = String(((_c = req.body) === null || _c === void 0 ? void 0 : _c.payerName) || user.name || '').trim();
+        const payerEmail = String(((_d = req.body) === null || _d === void 0 ? void 0 : _d.payerEmail) || user.email || '').trim().toLowerCase();
+        const payerPhone = normalizePhoneNumber(((_e = req.body) === null || _e === void 0 ? void 0 : _e.payerPhone) || user.phoneNumber);
         if (!webinarId) {
             return res.status(400).json({ message: 'webinarId is required.' });
         }
@@ -151,187 +257,61 @@ const createWebinarCheckout = (req, res) => __awaiter(void 0, void 0, void 0, fu
             },
         });
         const amount = Math.round(Number(webinar.price) * 100);
-        const attempt = yield webinarPaymentAttempt_model_1.default.create({
+        attempt = yield webinarPaymentAttempt_model_1.default.create({
             userId: user._id,
             webinarId: webinar._id,
             webinarTitle: webinar.title,
             scheduledAt: webinar.scheduledAt,
             amount,
             currency: normalizeCurrency(webinar.currency),
+            paymentGateway: 'payu',
+            paymentEmail: payerEmail,
+            paymentContact: payerPhone,
         });
-        const order = yield (0, razorpay_1.createRazorpayOrder)({
+        attempt.transactionId = (0, payu_1.buildPayUTransactionId)('webinar', String(attempt._id));
+        const payerNameParts = splitName(payerName);
+        const checkout = yield (0, payu_1.createPayUHostedCheckout)({
+            transactionId: attempt.transactionId,
+            referenceId: String(attempt._id),
             amount,
-            currency: normalizeCurrency(webinar.currency),
-            receipt: `webinar_${String(attempt._id)}`.slice(0, 40),
-            notes: {
-                userId: String(user._id),
-                attemptId: String(attempt._id),
-                webinarId: String(webinar._id),
+            productInfo: webinar.title,
+            firstName: payerNameParts.firstName,
+            lastName: payerNameParts.lastName,
+            email: payerEmail,
+            phone: payerPhone,
+            flow: 'webinar',
+            userDefinedFields: {
+                udf3: String(webinar._id),
             },
+            successAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'success'),
+            failureAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'failure'),
+            cancelAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'cancel'),
         });
-        attempt.razorpayOrderId = order.id;
-        attempt.paymentStatus = order.status;
+        attempt.paymentStatus = checkout.status;
         yield attempt.save();
         return res.status(201).json({
             message: 'Webinar checkout created successfully.',
             checkout: {
-                keyId: env_1.env.RAZORPAY_KEY_ID,
                 attemptId: attempt._id,
-                orderId: order.id,
-                amount: order.amount,
-                currency: order.currency,
-                webinarId: webinar._id,
-                webinarTitle: webinar.title,
-                scheduledAt: webinar.scheduledAt,
-                applicant: {
-                    name: user.name,
-                    email: user.email,
-                    contact: user.phoneNumber,
-                },
+                redirectUrl: checkout.redirectUrl,
+                transactionId: attempt.transactionId,
+                amount: attempt.amount,
+                currency: attempt.currency,
             },
         });
     }
     catch (error) {
+        if (attempt) {
+            attempt.paymentGateway = 'payu';
+            attempt.status = 'failed';
+            attempt.failureReason = (error === null || error === void 0 ? void 0 : error.message) || 'Failed to start webinar checkout.';
+            yield attempt.save().catch(() => undefined);
+        }
         console.error('Webinar checkout creation error:', error);
         return res.status(500).json({ message: (error === null || error === void 0 ? void 0 : error.message) || 'Failed to start webinar checkout.' });
     }
 });
 exports.createWebinarCheckout = createWebinarCheckout;
-const verifyWebinarPayment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const user = req.user;
-        if (!user) {
-            return res.status(401).json({ message: 'Please log in to verify webinar payment.' });
-        }
-        const { attemptId, razorpay_order_id: razorpayOrderId, razorpay_payment_id: razorpayPaymentId, razorpay_signature: razorpaySignature, } = req.body || {};
-        if (!attemptId || !razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-            return res.status(400).json({ message: 'Payment verification details are incomplete.' });
-        }
-        const attempt = yield webinarPaymentAttempt_model_1.default.findOne({
-            _id: attemptId,
-            userId: user._id,
-        });
-        if (!attempt) {
-            return res.status(404).json({ message: 'Payment attempt not found.' });
-        }
-        if (!attempt.razorpayOrderId || attempt.razorpayOrderId !== razorpayOrderId) {
-            return res.status(400).json({ message: 'The payment order does not match this webinar checkout attempt.' });
-        }
-        if (attempt.status === 'paid') {
-            const existingRegistration = yield findExistingRegistration(user._id, attempt.webinarId);
-            if (existingRegistration) {
-                return res.status(200).json({
-                    message: 'Payment already verified for this webinar registration.',
-                    registration: existingRegistration,
-                });
-            }
-        }
-        const isValidSignature = (0, razorpay_1.verifyRazorpayPaymentSignature)({
-            orderId: attempt.razorpayOrderId,
-            paymentId: razorpayPaymentId,
-            signature: razorpaySignature,
-        });
-        if (!isValidSignature) {
-            syncAttemptWithPayment(attempt, {}, {
-                status: 'failed',
-                failureReason: 'Payment signature verification failed.',
-            });
-            yield attempt.save();
-            return res.status(400).json({ message: 'Payment signature verification failed.' });
-        }
-        const payment = yield (0, razorpay_1.fetchRazorpayPayment)(razorpayPaymentId);
-        if (payment.order_id !== attempt.razorpayOrderId) {
-            syncAttemptWithPayment(attempt, payment, {
-                status: 'failed',
-                signature: razorpaySignature,
-                failureReason: 'Payment order mismatch received from Razorpay.',
-            });
-            yield attempt.save();
-            return res.status(400).json({ message: 'Payment order mismatch received from Razorpay.' });
-        }
-        if (!isSuccessfulPaymentStatus(payment.status)) {
-            syncAttemptWithPayment(attempt, payment, {
-                status: 'failed',
-                signature: razorpaySignature,
-                failureReason: buildPaymentFailureReason({
-                    reason: 'Payment was not completed successfully.',
-                    errorDescription: payment.error_description,
-                    errorReason: payment.error_reason,
-                }),
-            });
-            yield attempt.save();
-            return res.status(400).json({ message: 'Payment was not completed successfully.' });
-        }
-        syncAttemptWithPayment(attempt, payment, {
-            status: 'paid',
-            signature: razorpaySignature,
-        });
-        yield attempt.save();
-        const registration = yield upsertRegistrationFromAttempt(attempt);
-        return res.status(200).json({
-            message: 'Payment verified and webinar registration submitted successfully.',
-            registration,
-        });
-    }
-    catch (error) {
-        console.error('Webinar payment verification error:', error);
-        return res.status(500).json({ message: 'Failed to verify webinar payment.' });
-    }
-});
-exports.verifyWebinarPayment = verifyWebinarPayment;
-const recordWebinarPaymentFailure = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
-    try {
-        const user = req.user;
-        if (!user) {
-            return res.status(401).json({ message: 'Please log in to update webinar payment status.' });
-        }
-        const { attemptId, status, reason, error } = req.body || {};
-        const normalizedStatus = String(status !== null && status !== void 0 ? status : '').trim().toLowerCase();
-        if (!attemptId || !['failed', 'cancelled'].includes(normalizedStatus)) {
-            return res.status(400).json({ message: 'A valid payment attempt and failure status are required.' });
-        }
-        const attempt = yield webinarPaymentAttempt_model_1.default.findOne({
-            _id: attemptId,
-            userId: user._id,
-        });
-        if (!attempt) {
-            return res.status(404).json({ message: 'Payment attempt not found.' });
-        }
-        if (attempt.status === 'paid') {
-            return res.status(200).json({ message: 'Payment attempt is already marked as paid.' });
-        }
-        syncAttemptWithPayment(attempt, {
-            id: (_a = error === null || error === void 0 ? void 0 : error.metadata) === null || _a === void 0 ? void 0 : _a.payment_id,
-            order_id: ((_b = error === null || error === void 0 ? void 0 : error.metadata) === null || _b === void 0 ? void 0 : _b.order_id) || attempt.razorpayOrderId,
-            status: 'failed',
-            method: (_c = error === null || error === void 0 ? void 0 : error.metadata) === null || _c === void 0 ? void 0 : _c.method,
-            error_code: error === null || error === void 0 ? void 0 : error.code,
-            error_description: error === null || error === void 0 ? void 0 : error.description,
-            error_source: error === null || error === void 0 ? void 0 : error.source,
-            error_step: error === null || error === void 0 ? void 0 : error.step,
-            error_reason: error === null || error === void 0 ? void 0 : error.reason,
-        }, {
-            status: normalizedStatus,
-            failureReason: buildPaymentFailureReason({
-                reason,
-                description: error === null || error === void 0 ? void 0 : error.description,
-                errorDescription: error === null || error === void 0 ? void 0 : error.description,
-                errorReason: error === null || error === void 0 ? void 0 : error.reason,
-            }),
-        });
-        yield attempt.save();
-        return res.status(200).json({
-            message: `Payment attempt marked as ${normalizedStatus}.`,
-            paymentAttempt: attempt,
-        });
-    }
-    catch (error) {
-        console.error('Recording webinar payment failure failed:', error);
-        return res.status(500).json({ message: 'Failed to update webinar payment status.' });
-    }
-});
-exports.recordWebinarPaymentFailure = recordWebinarPaymentFailure;
 const getAdminWebinarRegistrations = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     try {
@@ -367,7 +347,7 @@ const getAdminWebinarRegistrations = (req, res) => __awaiter(void 0, void 0, voi
             .skip((currentPage - 1) * limit)
             .limit(limit);
         return res.status(200).json({
-            registrations,
+            registrations: registrations.map((registration) => (0, payment_helpers_1.withResolvedPaymentFields)(registration.toObject())),
             pagination: {
                 currentPage,
                 totalPages,
@@ -423,7 +403,7 @@ const updateWebinarRegistrationStatus = (req, res) => __awaiter(void 0, void 0, 
             .populate('webinarId', 'title scheduledAt joinLink isActive trainerId calendarSyncStatus');
         return res.status(200).json({
             message: 'Webinar registration status updated successfully.',
-            registration: refreshedRegistration,
+            registration: refreshedRegistration ? (0, payment_helpers_1.withResolvedPaymentFields)(refreshedRegistration.toObject()) : null,
         });
     }
     catch (error) {
@@ -445,18 +425,7 @@ const getMyApprovedWebinars = (req, res) => __awaiter(void 0, void 0, void 0, fu
             .sort({ scheduledAt: 1, createdAt: -1 });
         const webinars = registrations.map((registration) => {
             const webinar = registration.webinarId;
-            return {
-                _id: registration._id,
-                webinarId: (webinar === null || webinar === void 0 ? void 0 : webinar._id) || registration.webinarId,
-                title: (webinar === null || webinar === void 0 ? void 0 : webinar.title) || registration.webinarTitle,
-                scheduledAt: (webinar === null || webinar === void 0 ? void 0 : webinar.scheduledAt) || registration.scheduledAt,
-                joinLink: (webinar === null || webinar === void 0 ? void 0 : webinar.joinLink) || null,
-                price: registration.price,
-                currency: registration.currency,
-                referenceCode: registration.referenceCode,
-                status: registration.status,
-                createdAt: registration.createdAt,
-            };
+            return Object.assign(Object.assign({}, (0, payment_helpers_1.withResolvedPaymentFields)(registration.toObject())), { _id: registration._id, webinarId: (webinar === null || webinar === void 0 ? void 0 : webinar._id) || registration.webinarId, title: (webinar === null || webinar === void 0 ? void 0 : webinar.title) || registration.webinarTitle, scheduledAt: (webinar === null || webinar === void 0 ? void 0 : webinar.scheduledAt) || registration.scheduledAt, joinLink: (webinar === null || webinar === void 0 ? void 0 : webinar.joinLink) || null, price: registration.price, currency: registration.currency, referenceCode: registration.referenceCode, status: registration.status, createdAt: registration.createdAt });
         });
         return res.status(200).json({ registrations: webinars });
     }

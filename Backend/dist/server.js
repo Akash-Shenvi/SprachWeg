@@ -22,15 +22,26 @@ const env_1 = require("./config/env");
 const chat_message_model_1 = __importDefault(require("./models/chat.message.model"));
 const user_model_1 = __importDefault(require("./models/user.model"));
 const chat_access_1 = require("./utils/chat-access");
+const socketAllowedOrigins = Array.from(new Set([
+    env_1.env.FRONTEND_BASE_URL,
+    'https://training.sovirtechnologies.in',
+]
+    .map((value) => {
+    try {
+        return new URL(value).origin;
+    }
+    catch (_a) {
+        return '';
+    }
+})
+    .filter(Boolean)));
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     yield (0, database_1.connectDB)();
     const httpServer = http_1.default.createServer(app_1.default);
     const io = new socket_io_1.Server(httpServer, {
         path: '/api/socket.io', // must match nginx /api/* proxy rule
         cors: {
-            origin: [
-                'https://training.sovirtechnologies.in'
-            ],
+            origin: socketAllowedOrigins,
             credentials: true,
         }
     });

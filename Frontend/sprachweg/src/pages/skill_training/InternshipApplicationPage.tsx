@@ -171,30 +171,6 @@ function getStatusText(status: ApplicationStatus): string {
   }
 }
 
-function loadRazorpayCheckoutScript(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if ((window as any).Razorpay) {
-      resolve(true);
-      return;
-    }
-
-    const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]') as HTMLScriptElement | null;
-
-    if (existingScript) {
-      existingScript.addEventListener('load', () => resolve(true), { once: true });
-      existingScript.addEventListener('error', () => resolve(false), { once: true });
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
-
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 interface FieldProps {
@@ -578,127 +554,11 @@ const InternshipApplicationPage: React.FC = () => {
 
       const checkout = response.checkout;
 
-      if (!checkout?.attemptId || !checkout?.orderId || !checkout?.keyId) {
+      if (!checkout?.attemptId || !checkout?.redirectUrl || !checkout?.transactionId) {
         throw new Error('Payment checkout details are incomplete.');
       }
 
-      const scriptLoaded = await loadRazorpayCheckoutScript();
-
-      if (!scriptLoaded || !(window as any).Razorpay) {
-        await internshipApplicationAPI.recordPaymentFailure({
-          attemptId: checkout.attemptId,
-          status: 'cancelled',
-          reason: 'Razorpay checkout failed to load on the browser.',
-        }).catch(() => undefined);
-
-        throw new Error('Unable to load Razorpay checkout right now. Please try again.');
-      }
-
-      let failureHandled = false;
-
-      const handleCheckoutFailure = async (failure: {
-        status: 'failed' | 'cancelled';
-        reason?: string;
-        error?: Record<string, unknown>;
-        message: string;
-      }) => {
-        if (failureHandled) {
-          return;
-        }
-
-        failureHandled = true;
-
-        await internshipApplicationAPI.recordPaymentFailure({
-          attemptId: checkout.attemptId,
-          status: failure.status,
-          reason: failure.reason,
-          error: failure.error,
-        }).catch(() => undefined);
-
-        setLoading(false);
-        setSubmitError(failure.message);
-      };
-
-      const razorpay = new (window as any).Razorpay({
-        key: checkout.keyId,
-        order_id: checkout.orderId,
-        amount: checkout.amount,
-        currency: checkout.currency,
-        name: 'Sovir Technologies',
-        description: `Internship Application - ${checkout.internshipTitle}`,
-        prefill: checkout.applicant,
-        notes: {
-          internshipTitle: checkout.internshipTitle,
-          internshipMode: formatInternshipMode(form.internshipMode),
-        },
-        config: {
-          display: {
-            blocks: {
-              upi_priority: {
-                name: 'Pay via UPI',
-                instruments: [
-                  {
-                    method: 'upi',
-                  },
-                ],
-              },
-            },
-            sequence: ['block.upi_priority'],
-            preferences: {
-              show_default_blocks: true,
-            },
-          },
-        },
-        theme: {
-          color: '#d6b161',
-        },
-        modal: {
-          ondismiss: () => {
-            void handleCheckoutFailure({
-              status: 'cancelled',
-              reason: 'The user closed the Razorpay checkout before completing payment.',
-              message: 'Payment was cancelled before completion.',
-            });
-          },
-        },
-        handler: async (paymentResponse: {
-          razorpay_order_id: string;
-          razorpay_payment_id: string;
-          razorpay_signature: string;
-        }) => {
-          failureHandled = true;
-
-          try {
-            const verification = await internshipApplicationAPI.verifyPayment({
-              attemptId: checkout.attemptId,
-              razorpay_order_id: paymentResponse.razorpay_order_id,
-              razorpay_payment_id: paymentResponse.razorpay_payment_id,
-              razorpay_signature: paymentResponse.razorpay_signature,
-            });
-
-            setRefCode(verification.application?.referenceCode || generateRef());
-            setSubmitted(true);
-            setLoading(false);
-          } catch (err: any) {
-            setLoading(false);
-            setSubmitError(
-              err.response?.data?.message
-              || 'Payment was completed, but application verification is still pending. Please check your dashboard in a moment.'
-            );
-          }
-        },
-      });
-
-      razorpay.on('payment.failed', (event: any) => {
-        void handleCheckoutFailure({
-          status: 'failed',
-          reason: event?.error?.description || event?.error?.reason || 'Razorpay reported a payment failure.',
-          error: event?.error,
-          message: event?.error?.description || 'Payment failed. Please try again with a different method.',
-        });
-      });
-
-      razorpay.open();
+      window.location.assign(checkout.redirectUrl);
     } catch (err: any) {
       setLoading(false);
       setSubmitError(err.response?.data?.message || err.message || 'Failed to start internship checkout. Please try again.');
@@ -1365,7 +1225,7 @@ const InternshipApplicationPage: React.FC = () => {
                   {loading ? (
                     <>
                       <div className="w-[18px] h-[18px] rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                      {isFreeInternship ? 'Submitting Application…' : 'Opening Secure Checkout…'}
+                      {isFreeInternship ? 'Submitting Application…' : 'Redirecting to Secure Checkout…'}
                     </>
                   ) : (
                     <>

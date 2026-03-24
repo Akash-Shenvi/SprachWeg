@@ -6,17 +6,27 @@ import LanguageCourse from '../models/languageCourse.model';
 import SkillCourse from '../models/skillCourse.model';
 import SkillTrainingDetail from '../models/skillTrainingDetail.model';
 import TrainingPaymentAttempt, { type ITrainingPaymentAttempt } from '../models/trainingPaymentAttempt.model';
+import User from '../models/user.model';
 import { EmailService } from '../utils/email.service';
 import {
-    createRazorpayOrder,
-    fetchRazorpayPayment,
-    type RazorpayPaymentResponse,
-    verifyRazorpayPaymentSignature,
-} from '../utils/razorpay';
+    applyGenericPaymentUpdate,
+    withResolvedPaymentFields,
+} from '../utils/payment.helpers';
+import {
+    buildPayUTransactionId,
+    compareExpectedAmount,
+    createPayUHostedCheckout,
+    extractPayUPayloadValue,
+    verifyPayUTransaction,
+} from '../utils/payu';
+import {
+    buildPayUCallbackUrl,
+    mapInternalStatusToPaymentResult,
+    type PaymentResult,
+} from '../utils/payment.urls';
 
 const emailService = new EmailService();
-const successfulPaymentStatuses = ['authorized', 'captured'] as const;
-const trainingPortalBaseUrl = 'https://training.sovirtechnologies.in';
+const trainingPortalBaseUrl = String(env.FRONTEND_BASE_URL || 'http://localhost:5173').replace(/\/+$/, '');
 
 const extractNumericPrice = (value: string | number | null | undefined) => {
     if (typeof value === 'number') {
@@ -62,38 +72,21 @@ const normalizeCurrency = (currency?: string) => String(currency || 'INR').trim(
 
 const toDisplayAmount = (subunits: number) => Number((subunits / 100).toFixed(2));
 
-const isSuccessfulPaymentStatus = (status?: string) =>
-    successfulPaymentStatuses.includes(String(status ?? '').trim().toLowerCase() as (typeof successfulPaymentStatuses)[number]);
-
-const syncAttemptWithPayment = (
-    attempt: ITrainingPaymentAttempt,
-    payment: Partial<RazorpayPaymentResponse>,
-    options?: {
-        signature?: string;
-        status?: 'paid' | 'failed' | 'cancelled';
-        failureReason?: string;
+const normalizePhoneNumber = (value: unknown) => {
+    const digitsOnly = String(value ?? '').replace(/\D/g, '');
+    if (!digitsOnly) {
+        return '9999999999';
     }
-) => {
-    if (payment.id) attempt.razorpayPaymentId = payment.id;
-    if (payment.order_id) attempt.razorpayOrderId = payment.order_id;
-    if (payment.status) attempt.paymentStatus = payment.status;
-    if (payment.method) attempt.paymentMethod = payment.method;
-    if (payment.email) attempt.paymentEmail = payment.email;
-    if (payment.contact) attempt.paymentContact = payment.contact;
-    if (payment.error_code) attempt.paymentErrorCode = payment.error_code;
-    if (payment.error_description) attempt.paymentErrorDescription = payment.error_description;
-    if (payment.error_source) attempt.paymentErrorSource = payment.error_source;
-    if (payment.error_step) attempt.paymentErrorStep = payment.error_step;
-    if (payment.error_reason) attempt.paymentErrorReason = payment.error_reason;
-    if (options?.signature) attempt.razorpaySignature = options.signature;
-    if (options?.failureReason) attempt.failureReason = options.failureReason;
 
-    if (options?.status === 'paid') {
-        attempt.status = 'paid';
-        attempt.paidAt = attempt.paidAt || new Date();
-    } else if (options?.status) {
-        attempt.status = options.status;
-    }
+    return digitsOnly.slice(-10) || digitsOnly;
+};
+
+const splitName = (value: unknown) => {
+    const parts = String(value ?? '').trim().split(/\s+/).filter(Boolean);
+    return {
+        firstName: parts[0] || 'Student',
+        lastName: parts.slice(1).join(' '),
+    };
 };
 
 const buildPaymentFailureReason = (payload: {
@@ -209,7 +202,7 @@ export const getAllTrainingPaymentAttempts = async (req: Request, res: Response)
             .sort({ createdAt: -1 });
 
         return res.status(200).json({
-            paymentAttempts,
+            paymentAttempts: paymentAttempts.map((attempt) => withResolvedPaymentFields(attempt.toObject())),
             pagination: {
                 page,
                 limit,
@@ -471,7 +464,195 @@ const upsertEnrollmentFromAttempt = async (attempt: ITrainingPaymentAttempt): Pr
     return upsertSkillEnrollment(attempt);
 };
 
+type TrainingPayUPaymentProcessResult = {
+    result: PaymentResult;
+    message: string;
+    attempt: ITrainingPaymentAttempt | null;
+    enrollment?: any;
+};
+
+const findTrainingAttempt = async (attemptId?: string | null, transactionId?: string | null) => {
+    const orConditions: Array<Record<string, unknown>> = [];
+
+    if (attemptId) {
+        orConditions.push({ _id: attemptId });
+    }
+
+    if (transactionId) {
+        orConditions.push({ transactionId });
+    }
+
+    if (orConditions.length === 0) {
+        return null;
+    }
+
+    return TrainingPaymentAttempt.findOne({ $or: orConditions });
+};
+
+export const processTrainingPayUPayment = async (params: {
+    attemptId?: string | null;
+    transactionId?: string | null;
+    payload: Record<string, unknown>;
+    resultHint?: PaymentResult | null;
+}): Promise<TrainingPayUPaymentProcessResult> => {
+    const attempt = await findTrainingAttempt(params.attemptId, params.transactionId);
+
+    if (!attempt) {
+        return {
+            result: 'failure',
+            message: 'Training payment attempt not found.',
+            attempt: null,
+        };
+    }
+
+    const transactionId = String(params.transactionId || attempt.transactionId || '').trim();
+    if (!transactionId) {
+        return {
+            result: 'failure',
+            message: 'Training payment transaction ID is missing.',
+            attempt,
+        };
+    }
+
+    if (attempt.transactionId && attempt.transactionId !== transactionId) {
+        applyGenericPaymentUpdate(
+            attempt,
+            {
+                transactionId,
+                gatewaySignature: extractPayUPayloadValue(params.payload, 'hash'),
+            },
+            {
+                status: 'failed',
+                failureReason: 'The PayU transaction ID does not match this checkout attempt.',
+            }
+        );
+        attempt.paymentGateway = 'payu';
+        await attempt.save();
+
+        return {
+            result: 'failure',
+            message: 'The PayU transaction did not match this training checkout attempt.',
+            attempt,
+        };
+    }
+
+    const verification = await verifyPayUTransaction(transactionId, params.resultHint || undefined);
+    const paymentUpdate = {
+        transactionId: verification.transactionId,
+        paymentId: verification.paymentId,
+        paymentStatus: verification.paymentStatus || verification.status,
+        paymentMethod: verification.paymentMethod,
+        paymentEmail: extractPayUPayloadValue(params.payload, 'email') || attempt.paymentEmail,
+        paymentContact: extractPayUPayloadValue(params.payload, 'phone') || attempt.paymentContact,
+        gatewaySignature: extractPayUPayloadValue(params.payload, 'hash'),
+        bankReferenceNumber: verification.bankReferenceNumber,
+    };
+
+    if (!compareExpectedAmount(attempt.amount, verification.amount)) {
+        applyGenericPaymentUpdate(attempt, paymentUpdate, {
+            status: 'failed',
+            failureReason: 'The verified PayU amount did not match this training checkout attempt.',
+        });
+        attempt.paymentGateway = 'payu';
+        await attempt.save();
+
+        return {
+            result: 'failure',
+            message: 'The verified payment amount did not match this training checkout attempt.',
+            attempt,
+        };
+    }
+
+    if (verification.currency && normalizeCurrency(verification.currency) !== attempt.currency) {
+        applyGenericPaymentUpdate(attempt, paymentUpdate, {
+            status: 'failed',
+            failureReason: 'The verified PayU currency did not match this training checkout attempt.',
+        });
+        attempt.paymentGateway = 'payu';
+        await attempt.save();
+
+        return {
+            result: 'failure',
+            message: 'The verified payment currency did not match this training checkout attempt.',
+            attempt,
+        };
+    }
+
+    attempt.paymentGateway = 'payu';
+
+    if (verification.internalStatus === 'pending') {
+        applyGenericPaymentUpdate(attempt, paymentUpdate, { status: 'created' });
+        await attempt.save();
+
+        return {
+            result: 'pending',
+            message: 'Payment is pending confirmation from PayU.',
+            attempt,
+        };
+    }
+
+    if (verification.internalStatus !== 'paid') {
+        const failureStatus = verification.internalStatus === 'cancelled' ? 'cancelled' : 'failed';
+        const failureReason = failureStatus === 'cancelled'
+            ? 'Payment was cancelled before completion.'
+            : buildPaymentFailureReason({
+                reason: verification.errorMessage || 'Payment was not completed successfully.',
+            });
+
+        applyGenericPaymentUpdate(attempt, paymentUpdate, {
+            status: failureStatus,
+            failureReason,
+        });
+        await attempt.save();
+
+        const paymentUser = await User.findById(attempt.userId).select('name email').lean().catch(() => null);
+        await sendPaymentFailureEmailIfNeeded(attempt, paymentUser);
+
+        return {
+            result: mapInternalStatusToPaymentResult(verification.internalStatus),
+            message: failureStatus === 'cancelled'
+                ? 'Payment was cancelled before completion.'
+                : 'Payment was not completed successfully.',
+            attempt,
+        };
+    }
+
+    applyGenericPaymentUpdate(attempt, paymentUpdate, { status: 'paid' });
+    await attempt.save();
+
+    const { enrollment, shouldSendEnrollmentEmail, enrollmentEmailCourseTitle } = await upsertEnrollmentFromAttempt(attempt);
+
+    if (shouldSendEnrollmentEmail) {
+        const paymentUser = await User.findById(attempt.userId).select('name email').lean().catch(() => null);
+        await emailService.sendEnrollmentEmail(
+            String(paymentUser?.email || attempt.paymentEmail || '').trim(),
+            String(paymentUser?.name || 'Student').trim(),
+            enrollmentEmailCourseTitle,
+            'PENDING',
+            {
+                amount: toDisplayAmount(attempt.amount),
+                currency: attempt.currency,
+                paymentStatus: attempt.paymentStatus || attempt.status || 'paid',
+                paymentMethod: attempt.paymentMethod,
+                transactionId: attempt.transactionId,
+                paymentId: attempt.paymentId,
+                bankReferenceNumber: attempt.bankReferenceNumber,
+                paidAt: attempt.paidAt,
+            }
+        );
+    }
+
+    return {
+        result: 'success',
+        message: 'Payment verified and enrollment submitted successfully.',
+        attempt,
+        enrollment,
+    };
+};
+
 export const createTrainingCheckout = async (req: Request, res: Response) => {
+    let attempt: ITrainingPaymentAttempt | null = null;
+
     try {
         const user = (req as any).user;
         if (!user) {
@@ -480,6 +661,9 @@ export const createTrainingCheckout = async (req: Request, res: Response) => {
 
         const origin = normalizeOrigin(req.body?.origin);
         const selectedLevel = String(req.body?.selectedLevel ?? '').trim();
+        const payerName = String(req.body?.payerName || user.name || '').trim();
+        const payerEmail = String(req.body?.payerEmail || user.email || '').trim().toLowerCase();
+        const payerPhone = normalizePhoneNumber(req.body?.payerPhone || user.phoneNumber);
 
         if (!origin) {
             return res.status(400).json({ message: 'A valid training selection is required.' });
@@ -533,7 +717,7 @@ export const createTrainingCheckout = async (req: Request, res: Response) => {
             }
         );
 
-        const attempt = await TrainingPaymentAttempt.create({
+        attempt = await TrainingPaymentAttempt.create({
             userId: user._id,
             trainingType: resolvedSelection.trainingType,
             origin: resolvedSelection.origin,
@@ -542,230 +726,57 @@ export const createTrainingCheckout = async (req: Request, res: Response) => {
             skillCourseId: resolvedSelection.trainingType === 'skill' ? resolvedSelection.skillCourseId : undefined,
             amount: resolvedSelection.amount,
             currency: resolvedSelection.currency,
+            paymentGateway: 'payu',
+            paymentEmail: payerEmail,
+            paymentContact: payerPhone,
         });
 
-        const order = await createRazorpayOrder({
+        attempt.transactionId = buildPayUTransactionId('training', String(attempt._id));
+
+        const payerNameParts = splitName(payerName);
+        const checkout = await createPayUHostedCheckout({
+            transactionId: attempt.transactionId,
+            referenceId: String(attempt._id),
             amount: resolvedSelection.amount,
-            currency: resolvedSelection.currency,
-            receipt: `training_${String(attempt._id)}`.slice(0, 40),
-            notes: {
-                userId: String(user._id),
-                attemptId: String(attempt._id),
-                trainingType: resolvedSelection.trainingType,
-                origin: resolvedSelection.origin,
+            productInfo: resolvedSelection.trainingType === 'language' && resolvedSelection.levelName
+                ? `${resolvedSelection.courseTitle} - ${resolvedSelection.levelName}`
+                : resolvedSelection.displayCourseTitle,
+            firstName: payerNameParts.firstName,
+            lastName: payerNameParts.lastName,
+            email: payerEmail,
+            phone: payerPhone,
+            flow: 'training',
+            userDefinedFields: {
+                udf3: resolvedSelection.trainingType,
+                udf4: resolvedSelection.origin,
             },
+            successAction: buildPayUCallbackUrl(req, 'success'),
+            failureAction: buildPayUCallbackUrl(req, 'failure'),
+            cancelAction: buildPayUCallbackUrl(req, 'cancel'),
         });
 
-        attempt.razorpayOrderId = order.id;
-        attempt.paymentStatus = order.status;
+        attempt.paymentStatus = checkout.status;
         await attempt.save();
 
         return res.status(201).json({
             message: 'Checkout created successfully.',
             checkout: {
-                keyId: env.RAZORPAY_KEY_ID,
                 attemptId: attempt._id,
-                orderId: order.id,
-                amount: order.amount,
-                currency: order.currency,
-                trainingType: resolvedSelection.trainingType,
-                courseTitle: resolvedSelection.courseTitle,
-                displayCourseTitle: resolvedSelection.displayCourseTitle,
-                levelName: resolvedSelection.trainingType === 'language' ? resolvedSelection.levelName : undefined,
-                applicant: {
-                    name: user.name,
-                    email: user.email,
-                    contact: user.phoneNumber,
-                },
+                redirectUrl: checkout.redirectUrl,
+                transactionId: attempt.transactionId,
+                amount: attempt.amount,
+                currency: attempt.currency,
             },
         });
     } catch (error: any) {
+        if (attempt) {
+            attempt.paymentGateway = 'payu';
+            attempt.status = 'failed';
+            attempt.failureReason = error?.message || 'Failed to start training checkout.';
+            await attempt.save().catch(() => undefined);
+        }
+
         console.error('Training checkout creation error:', error);
         return res.status(500).json({ message: error?.message || 'Failed to start training checkout.' });
-    }
-};
-
-export const verifyTrainingPayment = async (req: Request, res: Response) => {
-    try {
-        const user = (req as any).user;
-        if (!user) {
-            return res.status(401).json({ message: 'Please log in to verify payment.' });
-        }
-
-        const {
-            attemptId,
-            razorpay_order_id: razorpayOrderId,
-            razorpay_payment_id: razorpayPaymentId,
-            razorpay_signature: razorpaySignature,
-        } = req.body || {};
-
-        if (!attemptId || !razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-            return res.status(400).json({ message: 'Payment verification details are incomplete.' });
-        }
-
-        const attempt = await TrainingPaymentAttempt.findOne({
-            _id: attemptId,
-            userId: user._id,
-        });
-
-        if (!attempt) {
-            return res.status(404).json({ message: 'Payment attempt not found.' });
-        }
-
-        if (!attempt.razorpayOrderId || attempt.razorpayOrderId !== razorpayOrderId) {
-            return res.status(400).json({ message: 'The payment order does not match this checkout attempt.' });
-        }
-
-        if (attempt.status === 'paid') {
-            const existingEnrollment = await findExistingPaidEnrollment(attempt);
-            if (existingEnrollment) {
-                return res.status(200).json({
-                    message: 'Payment already verified for this training enrollment.',
-                    enrollment: existingEnrollment,
-                });
-            }
-        }
-
-        const isValidSignature = verifyRazorpayPaymentSignature({
-            orderId: attempt.razorpayOrderId,
-            paymentId: razorpayPaymentId,
-            signature: razorpaySignature,
-        });
-
-        if (!isValidSignature) {
-            syncAttemptWithPayment(attempt, {}, {
-                status: 'failed',
-                failureReason: 'Payment signature verification failed.',
-            });
-            await attempt.save();
-            await sendPaymentFailureEmailIfNeeded(attempt, user);
-            return res.status(400).json({ message: 'Payment signature verification failed.' });
-        }
-
-        const payment = await fetchRazorpayPayment(razorpayPaymentId);
-
-        if (payment.order_id !== attempt.razorpayOrderId) {
-            syncAttemptWithPayment(attempt, payment, {
-                status: 'failed',
-                signature: razorpaySignature,
-                failureReason: 'Payment order mismatch received from Razorpay.',
-            });
-            await attempt.save();
-            await sendPaymentFailureEmailIfNeeded(attempt, user);
-            return res.status(400).json({ message: 'Payment order mismatch received from Razorpay.' });
-        }
-
-        if (!isSuccessfulPaymentStatus(payment.status)) {
-            syncAttemptWithPayment(attempt, payment, {
-                status: 'failed',
-                signature: razorpaySignature,
-                failureReason: buildPaymentFailureReason({
-                    reason: 'Payment was not completed successfully.',
-                    errorDescription: payment.error_description,
-                    errorReason: payment.error_reason,
-                }),
-            });
-            await attempt.save();
-            await sendPaymentFailureEmailIfNeeded(attempt, user);
-            return res.status(400).json({ message: 'Payment was not completed successfully.' });
-        }
-
-        syncAttemptWithPayment(attempt, payment, {
-            status: 'paid',
-            signature: razorpaySignature,
-        });
-        await attempt.save();
-
-        const { enrollment, shouldSendEnrollmentEmail, enrollmentEmailCourseTitle } = await upsertEnrollmentFromAttempt(attempt);
-
-        if (shouldSendEnrollmentEmail) {
-            await emailService.sendEnrollmentEmail(
-                user.email,
-                user.name,
-                enrollmentEmailCourseTitle,
-                'PENDING',
-                {
-                    amount: toDisplayAmount(attempt.amount),
-                    currency: attempt.currency,
-                    paymentStatus: attempt.paymentStatus || attempt.status || 'paid',
-                    paymentMethod: attempt.paymentMethod,
-                    razorpayOrderId: attempt.razorpayOrderId,
-                    razorpayPaymentId: attempt.razorpayPaymentId,
-                    paidAt: attempt.paidAt,
-                }
-            );
-        }
-
-        return res.status(200).json({
-            message: 'Payment verified and enrollment submitted successfully.',
-            enrollment,
-        });
-    } catch (error) {
-        console.error('Training payment verification error:', error);
-        return res.status(500).json({ message: 'Failed to verify training payment.' });
-    }
-};
-
-export const recordTrainingPaymentFailure = async (req: Request, res: Response) => {
-    try {
-        const user = (req as any).user;
-        if (!user) {
-            return res.status(401).json({ message: 'Please log in to update payment status.' });
-        }
-
-        const { attemptId, status, reason, error } = req.body || {};
-        const normalizedStatus = String(status ?? '').trim().toLowerCase();
-
-        if (!attemptId || !['failed', 'cancelled'].includes(normalizedStatus)) {
-            return res.status(400).json({ message: 'A valid payment attempt and failure status are required.' });
-        }
-
-        const attempt = await TrainingPaymentAttempt.findOne({
-            _id: attemptId,
-            userId: user._id,
-        });
-
-        if (!attempt) {
-            return res.status(404).json({ message: 'Payment attempt not found.' });
-        }
-
-        if (attempt.status === 'paid') {
-            return res.status(200).json({ message: 'Payment attempt is already marked as paid.' });
-        }
-
-        syncAttemptWithPayment(
-            attempt,
-            {
-                id: error?.metadata?.payment_id,
-                order_id: error?.metadata?.order_id || attempt.razorpayOrderId,
-                status: 'failed',
-                method: error?.metadata?.method,
-                error_code: error?.code,
-                error_description: error?.description,
-                error_source: error?.source,
-                error_step: error?.step,
-                error_reason: error?.reason,
-            },
-            {
-                status: normalizedStatus as 'failed' | 'cancelled',
-                failureReason: buildPaymentFailureReason({
-                    reason,
-                    description: error?.description,
-                    errorDescription: error?.description,
-                    errorReason: error?.reason,
-                }),
-            }
-        );
-
-        await attempt.save();
-        await sendPaymentFailureEmailIfNeeded(attempt, user);
-
-        return res.status(200).json({
-            message: `Payment attempt marked as ${normalizedStatus}.`,
-            paymentAttempt: attempt,
-        });
-    } catch (error) {
-        console.error('Recording training payment failure failed:', error);
-        return res.status(500).json({ message: 'Failed to update training payment status.' });
     }
 };

@@ -36,6 +36,7 @@ const language_announcement_model_1 = __importDefault(require("../models/languag
 const announcement_model_1 = __importDefault(require("../models/announcement.model"));
 const skill_material_model_1 = __importDefault(require("../models/skill.material.model"));
 const institutionEnrollmentRequest_model_1 = __importDefault(require("../models/institutionEnrollmentRequest.model"));
+const payment_helpers_1 = require("../utils/payment.helpers");
 const buildLanguagePaymentKey = (params) => {
     var _a, _b, _c;
     return [
@@ -70,16 +71,6 @@ const normalizeSkillStatusForAdmin = (status) => {
         return 'COMPLETED';
     return String(status !== null && status !== void 0 ? status : '').trim().toUpperCase();
 };
-const buildPaymentSnapshot = (attempt) => ({
-    status: String(attempt.paymentStatus || attempt.status || '').trim(),
-    amount: toDisplayAmount(attempt.amount),
-    currency: String(attempt.currency || 'INR').trim().toUpperCase(),
-    method: attempt.paymentMethod || null,
-    gateway: String(attempt.paymentGateway || 'razorpay').trim(),
-    razorpayOrderId: attempt.razorpayOrderId || null,
-    razorpayPaymentId: attempt.razorpayPaymentId || null,
-    paidAt: attempt.paidAt || attempt.createdAt || null,
-});
 const normalizeTrainingTypeForActiveClasses = (value) => {
     const normalizedValue = String(value !== null && value !== void 0 ? value : '').trim().toLowerCase();
     if (normalizedValue === 'language' || normalizedValue === 'skill') {
@@ -225,7 +216,7 @@ const getPendingAdminEnrollments = (req, res) => __awaiter(void 0, void 0, void 
             if (!languagePaymentKeys.has(paymentKey) || languagePaymentSnapshotByKey.has(paymentKey)) {
                 continue;
             }
-            languagePaymentSnapshotByKey.set(paymentKey, buildPaymentSnapshot(attempt));
+            languagePaymentSnapshotByKey.set(paymentKey, (0, payment_helpers_1.buildPaymentSnapshot)(attempt));
         }
         const skillPaymentSnapshotByKey = new Map();
         for (const attempt of skillPaymentAttempts) {
@@ -236,7 +227,7 @@ const getPendingAdminEnrollments = (req, res) => __awaiter(void 0, void 0, void 
             if (!skillPaymentKeys.has(paymentKey) || skillPaymentSnapshotByKey.has(paymentKey)) {
                 continue;
             }
-            skillPaymentSnapshotByKey.set(paymentKey, buildPaymentSnapshot(attempt));
+            skillPaymentSnapshotByKey.set(paymentKey, (0, payment_helpers_1.buildPaymentSnapshot)(attempt));
         }
         const combinedEnrollments = [
             ...languageEnrollments.map((enrollment) => {

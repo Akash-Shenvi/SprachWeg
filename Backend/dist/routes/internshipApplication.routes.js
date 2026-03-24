@@ -22,10 +22,7 @@ const handleResumeUpload = (req, res, next) => {
         res.status(400).json({ message: err.message || 'Resume upload failed.' });
     });
 };
-router.post('/webhook', internshipApplication_controller_1.handleInternshipPaymentWebhook);
 router.post('/', auth_middleware_1.protect, handleResumeUpload, internshipApplication_controller_1.submitInternshipApplication);
-router.post('/verify-payment', auth_middleware_1.protect, internshipApplication_controller_1.verifyInternshipPayment);
-router.post('/payment-failure', auth_middleware_1.protect, internshipApplication_controller_1.recordInternshipPaymentFailure);
 router.get('/me', auth_middleware_1.protect, internshipApplication_controller_1.getMyInternshipApplications);
 router.get('/me/enrolled', auth_middleware_1.protect, internshipApplication_controller_1.getMyEnrolledInternships);
 router.get('/admin', auth_middleware_1.protect, auth_middleware_1.isAdmin, internshipApplication_controller_1.getAllInternshipApplications);

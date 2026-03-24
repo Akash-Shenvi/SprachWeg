@@ -54,8 +54,9 @@ interface InternshipApplication {
     paymentAmount?: number;
     paymentCurrency?: string;
     paymentMethod?: string;
-    razorpayOrderId?: string;
-    razorpayPaymentId?: string;
+    transactionId?: string;
+    paymentId?: string;
+    bankReferenceNumber?: string;
     paidAt?: string;
     firstName: string;
     lastName: string;
@@ -99,8 +100,9 @@ interface InternshipPaymentAttempt {
     whatsapp: string;
     paymentStatus?: string;
     paymentMethod?: string;
-    razorpayOrderId?: string;
-    razorpayPaymentId?: string;
+    transactionId?: string;
+    paymentId?: string;
+    bankReferenceNumber?: string;
     failureReason?: string;
     paymentErrorDescription?: string;
     paymentErrorReason?: string;
@@ -382,8 +384,8 @@ const AdminInternshipApplications: React.FC = () => {
                 application.internshipTitle,
                 application.internshipMode,
                 application.paymentStatus,
-                application.razorpayPaymentId,
-                application.razorpayOrderId,
+                application.paymentId,
+                application.transactionId,
                 application.college,
                 application.referenceCode,
             ]
@@ -532,7 +534,7 @@ const AdminInternshipApplications: React.FC = () => {
                             <div>
                                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">Payment Issue Center</h2>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                                    Keep failed and cancelled Razorpay attempts out of the main list. Open the dedicated view to review, paginate, and delete issue records.
+                                    Keep failed and cancelled payment attempts out of the main list. Open the dedicated view to review, paginate, and delete issue records.
                                 </p>
                             </div>
                             <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
@@ -667,7 +669,7 @@ const AdminInternshipApplications: React.FC = () => {
                                                 </div>
                                                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-[#0a192f]">
                                                     <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Payment ID</p>
-                                                    <p className="mt-1 font-mono text-xs font-semibold text-gray-900 dark:text-white">{application.razorpayPaymentId || 'Not available'}</p>
+                                                    <p className="mt-1 font-mono text-xs font-semibold text-gray-900 dark:text-white">{application.paymentId || 'Not available'}</p>
                                                 </div>
                                                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-[#0a192f]">
                                                     <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">College</p>
@@ -895,15 +897,15 @@ const AdminInternshipApplications: React.FC = () => {
                                                             </p>
                                                         </div>
                                                         <div>
-                                                            <p className="text-gray-500 dark:text-gray-400">Order ID</p>
+                                                            <p className="text-gray-500 dark:text-gray-400">Transaction ID</p>
                                                             <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
-                                                                {attempt.razorpayOrderId || 'Not created'}
+                                                                {attempt.transactionId || 'Not created'}
                                                             </p>
                                                         </div>
                                                         <div>
                                                             <p className="text-gray-500 dark:text-gray-400">Payment ID</p>
                                                             <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
-                                                                {attempt.razorpayPaymentId || 'Not available'}
+                                                                {attempt.paymentId || 'Not available'}
                                                             </p>
                                                         </div>
                                                         <div>
@@ -1202,15 +1204,15 @@ const AdminInternshipApplications: React.FC = () => {
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-gray-500 dark:text-gray-400">Order ID</p>
+                                                <p className="text-gray-500 dark:text-gray-400">Transaction ID</p>
                                                 <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
-                                                    {selectedApplication.razorpayOrderId || 'Not available'}
+                                                    {selectedApplication.transactionId || 'Not available'}
                                                 </p>
                                             </div>
                                             <div>
                                                 <p className="text-gray-500 dark:text-gray-400">Payment ID</p>
                                                 <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
-                                                    {selectedApplication.razorpayPaymentId || 'Not available'}
+                                                    {selectedApplication.paymentId || 'Not available'}
                                                 </p>
                                             </div>
                                         </div>

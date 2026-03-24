@@ -10,11 +10,14 @@ export interface IWebinarRegistration extends Document {
     scheduledAt: Date;
     price: number;
     currency: string;
-    paymentGateway?: 'razorpay';
+    paymentGateway?: 'razorpay' | 'payu';
     paymentStatus?: string;
     paymentAmount?: number;
     paymentCurrency?: string;
     paymentMethod?: string;
+    transactionId?: string;
+    paymentId?: string;
+    bankReferenceNumber?: string;
     razorpayOrderId?: string;
     razorpayPaymentId?: string;
     paidAt?: Date;
@@ -35,11 +38,14 @@ const WebinarRegistrationSchema = new Schema<IWebinarRegistration>({
     scheduledAt: { type: Date, required: true },
     price: { type: Number, required: true, min: 1 },
     currency: { type: String, required: true, trim: true, uppercase: true, default: 'INR' },
-    paymentGateway: { type: String, enum: ['razorpay'], trim: true },
+    paymentGateway: { type: String, enum: ['razorpay', 'payu'], trim: true },
     paymentStatus: { type: String, trim: true },
     paymentAmount: { type: Number, min: 1 },
     paymentCurrency: { type: String, trim: true, uppercase: true },
     paymentMethod: { type: String, trim: true },
+    transactionId: { type: String, trim: true, sparse: true },
+    paymentId: { type: String, trim: true, sparse: true },
+    bankReferenceNumber: { type: String, trim: true },
     razorpayOrderId: { type: String, trim: true, sparse: true },
     razorpayPaymentId: { type: String, trim: true, sparse: true },
     paidAt: { type: Date },

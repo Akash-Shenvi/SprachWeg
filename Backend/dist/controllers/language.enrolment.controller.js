@@ -29,6 +29,7 @@ const language_batch_model_1 = __importDefault(require("../models/language.batch
 const trainingPaymentAttempt_model_1 = __importDefault(require("../models/trainingPaymentAttempt.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const email_service_1 = require("../utils/email.service");
+const payment_helpers_1 = require("../utils/payment.helpers");
 const emailService = new email_service_1.EmailService();
 const buildLanguagePaymentKey = (params) => {
     var _a, _b, _c;
@@ -180,16 +181,7 @@ const getEnrollments = (req, res) => __awaiter(void 0, void 0, void 0, function*
             if (!enrollmentPaymentKeySet.has(paymentKey) || paymentSnapshotByKey.has(paymentKey)) {
                 continue;
             }
-            paymentSnapshotByKey.set(paymentKey, {
-                status: String(attempt.paymentStatus || attempt.status || '').trim(),
-                amount: toDisplayAmount(attempt.amount),
-                currency: String(attempt.currency || 'INR').trim().toUpperCase(),
-                method: attempt.paymentMethod || null,
-                gateway: String(attempt.paymentGateway || 'razorpay').trim(),
-                razorpayOrderId: attempt.razorpayOrderId || null,
-                razorpayPaymentId: attempt.razorpayPaymentId || null,
-                paidAt: attempt.paidAt || attempt.createdAt || null,
-            });
+            paymentSnapshotByKey.set(paymentKey, (0, payment_helpers_1.buildPaymentSnapshot)(attempt));
         }
         const enrollmentsWithPayment = enrollments.map((enrollment) => {
             var _a, _b;

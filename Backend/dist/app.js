@@ -6,23 +6,38 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
+const env_1 = require("./config/env");
 const app = (0, express_1.default)();
+app.set('trust proxy', true);
+const captureRawBody = (req, _res, buf) => {
+    req.rawBody = Buffer.from(buf);
+};
+const allowedOrigins = Array.from(new Set([
+    env_1.env.FRONTEND_BASE_URL,
+    'https://training.sovirtechnologies.in',
+]
+    .map((value) => {
+    try {
+        return new URL(value).origin;
+    }
+    catch (_a) {
+        return '';
+    }
+})
+    .filter(Boolean)));
 // Middlewares
 app.use((0, helmet_1.default)({
     crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 // CORS Configuration
 app.use((0, cors_1.default)({
-    origin: ['https://training.sovirtechnologies.in'], // Allow frontend origins
+    origin: allowedOrigins,
     credentials: true, // Allow cookies and credentials
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
-app.use(express_1.default.json({
-    verify: (req, _res, buf) => {
-        req.rawBody = Buffer.from(buf);
-    },
-}));
+app.use(express_1.default.json({ verify: captureRawBody }));
+app.use(express_1.default.urlencoded({ extended: true, verify: captureRawBody }));
 const item_routes_1 = __importDefault(require("./routes/item.routes"));
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const skillCourse_routes_1 = __importDefault(require("./routes/skillCourse.routes"));
@@ -66,6 +81,8 @@ const webinar_routes_1 = __importDefault(require("./routes/webinar.routes"));
 app.use('/api/webinars', webinar_routes_1.default);
 const webinarRegistration_routes_1 = __importDefault(require("./routes/webinarRegistration.routes"));
 app.use('/api/webinar-registrations', webinarRegistration_routes_1.default);
+const payment_routes_1 = __importDefault(require("./routes/payment.routes"));
+app.use('/api/payments', payment_routes_1.default);
 const institution_routes_1 = __importDefault(require("./routes/institution.routes"));
 app.use('/api/institutions', institution_routes_1.default);
 const adminInstitution_routes_1 = __importDefault(require("./routes/adminInstitution.routes"));

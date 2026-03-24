@@ -56,8 +56,9 @@ interface PaymentSnapshot {
     currency: string;
     method: string | null;
     gateway: string;
-    razorpayOrderId: string | null;
-    razorpayPaymentId: string | null;
+    transactionId: string | null;
+    paymentId: string | null;
+    bankReferenceNumber?: string | null;
     paidAt: string | null;
 }
 
@@ -105,8 +106,9 @@ interface TrainingPaymentAttempt {
     currency: string;
     paymentStatus?: string;
     paymentMethod?: string;
-    razorpayOrderId?: string;
-    razorpayPaymentId?: string;
+    transactionId?: string;
+    paymentId?: string;
+    bankReferenceNumber?: string;
     failureReason?: string;
     paymentErrorDescription?: string;
     paymentErrorReason?: string;
@@ -815,15 +817,15 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                                             </p>
                                                         </div>
                                                         <div>
-                                                            <p className="text-gray-500 dark:text-gray-400">Order ID</p>
+                                                            <p className="text-gray-500 dark:text-gray-400">Transaction ID</p>
                                                             <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
-                                                                {attempt.razorpayOrderId || 'Not created'}
+                                                                {attempt.transactionId || 'Not created'}
                                                             </p>
                                                         </div>
                                                         <div>
                                                             <p className="text-gray-500 dark:text-gray-400">Payment ID</p>
                                                             <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">
-                                                                {attempt.razorpayPaymentId || 'Not available'}
+                                                                {attempt.paymentId || 'Not available'}
                                                             </p>
                                                         </div>
                                                         <div>
@@ -1062,10 +1064,10 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                             <div>
                                                 <p className="mb-1 flex items-center gap-1 text-xs text-gray-500">
                                                     <Hash className="h-3.5 w-3.5" />
-                                                    Order ID
+                                                    Transaction ID
                                                 </p>
                                                 <p className="font-mono text-xs font-bold text-gray-900 dark:text-white">
-                                                    {selectedEnrollment.payment?.razorpayOrderId || 'Not available'}
+                                                    {selectedEnrollment.payment?.transactionId || 'Not available'}
                                                 </p>
                                             </div>
                                             <div>
@@ -1074,7 +1076,7 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                                     Payment ID
                                                 </p>
                                                 <p className="font-mono text-xs font-bold text-gray-900 dark:text-white">
-                                                    {selectedEnrollment.payment?.razorpayPaymentId || 'Not available'}
+                                                    {selectedEnrollment.payment?.paymentId || 'Not available'}
                                                 </p>
                                             </div>
                                         </div>

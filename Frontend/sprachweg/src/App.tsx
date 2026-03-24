@@ -53,6 +53,7 @@ import ChatPage from './pages/ChatPage';
 import VerificationPage from './pages/VerificationPage';
 import CareersPage from './pages/CareersPage';
 import WebinarsPage from './pages/WebinarsPage';
+import PaymentResultPage from './pages/PaymentResultPage';
 import AdminWebinarCatalog from './pages/Admin/AdminWebinarCatalog';
 import AdminWebinarRegistrations from './pages/Admin/AdminWebinarRegistrations';
 import InstitutionLoginPage from './pages/InstitutionLoginPage';
@@ -180,6 +181,7 @@ const AppContent = () => {
         <Route path="/verify" element={<VerificationPage />} />
         <Route path="/careers" element={<CareersPage />} />
         <Route path="/webinars" element={<WebinarsPage />} />
+        <Route path="/payment-result" element={<PaymentResultPage />} />
 
 
         {/* Skill Training Routes */}

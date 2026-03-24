@@ -12,20 +12,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteRejectedInternshipApplication = exports.updateInternshipApplicationStatus = exports.deleteInternshipPaymentAttempt = exports.getAllInternshipPaymentAttempts = exports.getAllInternshipApplications = exports.getMyEnrolledInternships = exports.getMyInternshipApplications = exports.handleInternshipPaymentWebhook = exports.recordInternshipPaymentFailure = exports.verifyInternshipPayment = exports.submitInternshipApplication = void 0;
+exports.deleteRejectedInternshipApplication = exports.updateInternshipApplicationStatus = exports.deleteInternshipPaymentAttempt = exports.getAllInternshipPaymentAttempts = exports.getAllInternshipApplications = exports.getMyEnrolledInternships = exports.getMyInternshipApplications = exports.submitInternshipApplication = exports.processInternshipPayUPayment = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
-const env_1 = require("../config/env");
 const internshipApplication_model_1 = __importDefault(require("../models/internshipApplication.model"));
 const internshipPaymentAttempt_model_1 = __importDefault(require("../models/internshipPaymentAttempt.model"));
 const internshipListing_model_1 = __importDefault(require("../models/internshipListing.model"));
 const email_service_1 = require("../utils/email.service");
-const razorpay_1 = require("../utils/razorpay");
+const payment_helpers_1 = require("../utils/payment.helpers");
+const payu_1 = require("../utils/payu");
+const payment_urls_1 = require("../utils/payment.urls");
 const fileServeRoot = '/home/sovirtraining/file_serve';
 const adminDecisionStatuses = ['accepted', 'rejected'];
 const internshipModes = ['remote', 'hybrid', 'onsite'];
 const paymentAttemptStatuses = ['failed', 'cancelled'];
-const successfulPaymentStatuses = ['authorized', 'captured'];
 const emailService = new email_service_1.EmailService();
 const toStoredResumeUrl = (filename) => `/uploads/internship_resumes/${filename}`;
 const removeStoredResume = (resumeUrl) => {
@@ -52,7 +52,6 @@ const normalizeInternshipMode = (mode) => {
 };
 const normalizeCurrency = (currency) => String(currency || 'INR').trim().toUpperCase();
 const toDisplayAmount = (subunits) => Number((subunits / 100).toFixed(2));
-const isSuccessfulPaymentStatus = (status) => successfulPaymentStatuses.includes(String(status !== null && status !== void 0 ? status : '').trim().toLowerCase());
 const buildInternshipApplicationLookup = (userId, internshipSlug, internshipTitle) => (Object.assign({ userId }, (internshipSlug
     ? {
         $or: [
@@ -61,43 +60,6 @@ const buildInternshipApplicationLookup = (userId, internshipSlug, internshipTitl
         ],
     }
     : { internshipTitle })));
-const syncAttemptWithPayment = (attempt, payment, options) => {
-    if (payment.id)
-        attempt.razorpayPaymentId = payment.id;
-    if (payment.order_id)
-        attempt.razorpayOrderId = payment.order_id;
-    if (payment.status)
-        attempt.paymentStatus = payment.status;
-    if (payment.method)
-        attempt.paymentMethod = payment.method;
-    if (payment.email)
-        attempt.paymentEmail = payment.email;
-    if (payment.contact)
-        attempt.paymentContact = payment.contact;
-    if (payment.error_code)
-        attempt.paymentErrorCode = payment.error_code;
-    if (payment.error_description)
-        attempt.paymentErrorDescription = payment.error_description;
-    if (payment.error_source)
-        attempt.paymentErrorSource = payment.error_source;
-    if (payment.error_step)
-        attempt.paymentErrorStep = payment.error_step;
-    if (payment.error_reason)
-        attempt.paymentErrorReason = payment.error_reason;
-    if (options === null || options === void 0 ? void 0 : options.signature)
-        attempt.razorpaySignature = options.signature;
-    if (options === null || options === void 0 ? void 0 : options.lastWebhookEvent)
-        attempt.lastWebhookEvent = options.lastWebhookEvent;
-    if (options === null || options === void 0 ? void 0 : options.failureReason)
-        attempt.failureReason = options.failureReason;
-    if ((options === null || options === void 0 ? void 0 : options.status) === 'paid') {
-        attempt.status = 'paid';
-        attempt.paidAt = attempt.paidAt || new Date();
-    }
-    else if (options === null || options === void 0 ? void 0 : options.status) {
-        attempt.status = options.status;
-    }
-};
 const upsertApplicationFromPaidAttempt = (attempt) => __awaiter(void 0, void 0, void 0, function* () {
     if (attempt.applicationId) {
         const linkedApplication = yield internshipApplication_model_1.default.findById(attempt.applicationId);
@@ -120,8 +82,9 @@ const upsertApplicationFromPaidAttempt = (attempt) => __awaiter(void 0, void 0, 
         paymentAmount: toDisplayAmount(attempt.amount),
         paymentCurrency: attempt.currency,
         paymentMethod: attempt.paymentMethod,
-        razorpayOrderId: attempt.razorpayOrderId,
-        razorpayPaymentId: attempt.razorpayPaymentId,
+        transactionId: attempt.transactionId,
+        paymentId: attempt.paymentId,
+        bankReferenceNumber: attempt.bankReferenceNumber,
         paidAt: attempt.paidAt || new Date(),
         firstName: attempt.firstName,
         lastName: attempt.lastName,
@@ -141,8 +104,8 @@ const upsertApplicationFromPaidAttempt = (attempt) => __awaiter(void 0, void 0, 
     const existingApplication = yield internshipApplication_model_1.default.findOne(buildInternshipApplicationLookup(attempt.userId, attempt.internshipSlug, attempt.internshipTitle));
     if (existingApplication) {
         const hasDifferentPaidOrder = existingApplication.status !== 'rejected'
-            && !!existingApplication.razorpayOrderId
-            && existingApplication.razorpayOrderId !== attempt.razorpayOrderId;
+            && !!(0, payment_helpers_1.resolveTransactionId)(existingApplication)
+            && (0, payment_helpers_1.resolveTransactionId)(existingApplication) !== (0, payment_helpers_1.resolveTransactionId)(attempt);
         if (hasDifferentPaidOrder) {
             attempt.applicationId = existingApplication._id;
             yield attempt.save();
@@ -168,8 +131,9 @@ const upsertApplicationFromPaidAttempt = (attempt) => __awaiter(void 0, void 0, 
             paymentAmount: toDisplayAmount(attempt.amount),
             paymentCurrency: attempt.currency,
             paymentMethod: attempt.paymentMethod,
-            razorpayOrderId: attempt.razorpayOrderId,
-            razorpayPaymentId: attempt.razorpayPaymentId,
+            transactionId: attempt.transactionId,
+            paymentId: attempt.paymentId,
+            bankReferenceNumber: attempt.bankReferenceNumber,
             paidAt: attempt.paidAt || existingApplication.paidAt || new Date(),
         });
         yield existingApplication.save();
@@ -210,8 +174,9 @@ const upsertFreeApplication = (params) => __awaiter(void 0, void 0, void 0, func
         paymentAmount: 0,
         paymentCurrency: params.currency,
         paymentMethod: 'Free',
-        razorpayOrderId: undefined,
-        razorpayPaymentId: undefined,
+        transactionId: undefined,
+        paymentId: undefined,
+        bankReferenceNumber: undefined,
         paidAt: new Date(),
         firstName: params.firstName,
         lastName: params.lastName,
@@ -286,6 +251,150 @@ const sendPaymentFailureEmailIfNeeded = (attempt) => __awaiter(void 0, void 0, v
     attempt.paymentFailureEmailSentAt = new Date();
     yield attempt.save();
 });
+const findInternshipAttempt = (attemptId, transactionId) => __awaiter(void 0, void 0, void 0, function* () {
+    const orConditions = [];
+    if (attemptId) {
+        orConditions.push({ _id: attemptId });
+    }
+    if (transactionId) {
+        orConditions.push({ transactionId });
+    }
+    if (orConditions.length === 0) {
+        return null;
+    }
+    return internshipPaymentAttempt_model_1.default.findOne({ $or: orConditions });
+});
+const processInternshipPayUPayment = (params) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const attempt = yield findInternshipAttempt(params.attemptId, params.transactionId);
+    if (!attempt) {
+        return {
+            result: 'failure',
+            message: 'Internship payment attempt not found.',
+            attempt: null,
+        };
+    }
+    const transactionId = String(params.transactionId || attempt.transactionId || '').trim();
+    if (!transactionId) {
+        return {
+            result: 'failure',
+            message: 'Internship payment transaction ID is missing.',
+            attempt,
+        };
+    }
+    if (attempt.transactionId && attempt.transactionId !== transactionId) {
+        (0, payment_helpers_1.applyGenericPaymentUpdate)(attempt, {
+            transactionId,
+            gatewaySignature: (0, payu_1.extractPayUPayloadValue)(params.payload, 'hash'),
+        }, {
+            status: 'failed',
+            failureReason: 'The PayU transaction ID does not match this internship checkout attempt.',
+        });
+        attempt.paymentGateway = 'payu';
+        attempt.lastWebhookEvent = params.source ? `payu_${params.source}` : attempt.lastWebhookEvent;
+        yield attempt.save();
+        return {
+            result: 'failure',
+            message: 'The PayU transaction did not match this internship checkout attempt.',
+            attempt,
+        };
+    }
+    const verification = yield (0, payu_1.verifyPayUTransaction)(transactionId, params.resultHint || undefined);
+    const paymentUpdate = {
+        transactionId: verification.transactionId,
+        paymentId: verification.paymentId,
+        paymentStatus: verification.paymentStatus || verification.status,
+        paymentMethod: verification.paymentMethod,
+        paymentEmail: (0, payu_1.extractPayUPayloadValue)(params.payload, 'email') || attempt.paymentEmail,
+        paymentContact: (0, payu_1.extractPayUPayloadValue)(params.payload, 'phone') || attempt.paymentContact,
+        gatewaySignature: (0, payu_1.extractPayUPayloadValue)(params.payload, 'hash'),
+        bankReferenceNumber: verification.bankReferenceNumber,
+    };
+    if (!(0, payu_1.compareExpectedAmount)(attempt.amount, verification.amount)) {
+        (0, payment_helpers_1.applyGenericPaymentUpdate)(attempt, paymentUpdate, {
+            status: 'failed',
+            failureReason: 'The verified PayU amount did not match this internship checkout attempt.',
+        });
+        attempt.paymentGateway = 'payu';
+        attempt.lastWebhookEvent = params.source ? `payu_${params.source}` : attempt.lastWebhookEvent;
+        yield attempt.save();
+        yield sendPaymentFailureEmailIfNeeded(attempt);
+        return {
+            result: 'failure',
+            message: 'The verified payment amount did not match this internship checkout attempt.',
+            attempt,
+        };
+    }
+    if (verification.currency && normalizeCurrency(verification.currency) !== attempt.currency) {
+        (0, payment_helpers_1.applyGenericPaymentUpdate)(attempt, paymentUpdate, {
+            status: 'failed',
+            failureReason: 'The verified PayU currency did not match this internship checkout attempt.',
+        });
+        attempt.paymentGateway = 'payu';
+        attempt.lastWebhookEvent = params.source ? `payu_${params.source}` : attempt.lastWebhookEvent;
+        yield attempt.save();
+        yield sendPaymentFailureEmailIfNeeded(attempt);
+        return {
+            result: 'failure',
+            message: 'The verified payment currency did not match this internship checkout attempt.',
+            attempt,
+        };
+    }
+    attempt.paymentGateway = 'payu';
+    attempt.lastWebhookEvent = params.source ? `payu_${params.source}` : attempt.lastWebhookEvent;
+    if (verification.internalStatus === 'pending') {
+        (0, payment_helpers_1.applyGenericPaymentUpdate)(attempt, paymentUpdate, { status: 'created' });
+        yield attempt.save();
+        return {
+            result: 'pending',
+            message: 'Payment is pending confirmation from PayU.',
+            attempt,
+        };
+    }
+    if (verification.internalStatus !== 'paid') {
+        const failureStatus = verification.internalStatus === 'cancelled' ? 'cancelled' : 'failed';
+        const failureReason = failureStatus === 'cancelled'
+            ? 'Payment was cancelled before completion.'
+            : buildPaymentFailureReason({
+                reason: verification.errorMessage || 'Payment was not completed successfully.',
+            });
+        (0, payment_helpers_1.applyGenericPaymentUpdate)(attempt, paymentUpdate, {
+            status: failureStatus,
+            failureReason,
+        });
+        yield attempt.save();
+        yield sendPaymentFailureEmailIfNeeded(attempt);
+        return {
+            result: (0, payment_urls_1.mapInternalStatusToPaymentResult)(verification.internalStatus),
+            message: failureStatus === 'cancelled'
+                ? 'Payment was cancelled before completion.'
+                : 'Payment was not completed successfully.',
+            attempt,
+        };
+    }
+    (0, payment_helpers_1.applyGenericPaymentUpdate)(attempt, paymentUpdate, { status: 'paid' });
+    yield attempt.save();
+    const { application, shouldSendApplicationEmail } = yield upsertApplicationFromPaidAttempt(attempt);
+    if (shouldSendApplicationEmail) {
+        yield emailService.sendInternshipApplicationEmail(application.email, `${application.firstName} ${application.lastName}`.trim(), application.internshipTitle, application.referenceCode, application.internshipMode, {
+            amount: (_a = application.paymentAmount) !== null && _a !== void 0 ? _a : application.internshipPrice,
+            currency: application.paymentCurrency,
+            paymentStatus: application.paymentStatus,
+            paymentMethod: application.paymentMethod,
+            transactionId: application.transactionId,
+            paymentId: application.paymentId,
+            bankReferenceNumber: application.bankReferenceNumber,
+            paidAt: application.paidAt,
+        });
+    }
+    return {
+        result: 'success',
+        message: 'Payment verified and internship application submitted successfully.',
+        attempt,
+        application,
+    };
+});
+exports.processInternshipPayUPayment = processInternshipPayUPayment;
 const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     let createdAttempt = null;
     try {
@@ -400,7 +509,7 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
                 message: (existingApplication === null || existingApplication === void 0 ? void 0 : existingApplication.status) === 'rejected'
                     ? 'Free internship application updated successfully.'
                     : 'Free internship application submitted successfully.',
-                application,
+                application: (0, payment_helpers_1.withResolvedPaymentFields)(application.toObject()),
                 checkoutSkipped: true,
             });
         }
@@ -439,36 +548,36 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
             source: String(source).trim(),
             resumeUrl,
             resumeOriginalName: req.file.originalname,
+            paymentGateway: 'payu',
         });
-        const order = yield (0, razorpay_1.createRazorpayOrder)({
+        createdAttempt.transactionId = (0, payu_1.buildPayUTransactionId)('internship', String(createdAttempt._id));
+        const checkout = yield (0, payu_1.createPayUHostedCheckout)({
+            transactionId: createdAttempt.transactionId,
+            referenceId: String(createdAttempt._id),
             amount,
-            currency,
-            receipt: `internship_${String(createdAttempt._id)}`.slice(0, 40),
-            notes: {
-                internshipSlug: selectedInternship.slug,
-                internshipTitle: selectedInternship.title.slice(0, 50),
-                userId: String(req.user._id),
-                attemptId: String(createdAttempt._id),
+            productInfo: selectedInternship.title,
+            firstName: createdAttempt.firstName,
+            lastName: createdAttempt.lastName,
+            email: createdAttempt.email,
+            phone: createdAttempt.whatsapp,
+            flow: 'internship',
+            userDefinedFields: {
+                udf3: selectedInternship.slug,
             },
+            successAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'success'),
+            failureAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'failure'),
+            cancelAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'cancel'),
         });
-        createdAttempt.razorpayOrderId = order.id;
-        createdAttempt.paymentStatus = order.status;
+        createdAttempt.paymentStatus = checkout.status;
         yield createdAttempt.save();
         return res.status(201).json({
             message: 'Checkout created successfully.',
             checkout: {
-                keyId: env_1.env.RAZORPAY_KEY_ID,
                 attemptId: createdAttempt._id,
-                orderId: order.id,
-                amount: order.amount,
-                currency: order.currency,
-                internshipTitle: selectedInternship.title,
-                internshipPrice: selectedInternship.price,
-                applicant: {
-                    name: `${createdAttempt.firstName} ${createdAttempt.lastName}`.trim(),
-                    email: createdAttempt.email,
-                    contact: createdAttempt.whatsapp,
-                },
+                redirectUrl: checkout.redirectUrl,
+                transactionId: createdAttempt.transactionId,
+                amount: createdAttempt.amount,
+                currency: createdAttempt.currency,
             },
         });
     }
@@ -485,223 +594,15 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
     }
 });
 exports.submitInternshipApplication = submitInternshipApplication;
-const verifyInternshipPayment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Please log in to verify payment.' });
-        }
-        const { attemptId, razorpay_order_id: razorpayOrderId, razorpay_payment_id: razorpayPaymentId, razorpay_signature: razorpaySignature, } = req.body || {};
-        if (!attemptId || !razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-            return res.status(400).json({ message: 'Payment verification details are incomplete.' });
-        }
-        const attempt = yield internshipPaymentAttempt_model_1.default.findOne({
-            _id: attemptId,
-            userId: req.user._id,
-        });
-        if (!attempt) {
-            return res.status(404).json({ message: 'Payment attempt not found.' });
-        }
-        if (!attempt.razorpayOrderId || attempt.razorpayOrderId !== razorpayOrderId) {
-            return res.status(400).json({ message: 'The payment order does not match this checkout attempt.' });
-        }
-        if (attempt.status === 'paid' && attempt.applicationId) {
-            const application = yield internshipApplication_model_1.default.findById(attempt.applicationId);
-            if (application) {
-                return res.status(200).json({
-                    message: 'Payment already verified for this internship.',
-                    application,
-                });
-            }
-        }
-        const isValidSignature = (0, razorpay_1.verifyRazorpayPaymentSignature)({
-            orderId: attempt.razorpayOrderId,
-            paymentId: razorpayPaymentId,
-            signature: razorpaySignature,
-        });
-        if (!isValidSignature) {
-            syncAttemptWithPayment(attempt, {}, {
-                status: 'failed',
-                failureReason: 'Payment signature verification failed.',
-            });
-            yield attempt.save();
-            yield sendPaymentFailureEmailIfNeeded(attempt);
-            return res.status(400).json({ message: 'Payment signature verification failed.' });
-        }
-        const payment = yield (0, razorpay_1.fetchRazorpayPayment)(razorpayPaymentId);
-        if (payment.order_id !== attempt.razorpayOrderId) {
-            syncAttemptWithPayment(attempt, payment, {
-                status: 'failed',
-                signature: razorpaySignature,
-                failureReason: 'Payment order mismatch received from Razorpay.',
-            });
-            yield attempt.save();
-            yield sendPaymentFailureEmailIfNeeded(attempt);
-            return res.status(400).json({ message: 'Payment order mismatch received from Razorpay.' });
-        }
-        if (!isSuccessfulPaymentStatus(payment.status)) {
-            syncAttemptWithPayment(attempt, payment, {
-                status: 'failed',
-                signature: razorpaySignature,
-                failureReason: buildPaymentFailureReason({
-                    reason: 'Payment was not completed successfully.',
-                    errorDescription: payment.error_description,
-                    errorReason: payment.error_reason,
-                }),
-            });
-            yield attempt.save();
-            yield sendPaymentFailureEmailIfNeeded(attempt);
-            return res.status(400).json({ message: 'Payment was not completed successfully.' });
-        }
-        syncAttemptWithPayment(attempt, payment, {
-            status: 'paid',
-            signature: razorpaySignature,
-        });
-        yield attempt.save();
-        const { application, shouldSendApplicationEmail } = yield upsertApplicationFromPaidAttempt(attempt);
-        if (shouldSendApplicationEmail) {
-            yield emailService.sendInternshipApplicationEmail(application.email, `${application.firstName} ${application.lastName}`.trim(), application.internshipTitle, application.referenceCode, application.internshipMode, {
-                amount: (_a = application.paymentAmount) !== null && _a !== void 0 ? _a : application.internshipPrice,
-                currency: application.paymentCurrency,
-                paymentStatus: application.paymentStatus,
-                paymentMethod: application.paymentMethod,
-                razorpayOrderId: application.razorpayOrderId,
-                razorpayPaymentId: application.razorpayPaymentId,
-                paidAt: application.paidAt,
-            });
-        }
-        return res.status(200).json({
-            message: 'Payment verified and internship application submitted successfully.',
-            application,
-        });
-    }
-    catch (error) {
-        console.error('Internship payment verification error:', error);
-        return res.status(500).json({ message: 'Failed to verify internship payment.' });
-    }
-});
-exports.verifyInternshipPayment = verifyInternshipPayment;
-const recordInternshipPaymentFailure = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
-    try {
-        if (!req.user) {
-            return res.status(401).json({ message: 'Please log in to update payment status.' });
-        }
-        const { attemptId, status, reason, error } = req.body || {};
-        const normalizedStatus = String(status !== null && status !== void 0 ? status : '').trim().toLowerCase();
-        if (!attemptId || !paymentAttemptStatuses.includes(normalizedStatus)) {
-            return res.status(400).json({ message: 'A valid payment attempt and failure status are required.' });
-        }
-        const attempt = yield internshipPaymentAttempt_model_1.default.findOne({
-            _id: attemptId,
-            userId: req.user._id,
-        });
-        if (!attempt) {
-            return res.status(404).json({ message: 'Payment attempt not found.' });
-        }
-        if (attempt.status === 'paid') {
-            return res.status(200).json({ message: 'Payment attempt is already marked as paid.' });
-        }
-        syncAttemptWithPayment(attempt, {
-            id: (_a = error === null || error === void 0 ? void 0 : error.metadata) === null || _a === void 0 ? void 0 : _a.payment_id,
-            order_id: ((_b = error === null || error === void 0 ? void 0 : error.metadata) === null || _b === void 0 ? void 0 : _b.order_id) || attempt.razorpayOrderId,
-            status: 'failed',
-            method: (_c = error === null || error === void 0 ? void 0 : error.metadata) === null || _c === void 0 ? void 0 : _c.method,
-            error_code: error === null || error === void 0 ? void 0 : error.code,
-            error_description: error === null || error === void 0 ? void 0 : error.description,
-            error_source: error === null || error === void 0 ? void 0 : error.source,
-            error_step: error === null || error === void 0 ? void 0 : error.step,
-            error_reason: error === null || error === void 0 ? void 0 : error.reason,
-        }, {
-            status: normalizedStatus,
-            failureReason: buildPaymentFailureReason({
-                reason,
-                description: error === null || error === void 0 ? void 0 : error.description,
-                errorDescription: error === null || error === void 0 ? void 0 : error.description,
-                errorReason: error === null || error === void 0 ? void 0 : error.reason,
-            }),
-        });
-        yield attempt.save();
-        yield sendPaymentFailureEmailIfNeeded(attempt);
-        return res.status(200).json({
-            message: `Payment attempt marked as ${normalizedStatus}.`,
-            paymentAttempt: attempt,
-        });
-    }
-    catch (error) {
-        console.error('Recording internship payment failure failed:', error);
-        return res.status(500).json({ message: 'Failed to update internship payment status.' });
-    }
-});
-exports.recordInternshipPaymentFailure = recordInternshipPaymentFailure;
-const handleInternshipPaymentWebhook = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
-    try {
-        const signature = String((_a = req.headers['x-razorpay-signature']) !== null && _a !== void 0 ? _a : '').trim();
-        if (!signature) {
-            return res.status(400).json({ message: 'Missing Razorpay webhook signature.' });
-        }
-        const rawBody = req.rawBody;
-        if (!rawBody || !(0, razorpay_1.verifyRazorpayWebhookSignature)(rawBody, signature)) {
-            return res.status(400).json({ message: 'Invalid Razorpay webhook signature.' });
-        }
-        const event = String((_c = (_b = req.body) === null || _b === void 0 ? void 0 : _b.event) !== null && _c !== void 0 ? _c : '').trim();
-        const paymentEntity = (_f = (_e = (_d = req.body) === null || _d === void 0 ? void 0 : _d.payload) === null || _e === void 0 ? void 0 : _e.payment) === null || _f === void 0 ? void 0 : _f.entity;
-        const orderId = String((_g = paymentEntity === null || paymentEntity === void 0 ? void 0 : paymentEntity.order_id) !== null && _g !== void 0 ? _g : '').trim();
-        if (!orderId) {
-            return res.status(200).json({ received: true });
-        }
-        const attempt = yield internshipPaymentAttempt_model_1.default.findOne({ razorpayOrderId: orderId });
-        if (!attempt) {
-            return res.status(200).json({ received: true });
-        }
-        if (event === 'payment.failed') {
-            syncAttemptWithPayment(attempt, paymentEntity || {}, {
-                status: 'failed',
-                lastWebhookEvent: event,
-                failureReason: buildPaymentFailureReason({
-                    errorDescription: paymentEntity === null || paymentEntity === void 0 ? void 0 : paymentEntity.error_description,
-                    errorReason: paymentEntity === null || paymentEntity === void 0 ? void 0 : paymentEntity.error_reason,
-                }),
-            });
-            yield attempt.save();
-            yield sendPaymentFailureEmailIfNeeded(attempt);
-            return res.status(200).json({ received: true });
-        }
-        if (event === 'payment.authorized' || event === 'payment.captured') {
-            syncAttemptWithPayment(attempt, paymentEntity || {}, {
-                status: 'paid',
-                lastWebhookEvent: event,
-            });
-            yield attempt.save();
-            const { application, shouldSendApplicationEmail } = yield upsertApplicationFromPaidAttempt(attempt);
-            if (shouldSendApplicationEmail) {
-                yield emailService.sendInternshipApplicationEmail(application.email, `${application.firstName} ${application.lastName}`.trim(), application.internshipTitle, application.referenceCode, application.internshipMode, {
-                    amount: (_h = application.paymentAmount) !== null && _h !== void 0 ? _h : application.internshipPrice,
-                    currency: application.paymentCurrency,
-                    paymentStatus: application.paymentStatus,
-                    paymentMethod: application.paymentMethod,
-                    razorpayOrderId: application.razorpayOrderId,
-                    razorpayPaymentId: application.razorpayPaymentId,
-                    paidAt: application.paidAt,
-                });
-            }
-        }
-        return res.status(200).json({ received: true });
-    }
-    catch (error) {
-        console.error('Internship payment webhook handling failed:', error);
-        return res.status(500).json({ message: 'Failed to process Razorpay webhook.' });
-    }
-});
-exports.handleInternshipPaymentWebhook = handleInternshipPaymentWebhook;
 const getMyInternshipApplications = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         if (!req.user) {
             return res.status(401).json({ message: 'Please log in to view your internship applications.' });
         }
         const applications = yield internshipApplication_model_1.default.find({ userId: req.user._id }).sort({ createdAt: -1 });
-        return res.status(200).json({ applications });
+        return res.status(200).json({
+            applications: applications.map((application) => (0, payment_helpers_1.withResolvedPaymentFields)(application.toObject())),
+        });
     }
     catch (error) {
         console.error('Fetching internship applications failed:', error);
@@ -718,9 +619,11 @@ const getMyEnrolledInternships = (req, res) => __awaiter(void 0, void 0, void 0,
             userId: req.user._id,
             status: 'accepted',
         })
-            .select('internshipSlug internshipTitle internshipPrice internshipMode referenceCode status createdAt paymentStatus paymentAmount paymentCurrency razorpayPaymentId')
+            .select('internshipSlug internshipTitle internshipPrice internshipMode referenceCode status createdAt paymentStatus paymentAmount paymentCurrency paymentId')
             .sort({ createdAt: -1 });
-        return res.status(200).json({ internships });
+        return res.status(200).json({
+            internships: internships.map((internship) => (0, payment_helpers_1.withResolvedPaymentFields)(internship.toObject())),
+        });
     }
     catch (error) {
         console.error('Fetching enrolled internships failed:', error);
@@ -733,7 +636,9 @@ const getAllInternshipApplications = (req, res) => __awaiter(void 0, void 0, voi
         const applications = yield internshipApplication_model_1.default.find()
             .populate('userId', 'name email phoneNumber role avatar')
             .sort({ createdAt: -1 });
-        return res.status(200).json({ applications });
+        return res.status(200).json({
+            applications: applications.map((application) => (0, payment_helpers_1.withResolvedPaymentFields)(application.toObject())),
+        });
     }
     catch (error) {
         console.error('Fetching all internship applications failed:', error);
@@ -765,7 +670,7 @@ const getAllInternshipPaymentAttempts = (req, res) => __awaiter(void 0, void 0, 
             .limit(limit)
             .sort({ createdAt: -1 });
         return res.status(200).json({
-            paymentAttempts,
+            paymentAttempts: paymentAttempts.map((attempt) => (0, payment_helpers_1.withResolvedPaymentFields)(attempt.toObject())),
             pagination: {
                 page,
                 limit,
@@ -823,7 +728,7 @@ const updateInternshipApplicationStatus = (req, res) => __awaiter(void 0, void 0
         yield emailService.sendInternshipStatusEmail(application.email, `${application.firstName} ${application.lastName}`.trim(), application.internshipTitle, application.referenceCode, application.internshipMode, requestedStatus);
         return res.status(200).json({
             message: `Internship application ${requestedStatus} successfully.`,
-            application,
+            application: (0, payment_helpers_1.withResolvedPaymentFields)(application.toObject()),
         });
     }
     catch (error) {

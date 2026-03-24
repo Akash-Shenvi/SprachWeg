@@ -20,4 +20,9 @@ exports.env = {
     RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || '',
     RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || '',
     RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET || '',
+    PAYU_ACCOUNT_ID: process.env.PAYU_ACCOUNT_ID || '',
+    PAYU_MERCHANT_SECRET: process.env.PAYU_MERCHANT_SECRET || '',
+    PAYU_SALT: process.env.PAYU_SALT || '',
+    PAYU_ENV: process.env.PAYU_ENV || 'test',
+    FRONTEND_BASE_URL: process.env.FRONTEND_BASE_URL || 'http://localhost:5173',
 };

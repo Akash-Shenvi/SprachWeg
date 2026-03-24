@@ -1,9 +1,32 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import { env } from './config/env';
 
 
 const app = express();
+app.set('trust proxy', true);
+
+const captureRawBody = (req: express.Request, _res: express.Response, buf: Buffer) => {
+    (req as any).rawBody = Buffer.from(buf);
+};
+
+const allowedOrigins = Array.from(
+    new Set(
+        [
+            env.FRONTEND_BASE_URL,
+            'https://training.sovirtechnologies.in',
+        ]
+            .map((value) => {
+                try {
+                    return new URL(value).origin;
+                } catch {
+                    return '';
+                }
+            })
+            .filter(Boolean)
+    )
+);
 
 // Middlewares
 app.use(helmet({
@@ -12,17 +35,14 @@ app.use(helmet({
 
 // CORS Configuration
 app.use(cors({
-    origin: ['https://training.sovirtechnologies.in'], // Allow frontend origins
+    origin: allowedOrigins,
     credentials: true, // Allow cookies and credentials
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
-app.use(express.json({
-    verify: (req, _res, buf) => {
-        (req as any).rawBody = Buffer.from(buf);
-    },
-}));
+app.use(express.json({ verify: captureRawBody }));
+app.use(express.urlencoded({ extended: true, verify: captureRawBody }));
 
 import itemRoutes from './routes/item.routes';
 import authRoutes from './routes/auth.routes';
@@ -83,6 +103,9 @@ app.use('/api/webinars', webinarRoutes);
 
 import webinarRegistrationRoutes from './routes/webinarRegistration.routes';
 app.use('/api/webinar-registrations', webinarRegistrationRoutes);
+
+import paymentRoutes from './routes/payment.routes';
+app.use('/api/payments', paymentRoutes);
 
 import institutionRoutes from './routes/institution.routes';
 app.use('/api/institutions', institutionRoutes);

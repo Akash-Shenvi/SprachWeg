@@ -22,6 +22,7 @@ import LanguageAnnouncement from '../models/language.announcement.model';
 import Announcement from '../models/announcement.model';
 import SkillMaterial from '../models/skill.material.model';
 import InstitutionEnrollmentRequest from '../models/institutionEnrollmentRequest.model';
+import { buildPaymentSnapshot } from '../utils/payment.helpers';
 
 const buildLanguagePaymentKey = (params: {
     userId: unknown;
@@ -60,17 +61,6 @@ const normalizeSkillStatusForAdmin = (status?: string) => {
 
     return String(status ?? '').trim().toUpperCase();
 };
-
-const buildPaymentSnapshot = (attempt: any) => ({
-    status: String(attempt.paymentStatus || attempt.status || '').trim(),
-    amount: toDisplayAmount(attempt.amount),
-    currency: String(attempt.currency || 'INR').trim().toUpperCase(),
-    method: attempt.paymentMethod || null,
-    gateway: String(attempt.paymentGateway || 'razorpay').trim(),
-    razorpayOrderId: attempt.razorpayOrderId || null,
-    razorpayPaymentId: attempt.razorpayPaymentId || null,
-    paidAt: attempt.paidAt || attempt.createdAt || null,
-});
 
 const normalizeTrainingTypeForActiveClasses = (value: unknown) => {
     const normalizedValue = String(value ?? '').trim().toLowerCase();
