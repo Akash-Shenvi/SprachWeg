@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ChevronLeft, AlertCircle, GraduationCap, Phone, Mail, User, BookOpen, CreditCard } from 'lucide-react';
+import { ChevronLeft, Check, AlertCircle, GraduationCap, Phone, Mail, User, BookOpen, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { trainingCheckoutAPI, webinarRegistrationAPI } from '../../lib/api';
