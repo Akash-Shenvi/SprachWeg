@@ -100,13 +100,17 @@ const buildHostedCheckoutPage = (params) => {
         <p style="margin: 0 0 16px; color: #475569;">Please wait while we transfer you to PayU checkout.</p>
         <form id="payu-checkout-form" method="post" action="${escapeHtml(params.actionUrl)}">
             ${hiddenFields}
-            <noscript>
-                <button type="submit" style="padding: 12px 16px;">Continue to PayU</button>
-            </noscript>
+            <button type="submit" style="padding: 12px 16px; border: 0; border-radius: 10px; background: #0f172a; color: white; cursor: pointer;">Continue to PayU</button>
         </form>
+        <p style="margin: 16px 0 0; color: #64748b; font-size: 14px;">If you are not redirected automatically, click the button above.</p>
     </div>
     <script>
-        document.getElementById('payu-checkout-form').submit();
+        window.addEventListener('load', function () {
+            var form = document.getElementById('payu-checkout-form');
+            if (form) {
+                form.submit();
+            }
+        });
     </script>
 </body>
 </html>`;
@@ -132,6 +136,7 @@ const launchPayUCheckout = (req, res) => __awaiter(void 0, void 0, void 0, funct
         return res
             .status(200)
             .type('html')
+            .set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; form-action 'self' https://test.payu.in https://secure.payu.in; base-uri 'none'; object-src 'none'; frame-ancestors 'self'")
             .set('Cache-Control', 'no-store')
             .send(buildHostedCheckoutPage(checkoutForm));
     }
