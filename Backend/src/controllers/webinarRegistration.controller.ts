@@ -7,12 +7,13 @@ import { applyGenericPaymentUpdate, withResolvedPaymentFields } from '../utils/p
 import {
     buildPayUTransactionId,
     compareExpectedAmount,
-    createPayUHostedCheckout,
     extractPayUPayloadValue,
+    type PayUHostedCheckoutParams,
     verifyPayUTransaction,
 } from '../utils/payu';
 import {
     buildPayUCallbackUrl,
+    buildPayULaunchUrl,
     mapInternalStatusToPaymentResult,
     type PaymentResult,
 } from '../utils/payment.urls';
@@ -281,6 +282,52 @@ export const processWebinarPayUPayment = async (params: {
     };
 };
 
+export const buildWebinarPayUCheckoutLaunch = async (
+    attemptId: string,
+    req: Request
+): Promise<PayUHostedCheckoutParams> => {
+    const attempt = await WebinarPaymentAttempt.findById(attemptId);
+
+    if (!attempt) {
+        throw new Error('Webinar payment attempt not found.');
+    }
+
+    if (attempt.status !== 'created') {
+        throw new Error('This webinar checkout attempt is no longer active.');
+    }
+
+    const paymentUser = await User.findById(attempt.userId).select('name email phoneNumber').lean();
+    const payerNameParts = splitName(paymentUser?.name || 'Student');
+    const payerEmail = String(attempt.paymentEmail || paymentUser?.email || '').trim().toLowerCase();
+    const payerPhone = normalizePhoneNumber(attempt.paymentContact || paymentUser?.phoneNumber);
+
+    if (!attempt.transactionId) {
+        throw new Error('Webinar payment transaction ID is missing.');
+    }
+
+    if (!payerEmail) {
+        throw new Error('Webinar payment email is missing.');
+    }
+
+    return {
+        transactionId: attempt.transactionId,
+        referenceId: String(attempt._id),
+        amount: attempt.amount,
+        productInfo: attempt.webinarTitle,
+        firstName: payerNameParts.firstName,
+        lastName: payerNameParts.lastName,
+        email: payerEmail,
+        phone: payerPhone,
+        flow: 'webinar',
+        userDefinedFields: {
+            udf3: String(attempt.webinarId),
+        },
+        successAction: buildPayUCallbackUrl(req, 'success'),
+        failureAction: buildPayUCallbackUrl(req, 'failure'),
+        cancelAction: buildPayUCallbackUrl(req, 'cancel'),
+    };
+};
+
 export const createWebinarCheckout = async (req: Request, res: Response) => {
     let attempt: IWebinarPaymentAttempt | null = null;
 
@@ -291,7 +338,6 @@ export const createWebinarCheckout = async (req: Request, res: Response) => {
         }
 
         const webinarId = String(req.body?.webinarId ?? '').trim();
-        const payerName = String(req.body?.payerName || user.name || '').trim();
         const payerEmail = String(req.body?.payerEmail || user.email || '').trim().toLowerCase();
         const payerPhone = normalizePhoneNumber(req.body?.payerPhone || user.phoneNumber);
         if (!webinarId) {
@@ -336,33 +382,14 @@ export const createWebinarCheckout = async (req: Request, res: Response) => {
         });
 
         attempt.transactionId = buildPayUTransactionId('webinar', String(attempt._id));
-        const payerNameParts = splitName(payerName);
-        const checkout = await createPayUHostedCheckout({
-            transactionId: attempt.transactionId,
-            referenceId: String(attempt._id),
-            amount,
-            productInfo: webinar.title,
-            firstName: payerNameParts.firstName,
-            lastName: payerNameParts.lastName,
-            email: payerEmail,
-            phone: payerPhone,
-            flow: 'webinar',
-            userDefinedFields: {
-                udf3: String(webinar._id),
-            },
-            successAction: buildPayUCallbackUrl(req, 'success'),
-            failureAction: buildPayUCallbackUrl(req, 'failure'),
-            cancelAction: buildPayUCallbackUrl(req, 'cancel'),
-        });
-
-        attempt.paymentStatus = checkout.status;
+        attempt.paymentStatus = 'created';
         await attempt.save();
 
         return res.status(201).json({
             message: 'Webinar checkout created successfully.',
             checkout: {
                 attemptId: attempt._id,
-                redirectUrl: checkout.redirectUrl,
+                redirectUrl: buildPayULaunchUrl(req, 'webinar', String(attempt._id)),
                 transactionId: attempt.transactionId,
                 amount: attempt.amount,
                 currency: attempt.currency,

@@ -13,12 +13,13 @@ import {
 import {
     buildPayUTransactionId,
     compareExpectedAmount,
-    createPayUHostedCheckout,
     extractPayUPayloadValue,
+    type PayUHostedCheckoutParams,
     verifyPayUTransaction,
 } from '../utils/payu';
 import {
     buildPayUCallbackUrl,
+    buildPayULaunchUrl,
     mapInternalStatusToPaymentResult,
     type PaymentResult,
 } from '../utils/payment.urls';
@@ -548,6 +549,43 @@ export const processInternshipPayUPayment = async (params: {
     };
 };
 
+export const buildInternshipPayUCheckoutLaunch = async (
+    attemptId: string,
+    req: Request
+): Promise<PayUHostedCheckoutParams> => {
+    const attempt = await InternshipPaymentAttempt.findById(attemptId);
+
+    if (!attempt) {
+        throw new Error('Internship payment attempt not found.');
+    }
+
+    if (attempt.status !== 'created') {
+        throw new Error('This internship checkout attempt is no longer active.');
+    }
+
+    if (!attempt.transactionId) {
+        throw new Error('Internship payment transaction ID is missing.');
+    }
+
+    return {
+        transactionId: attempt.transactionId,
+        referenceId: String(attempt._id),
+        amount: attempt.amount,
+        productInfo: attempt.internshipTitle,
+        firstName: attempt.firstName,
+        lastName: attempt.lastName,
+        email: attempt.email,
+        phone: attempt.whatsapp,
+        flow: 'internship',
+        userDefinedFields: {
+            udf3: attempt.internshipSlug,
+        },
+        successAction: buildPayUCallbackUrl(req, 'success'),
+        failureAction: buildPayUCallbackUrl(req, 'failure'),
+        cancelAction: buildPayUCallbackUrl(req, 'cancel'),
+    };
+};
+
 export const submitInternshipApplication = async (req: Request, res: Response) => {
     let createdAttempt: IInternshipPaymentAttempt | null = null;
 
@@ -755,32 +793,14 @@ export const submitInternshipApplication = async (req: Request, res: Response) =
 
         createdAttempt.transactionId = buildPayUTransactionId('internship', String(createdAttempt._id));
 
-        const checkout = await createPayUHostedCheckout({
-            transactionId: createdAttempt.transactionId,
-            referenceId: String(createdAttempt._id),
-            amount,
-            productInfo: selectedInternship.title,
-            firstName: createdAttempt.firstName,
-            lastName: createdAttempt.lastName,
-            email: createdAttempt.email,
-            phone: createdAttempt.whatsapp,
-            flow: 'internship',
-            userDefinedFields: {
-                udf3: selectedInternship.slug,
-            },
-            successAction: buildPayUCallbackUrl(req, 'success'),
-            failureAction: buildPayUCallbackUrl(req, 'failure'),
-            cancelAction: buildPayUCallbackUrl(req, 'cancel'),
-        });
-
-        createdAttempt.paymentStatus = checkout.status;
+        createdAttempt.paymentStatus = 'created';
         await createdAttempt.save();
 
         return res.status(201).json({
             message: 'Checkout created successfully.',
             checkout: {
                 attemptId: createdAttempt._id,
-                redirectUrl: checkout.redirectUrl,
+                redirectUrl: buildPayULaunchUrl(req, 'internship', String(createdAttempt._id)),
                 transactionId: createdAttempt.transactionId,
                 amount: createdAttempt.amount,
                 currency: createdAttempt.currency,

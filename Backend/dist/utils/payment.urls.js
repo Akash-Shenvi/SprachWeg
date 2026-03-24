@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.mapInternalStatusToPaymentResult = exports.normalizePaymentResult = exports.inferPaymentFlow = exports.buildFrontendPaymentResultUrl = exports.buildPayUCallbackUrl = exports.getRequestOrigin = void 0;
+exports.mapInternalStatusToPaymentResult = exports.normalizePaymentResult = exports.inferPaymentFlow = exports.buildFrontendPaymentResultUrl = exports.buildPayULaunchUrl = exports.buildPayUCallbackUrl = exports.getRequestOrigin = void 0;
 const env_1 = require("../config/env");
 const trimToNull = (value) => {
     const normalizedValue = String(value !== null && value !== void 0 ? value : '').trim();
@@ -24,6 +24,8 @@ const getRequestOrigin = (req) => {
 exports.getRequestOrigin = getRequestOrigin;
 const buildPayUCallbackUrl = (req, result) => `${normalizeBaseUrl((0, exports.getRequestOrigin)(req))}/api/payments/payu/callback?result=${encodeURIComponent(result)}`;
 exports.buildPayUCallbackUrl = buildPayUCallbackUrl;
+const buildPayULaunchUrl = (req, flow, attemptId) => `${normalizeBaseUrl((0, exports.getRequestOrigin)(req))}/api/payments/payu/launch?flow=${encodeURIComponent(flow)}&attemptId=${encodeURIComponent(attemptId)}`;
+exports.buildPayULaunchUrl = buildPayULaunchUrl;
 const buildFrontendPaymentResultUrl = (params) => {
     const url = new URL('/payment-result', normalizeBaseUrl(env_1.env.FRONTEND_BASE_URL));
     url.searchParams.set('flow', params.flow);

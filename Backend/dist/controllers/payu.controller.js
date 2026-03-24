@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.handlePayUWebhook = exports.handlePayUCallback = void 0;
+exports.handlePayUWebhook = exports.handlePayUCallback = exports.launchPayUCheckout = void 0;
 const internshipApplication_controller_1 = require("./internshipApplication.controller");
 const trainingCheckout_controller_1 = require("./trainingCheckout.controller");
 const webinarRegistration_controller_1 = require("./webinarRegistration.controller");
@@ -71,6 +71,80 @@ const buildFailureRedirect = (context, message) => (0, payment_urls_1.buildFront
     transactionId: context.transactionId,
     message,
 });
+const buildLaunchFailureRedirect = (params) => (0, payment_urls_1.buildFrontendPaymentResultUrl)({
+    flow: params.flow || 'training',
+    result: 'failure',
+    attemptId: params.attemptId,
+    message: params.message,
+});
+const escapeHtml = (value) => String(value !== null && value !== void 0 ? value : '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+const buildHostedCheckoutPage = (params) => {
+    const hiddenFields = Object.entries(params.fields)
+        .map(([name, value]) => `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}" />`)
+        .join('\n');
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Redirecting to PayU</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f8fafc; color: #0f172a;">
+    <div style="max-width: 420px; text-align: center; padding: 24px;">
+        <h1 style="margin-bottom: 12px; font-size: 24px;">Redirecting to secure payment</h1>
+        <p style="margin: 0 0 16px; color: #475569;">Please wait while we transfer you to PayU checkout.</p>
+        <form id="payu-checkout-form" method="post" action="${escapeHtml(params.actionUrl)}">
+            ${hiddenFields}
+            <noscript>
+                <button type="submit" style="padding: 12px 16px;">Continue to PayU</button>
+            </noscript>
+        </form>
+    </div>
+    <script>
+        document.getElementById('payu-checkout-form').submit();
+    </script>
+</body>
+</html>`;
+};
+const launchPayUCheckout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const flow = (0, payment_urls_1.inferPaymentFlow)(req.query.flow);
+    const attemptId = String((_a = req.query.attemptId) !== null && _a !== void 0 ? _a : '').trim() || null;
+    if (!flow || !attemptId) {
+        return res.redirect(303, buildLaunchFailureRedirect({
+            flow,
+            attemptId,
+            message: 'The PayU checkout link is incomplete.',
+        }));
+    }
+    try {
+        const checkoutParams = flow === 'training'
+            ? yield (0, trainingCheckout_controller_1.buildTrainingPayUCheckoutLaunch)(attemptId, req)
+            : flow === 'internship'
+                ? yield (0, internshipApplication_controller_1.buildInternshipPayUCheckoutLaunch)(attemptId, req)
+                : yield (0, webinarRegistration_controller_1.buildWebinarPayUCheckoutLaunch)(attemptId, req);
+        const checkoutForm = (0, payu_1.buildPayUHostedCheckoutForm)(checkoutParams);
+        return res
+            .status(200)
+            .type('html')
+            .set('Cache-Control', 'no-store')
+            .send(buildHostedCheckoutPage(checkoutForm));
+    }
+    catch (error) {
+        console.error('PayU hosted checkout launch failed:', error);
+        return res.redirect(303, buildLaunchFailureRedirect({
+            flow,
+            attemptId,
+            message: (error === null || error === void 0 ? void 0 : error.message) || 'Failed to launch PayU checkout.',
+        }));
+    }
+});
+exports.launchPayUCheckout = launchPayUCheckout;
 const handlePayUCallback = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
     const context = getContext(req);

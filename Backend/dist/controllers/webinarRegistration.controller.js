@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMyApprovedWebinars = exports.updateWebinarRegistrationStatus = exports.getAdminWebinarRegistrations = exports.createWebinarCheckout = exports.processWebinarPayUPayment = void 0;
+exports.getMyApprovedWebinars = exports.updateWebinarRegistrationStatus = exports.getAdminWebinarRegistrations = exports.createWebinarCheckout = exports.buildWebinarPayUCheckoutLaunch = exports.processWebinarPayUPayment = void 0;
 const webinar_model_1 = __importDefault(require("../models/webinar.model"));
 const webinarPaymentAttempt_model_1 = __importDefault(require("../models/webinarPaymentAttempt.model"));
 const webinarRegistration_model_1 = __importDefault(require("../models/webinarRegistration.model"));
@@ -223,8 +223,45 @@ const processWebinarPayUPayment = (params) => __awaiter(void 0, void 0, void 0, 
     };
 });
 exports.processWebinarPayUPayment = processWebinarPayUPayment;
+const buildWebinarPayUCheckoutLaunch = (attemptId, req) => __awaiter(void 0, void 0, void 0, function* () {
+    const attempt = yield webinarPaymentAttempt_model_1.default.findById(attemptId);
+    if (!attempt) {
+        throw new Error('Webinar payment attempt not found.');
+    }
+    if (attempt.status !== 'created') {
+        throw new Error('This webinar checkout attempt is no longer active.');
+    }
+    const paymentUser = yield user_model_1.default.findById(attempt.userId).select('name email phoneNumber').lean();
+    const payerNameParts = splitName((paymentUser === null || paymentUser === void 0 ? void 0 : paymentUser.name) || 'Student');
+    const payerEmail = String(attempt.paymentEmail || (paymentUser === null || paymentUser === void 0 ? void 0 : paymentUser.email) || '').trim().toLowerCase();
+    const payerPhone = normalizePhoneNumber(attempt.paymentContact || (paymentUser === null || paymentUser === void 0 ? void 0 : paymentUser.phoneNumber));
+    if (!attempt.transactionId) {
+        throw new Error('Webinar payment transaction ID is missing.');
+    }
+    if (!payerEmail) {
+        throw new Error('Webinar payment email is missing.');
+    }
+    return {
+        transactionId: attempt.transactionId,
+        referenceId: String(attempt._id),
+        amount: attempt.amount,
+        productInfo: attempt.webinarTitle,
+        firstName: payerNameParts.firstName,
+        lastName: payerNameParts.lastName,
+        email: payerEmail,
+        phone: payerPhone,
+        flow: 'webinar',
+        userDefinedFields: {
+            udf3: String(attempt.webinarId),
+        },
+        successAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'success'),
+        failureAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'failure'),
+        cancelAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'cancel'),
+    };
+});
+exports.buildWebinarPayUCheckoutLaunch = buildWebinarPayUCheckoutLaunch;
 const createWebinarCheckout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d;
     let attempt = null;
     try {
         const user = req.user;
@@ -232,9 +269,8 @@ const createWebinarCheckout = (req, res) => __awaiter(void 0, void 0, void 0, fu
             return res.status(401).json({ message: 'Please log in to continue with webinar payment.' });
         }
         const webinarId = String((_b = (_a = req.body) === null || _a === void 0 ? void 0 : _a.webinarId) !== null && _b !== void 0 ? _b : '').trim();
-        const payerName = String(((_c = req.body) === null || _c === void 0 ? void 0 : _c.payerName) || user.name || '').trim();
-        const payerEmail = String(((_d = req.body) === null || _d === void 0 ? void 0 : _d.payerEmail) || user.email || '').trim().toLowerCase();
-        const payerPhone = normalizePhoneNumber(((_e = req.body) === null || _e === void 0 ? void 0 : _e.payerPhone) || user.phoneNumber);
+        const payerEmail = String(((_c = req.body) === null || _c === void 0 ? void 0 : _c.payerEmail) || user.email || '').trim().toLowerCase();
+        const payerPhone = normalizePhoneNumber(((_d = req.body) === null || _d === void 0 ? void 0 : _d.payerPhone) || user.phoneNumber);
         if (!webinarId) {
             return res.status(400).json({ message: 'webinarId is required.' });
         }
@@ -269,31 +305,13 @@ const createWebinarCheckout = (req, res) => __awaiter(void 0, void 0, void 0, fu
             paymentContact: payerPhone,
         });
         attempt.transactionId = (0, payu_1.buildPayUTransactionId)('webinar', String(attempt._id));
-        const payerNameParts = splitName(payerName);
-        const checkout = yield (0, payu_1.createPayUHostedCheckout)({
-            transactionId: attempt.transactionId,
-            referenceId: String(attempt._id),
-            amount,
-            productInfo: webinar.title,
-            firstName: payerNameParts.firstName,
-            lastName: payerNameParts.lastName,
-            email: payerEmail,
-            phone: payerPhone,
-            flow: 'webinar',
-            userDefinedFields: {
-                udf3: String(webinar._id),
-            },
-            successAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'success'),
-            failureAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'failure'),
-            cancelAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'cancel'),
-        });
-        attempt.paymentStatus = checkout.status;
+        attempt.paymentStatus = 'created';
         yield attempt.save();
         return res.status(201).json({
             message: 'Webinar checkout created successfully.',
             checkout: {
                 attemptId: attempt._id,
-                redirectUrl: checkout.redirectUrl,
+                redirectUrl: (0, payment_urls_1.buildPayULaunchUrl)(req, 'webinar', String(attempt._id)),
                 transactionId: attempt.transactionId,
                 amount: attempt.amount,
                 currency: attempt.currency,

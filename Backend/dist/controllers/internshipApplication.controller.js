@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteRejectedInternshipApplication = exports.updateInternshipApplicationStatus = exports.deleteInternshipPaymentAttempt = exports.getAllInternshipPaymentAttempts = exports.getAllInternshipApplications = exports.getMyEnrolledInternships = exports.getMyInternshipApplications = exports.submitInternshipApplication = exports.processInternshipPayUPayment = void 0;
+exports.deleteRejectedInternshipApplication = exports.updateInternshipApplicationStatus = exports.deleteInternshipPaymentAttempt = exports.getAllInternshipPaymentAttempts = exports.getAllInternshipApplications = exports.getMyEnrolledInternships = exports.getMyInternshipApplications = exports.submitInternshipApplication = exports.buildInternshipPayUCheckoutLaunch = exports.processInternshipPayUPayment = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const internshipApplication_model_1 = __importDefault(require("../models/internshipApplication.model"));
@@ -395,6 +395,36 @@ const processInternshipPayUPayment = (params) => __awaiter(void 0, void 0, void 
     };
 });
 exports.processInternshipPayUPayment = processInternshipPayUPayment;
+const buildInternshipPayUCheckoutLaunch = (attemptId, req) => __awaiter(void 0, void 0, void 0, function* () {
+    const attempt = yield internshipPaymentAttempt_model_1.default.findById(attemptId);
+    if (!attempt) {
+        throw new Error('Internship payment attempt not found.');
+    }
+    if (attempt.status !== 'created') {
+        throw new Error('This internship checkout attempt is no longer active.');
+    }
+    if (!attempt.transactionId) {
+        throw new Error('Internship payment transaction ID is missing.');
+    }
+    return {
+        transactionId: attempt.transactionId,
+        referenceId: String(attempt._id),
+        amount: attempt.amount,
+        productInfo: attempt.internshipTitle,
+        firstName: attempt.firstName,
+        lastName: attempt.lastName,
+        email: attempt.email,
+        phone: attempt.whatsapp,
+        flow: 'internship',
+        userDefinedFields: {
+            udf3: attempt.internshipSlug,
+        },
+        successAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'success'),
+        failureAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'failure'),
+        cancelAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'cancel'),
+    };
+});
+exports.buildInternshipPayUCheckoutLaunch = buildInternshipPayUCheckoutLaunch;
 const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     let createdAttempt = null;
     try {
@@ -551,30 +581,13 @@ const submitInternshipApplication = (req, res) => __awaiter(void 0, void 0, void
             paymentGateway: 'payu',
         });
         createdAttempt.transactionId = (0, payu_1.buildPayUTransactionId)('internship', String(createdAttempt._id));
-        const checkout = yield (0, payu_1.createPayUHostedCheckout)({
-            transactionId: createdAttempt.transactionId,
-            referenceId: String(createdAttempt._id),
-            amount,
-            productInfo: selectedInternship.title,
-            firstName: createdAttempt.firstName,
-            lastName: createdAttempt.lastName,
-            email: createdAttempt.email,
-            phone: createdAttempt.whatsapp,
-            flow: 'internship',
-            userDefinedFields: {
-                udf3: selectedInternship.slug,
-            },
-            successAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'success'),
-            failureAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'failure'),
-            cancelAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'cancel'),
-        });
-        createdAttempt.paymentStatus = checkout.status;
+        createdAttempt.paymentStatus = 'created';
         yield createdAttempt.save();
         return res.status(201).json({
             message: 'Checkout created successfully.',
             checkout: {
                 attemptId: createdAttempt._id,
-                redirectUrl: checkout.redirectUrl,
+                redirectUrl: (0, payment_urls_1.buildPayULaunchUrl)(req, 'internship', String(createdAttempt._id)),
                 transactionId: createdAttempt.transactionId,
                 amount: createdAttempt.amount,
                 currency: createdAttempt.currency,

@@ -3,9 +3,7 @@ import { env } from '../config/env';
 
 type PayUResultHint = 'success' | 'failure' | 'cancel' | 'pending';
 
-type PayURequestHeaders = Record<string, string>;
-
-type PayUCreateCheckoutParams = {
+export type PayUHostedCheckoutParams = {
     transactionId: string;
     referenceId: string;
     amount: number;
@@ -21,10 +19,11 @@ type PayUCreateCheckoutParams = {
     cancelAction: string;
 };
 
-type PayUCheckoutResponse = {
-    redirectUrl: string;
-    status: string;
-    raw: any;
+export type PayUHostedCheckoutForm = {
+    actionUrl: string;
+    fields: Record<string, string>;
+    status: 'created';
+    raw: Record<string, string>;
 };
 
 export type PayUVerificationResult = {
@@ -44,13 +43,13 @@ export type PayUVerificationResult = {
 const payuEnv = String(env.PAYU_ENV || 'test').trim().toLowerCase();
 const isProductionEnv = payuEnv === 'production' || payuEnv === 'prod' || payuEnv === 'live';
 
-const PAYU_PAYMENTS_URL = isProductionEnv
-    ? 'https://api.payu.in/v2/payments'
-    : 'https://apitest.payu.in/v2/payments';
+const PAYU_PAYMENT_PAGE_URL = isProductionEnv
+    ? 'https://secure.payu.in/_payment'
+    : 'https://test.payu.in/_payment';
 
 const PAYU_VERIFY_URL = isProductionEnv
-    ? 'https://info.payu.in/v3/transaction'
-    : 'https://test.payu.in/v3/transaction';
+    ? 'https://info.payu.in/merchant/postservice.php?form=2'
+    : 'https://test.payu.in/merchant/postservice.php?form=2';
 
 const trimToNull = (value: unknown) => {
     const normalizedValue = String(value ?? '').trim();
@@ -58,116 +57,113 @@ const trimToNull = (value: unknown) => {
 };
 
 const ensurePayUConfigured = () => {
-    if (!env.PAYU_ACCOUNT_ID || !env.PAYU_MERCHANT_SECRET || !env.PAYU_SALT) {
+    if (!env.PAYU_ACCOUNT_ID || !env.PAYU_SALT) {
         throw new Error('PayU is not configured on the server.');
     }
 };
 
-const createAuthorizationHeader = (body: string, date: string) => {
-    ensurePayUConfigured();
+const toMajorAmountString = (amountInSubunits: number) => (amountInSubunits / 100).toFixed(2);
 
-    const signature = crypto
-        .createHash('sha512')
-        .update(`${body}|${date}|${env.PAYU_MERCHANT_SECRET}`)
-        .digest('hex');
+const sha512 = (value: string) => crypto.createHash('sha512').update(value).digest('hex').toLowerCase();
 
-    return `hmac username="${env.PAYU_ACCOUNT_ID}", algorithm="sha512", headers="date", signature="${signature}"`;
+const buildPaymentRequestHash = (params: Record<string, string>) => sha512([
+    env.PAYU_ACCOUNT_ID,
+    params.txnid,
+    params.amount,
+    params.productinfo,
+    params.firstname,
+    params.email,
+    params.udf1 || '',
+    params.udf2 || '',
+    params.udf3 || '',
+    params.udf4 || '',
+    params.udf5 || '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    env.PAYU_SALT,
+].join('|'));
+
+const buildGeneralApiHash = (command: string, var1: string) => sha512([
+    env.PAYU_ACCOUNT_ID,
+    command,
+    var1,
+    env.PAYU_SALT,
+].join('|'));
+
+const parseJsonResponse = <TResponse>(rawResponse: string): TResponse => {
+    try {
+        return JSON.parse(rawResponse) as TResponse;
+    } catch {
+        throw new Error(rawResponse || 'PayU returned an invalid response.');
+    }
 };
 
-const payuJsonRequest = async <TResponse>(
-    url: string,
-    body: Record<string, unknown>,
-    extraHeaders?: PayURequestHeaders
-): Promise<TResponse> => {
+const payuFormRequest = async <TResponse>(body: Record<string, string>): Promise<TResponse> => {
     ensurePayUConfigured();
 
-    const date = new Date().toUTCString();
-    const serializedBody = JSON.stringify(body);
-    const response = await fetch(url, {
+    const response = await fetch(PAYU_VERIFY_URL, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            date,
-            authorization: createAuthorizationHeader(serializedBody, date),
-            ...(extraHeaders || {}),
+            accept: 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: serializedBody,
+        body: new URLSearchParams(body).toString(),
     });
 
+    const rawResponse = await response.text();
+
     if (!response.ok) {
-        const rawError = await response.text();
-        throw new Error(rawError || `PayU request failed with status ${response.status}`);
+        throw new Error(rawResponse || `PayU request failed with status ${response.status}`);
     }
 
-    return response.json() as Promise<TResponse>;
+    return parseJsonResponse<TResponse>(rawResponse);
 };
 
-const toMajorAmount = (amountInSubunits: number) => Number((amountInSubunits / 100).toFixed(2));
+export const buildPayUHostedCheckoutForm = (params: PayUHostedCheckoutParams): PayUHostedCheckoutForm => {
+    ensurePayUConfigured();
 
-export const createPayUHostedCheckout = async (params: PayUCreateCheckoutParams): Promise<PayUCheckoutResponse> => {
-    const requestBody = {
-        accountId: env.PAYU_ACCOUNT_ID,
-        txnId: params.transactionId,
-        referenceId: params.referenceId,
-        order: {
-            productInfo: params.productInfo,
-            paymentChargeSpecification: {
-                price: toMajorAmount(params.amount),
-            },
-            userDefinedFields: {
-                udf1: params.flow,
-                udf2: params.referenceId,
-                ...(params.userDefinedFields || {}),
-            },
-        },
-        additionalInfo: {
-            txnFlow: 'nonseamless',
-        },
-        callBackActions: {
-            successAction: params.successAction,
-            failureAction: params.failureAction,
-            cancelAction: params.cancelAction,
-        },
-        billingDetails: {
-            firstName: params.firstName,
-            lastName: params.lastName || '',
-            email: params.email,
-            phone: params.phone,
-        },
+    const fields: Record<string, string> = {
+        key: env.PAYU_ACCOUNT_ID,
+        txnid: params.transactionId,
+        amount: toMajorAmountString(params.amount),
+        productinfo: params.productInfo,
+        firstname: params.firstName,
+        lastname: params.lastName || '',
+        email: params.email,
+        phone: params.phone,
+        surl: params.successAction,
+        furl: params.failureAction,
+        udf1: params.flow,
+        udf2: params.referenceId,
+        udf3: String(params.userDefinedFields?.udf3 || '').trim(),
+        udf4: String(params.userDefinedFields?.udf4 || '').trim(),
+        udf5: String(params.userDefinedFields?.udf5 || '').trim(),
     };
 
-    const response = await payuJsonRequest<any>(PAYU_PAYMENTS_URL, requestBody);
-    const redirectUrl = trimToNull(response?.result?.checkoutUrl) || trimToNull(response?.redirectUrl);
-
-    if (!redirectUrl) {
-        throw new Error('PayU did not return a checkout URL.');
-    }
+    fields.hash = buildPaymentRequestHash(fields);
 
     return {
-        redirectUrl,
-        status: trimToNull(response?.result?.status) || trimToNull(response?.status) || 'pending',
-        raw: response,
+        actionUrl: PAYU_PAYMENT_PAGE_URL,
+        fields,
+        status: 'created',
+        raw: fields,
     };
 };
 
 const findTransactionResult = (payload: any, transactionId: string) => {
     const normalizedTransactionId = String(transactionId).trim();
-    const result = payload?.result;
+    const transactionDetails = payload?.transaction_details;
 
-    if (Array.isArray(result)) {
-        return result.find((item) =>
-            [item?.txnId, item?.txnid, item?.transactionId].some((value) => String(value ?? '').trim() === normalizedTransactionId)
-        ) || null;
-    }
-
-    if (result && typeof result === 'object') {
-        if (result[normalizedTransactionId]) {
-            return result[normalizedTransactionId];
+    if (transactionDetails && typeof transactionDetails === 'object') {
+        if (transactionDetails[normalizedTransactionId]) {
+            return transactionDetails[normalizedTransactionId];
         }
 
-        const resultValues = Object.values(result);
-        return resultValues.find((item: any) =>
-            [item?.txnId, item?.txnid, item?.transactionId].some((value) => String(value ?? '').trim() === normalizedTransactionId)
+        return Object.values(transactionDetails).find((item: any) =>
+            String(item?.txnid ?? '').trim() === normalizedTransactionId
         ) || null;
     }
 
@@ -204,12 +200,11 @@ export const verifyPayUTransaction = async (
     transactionId: string,
     resultHint?: PayUResultHint
 ): Promise<PayUVerificationResult> => {
-    const requestBody = {
-        txnId: [transactionId],
-    };
-
-    const response = await payuJsonRequest<any>(PAYU_VERIFY_URL, requestBody, {
-        'Info-Command': 'verify_payment',
+    const response = await payuFormRequest<any>({
+        key: env.PAYU_ACCOUNT_ID,
+        command: 'verify_payment',
+        var1: transactionId,
+        hash: buildGeneralApiHash('verify_payment', transactionId),
     });
 
     const transaction = findTransactionResult(response, transactionId);
@@ -218,23 +213,29 @@ export const verifyPayUTransaction = async (
     }
 
     const rawStatus = trimToNull(transaction?.status);
-    const paymentStatus = trimToNull(transaction?.unmappedStatus) || rawStatus;
+    const paymentStatus = trimToNull(transaction?.unmappedstatus) || rawStatus;
 
     return {
         transactionId,
         status: rawStatus || 'failed',
         internalStatus: mapPayUStatusToInternal(rawStatus, resultHint),
-        paymentId: trimToNull(transaction?.mihpayId) || trimToNull(transaction?.mihpayid) || trimToNull(transaction?.paymentId),
+        paymentId: trimToNull(transaction?.mihpayid) || trimToNull(transaction?.mihpayId),
         paymentMethod: trimToNull(transaction?.mode),
         paymentStatus,
-        bankReferenceNumber: trimToNull(transaction?.bankReferenceNumber) || trimToNull(transaction?.bank_ref_num),
-        amount: Number.isFinite(Number(transaction?.amount)) ? Number(transaction.amount) : null,
-        currency: trimToNull(transaction?.originalCurrency) || trimToNull(transaction?.currency),
+        bankReferenceNumber: trimToNull(transaction?.bank_ref_num) || trimToNull(transaction?.bankReferenceNumber),
+        amount: Number.isFinite(Number(transaction?.amt))
+            ? Number(transaction.amt)
+            : Number.isFinite(Number(transaction?.amount))
+                ? Number(transaction.amount)
+                : Number.isFinite(Number(transaction?.transaction_amount))
+                    ? Number(transaction.transaction_amount)
+                    : null,
+        currency: trimToNull(transaction?.currency),
         errorMessage:
             trimToNull(transaction?.error_Message)
-            || trimToNull(transaction?.errorMessage)
             || trimToNull(transaction?.error)
-            || trimToNull(transaction?.field9),
+            || trimToNull(transaction?.field9)
+            || trimToNull(response?.msg),
         raw: transaction,
     };
 };
@@ -287,12 +288,7 @@ export const verifyPayUResponseHash = (payload: Record<string, unknown>) => {
         return true;
     }
 
-    const generatedHash = crypto
-        .createHash('sha512')
-        .update(buildReverseHashString(payload))
-        .digest('hex')
-        .toLowerCase();
-
+    const generatedHash = sha512(buildReverseHashString(payload));
     return generatedHash === receivedHash.toLowerCase();
 };
 
@@ -301,7 +297,7 @@ export const compareExpectedAmount = (amountInSubunits: number, verifiedAmount: 
         return true;
     }
 
-    return toMajorAmount(amountInSubunits) === Number(verifiedAmount.toFixed(2));
+    return Number(toMajorAmountString(amountInSubunits)) === Number(verifiedAmount.toFixed(2));
 };
 
 export const buildPayUTransactionId = (prefix: string, attemptId: string) => {

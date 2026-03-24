@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { processInternshipPayUPayment } from './internshipApplication.controller';
-import { processTrainingPayUPayment } from './trainingCheckout.controller';
-import { processWebinarPayUPayment } from './webinarRegistration.controller';
-import { extractPayUPayloadValue, verifyPayUResponseHash } from '../utils/payu';
+import { buildInternshipPayUCheckoutLaunch, processInternshipPayUPayment } from './internshipApplication.controller';
+import { buildTrainingPayUCheckoutLaunch, processTrainingPayUPayment } from './trainingCheckout.controller';
+import { buildWebinarPayUCheckoutLaunch, processWebinarPayUPayment } from './webinarRegistration.controller';
+import { buildPayUHostedCheckoutForm, extractPayUPayloadValue, verifyPayUResponseHash } from '../utils/payu';
 import {
     buildFrontendPaymentResultUrl,
     inferPaymentFlow,
@@ -85,6 +85,92 @@ const buildFailureRedirect = (context: PayUContext, message: string) =>
         transactionId: context.transactionId,
         message,
     });
+
+const buildLaunchFailureRedirect = (params: {
+    flow?: PaymentFlow | null;
+    attemptId?: string | null;
+    message: string;
+}) =>
+    buildFrontendPaymentResultUrl({
+        flow: params.flow || 'training',
+        result: 'failure',
+        attemptId: params.attemptId,
+        message: params.message,
+    });
+
+const escapeHtml = (value: unknown) =>
+    String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+const buildHostedCheckoutPage = (params: ReturnType<typeof buildPayUHostedCheckoutForm>) => {
+    const hiddenFields = Object.entries(params.fields)
+        .map(([name, value]) => `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}" />`)
+        .join('\n');
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Redirecting to PayU</title>
+</head>
+<body style="font-family: Arial, sans-serif; margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f8fafc; color: #0f172a;">
+    <div style="max-width: 420px; text-align: center; padding: 24px;">
+        <h1 style="margin-bottom: 12px; font-size: 24px;">Redirecting to secure payment</h1>
+        <p style="margin: 0 0 16px; color: #475569;">Please wait while we transfer you to PayU checkout.</p>
+        <form id="payu-checkout-form" method="post" action="${escapeHtml(params.actionUrl)}">
+            ${hiddenFields}
+            <noscript>
+                <button type="submit" style="padding: 12px 16px;">Continue to PayU</button>
+            </noscript>
+        </form>
+    </div>
+    <script>
+        document.getElementById('payu-checkout-form').submit();
+    </script>
+</body>
+</html>`;
+};
+
+export const launchPayUCheckout = async (req: Request, res: Response) => {
+    const flow = inferPaymentFlow(req.query.flow);
+    const attemptId = String(req.query.attemptId ?? '').trim() || null;
+
+    if (!flow || !attemptId) {
+        return res.redirect(303, buildLaunchFailureRedirect({
+            flow,
+            attemptId,
+            message: 'The PayU checkout link is incomplete.',
+        }));
+    }
+
+    try {
+        const checkoutParams = flow === 'training'
+            ? await buildTrainingPayUCheckoutLaunch(attemptId, req)
+            : flow === 'internship'
+                ? await buildInternshipPayUCheckoutLaunch(attemptId, req)
+                : await buildWebinarPayUCheckoutLaunch(attemptId, req);
+
+        const checkoutForm = buildPayUHostedCheckoutForm(checkoutParams);
+
+        return res
+            .status(200)
+            .type('html')
+            .set('Cache-Control', 'no-store')
+            .send(buildHostedCheckoutPage(checkoutForm));
+    } catch (error: any) {
+        console.error('PayU hosted checkout launch failed:', error);
+        return res.redirect(303, buildLaunchFailureRedirect({
+            flow,
+            attemptId,
+            message: error?.message || 'Failed to launch PayU checkout.',
+        }));
+    }
+};
 
 export const handlePayUCallback = async (req: Request, res: Response) => {
     const context = getContext(req);

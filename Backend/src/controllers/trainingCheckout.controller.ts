@@ -15,12 +15,13 @@ import {
 import {
     buildPayUTransactionId,
     compareExpectedAmount,
-    createPayUHostedCheckout,
     extractPayUPayloadValue,
+    type PayUHostedCheckoutParams,
     verifyPayUTransaction,
 } from '../utils/payu';
 import {
     buildPayUCallbackUrl,
+    buildPayULaunchUrl,
     mapInternalStatusToPaymentResult,
     type PaymentResult,
 } from '../utils/payment.urls';
@@ -650,6 +651,55 @@ export const processTrainingPayUPayment = async (params: {
     };
 };
 
+export const buildTrainingPayUCheckoutLaunch = async (
+    attemptId: string,
+    req: Request
+): Promise<PayUHostedCheckoutParams> => {
+    const attempt = await TrainingPaymentAttempt.findById(attemptId);
+
+    if (!attempt) {
+        throw new Error('Training payment attempt not found.');
+    }
+
+    if (attempt.status !== 'created') {
+        throw new Error('This training checkout attempt is no longer active.');
+    }
+
+    const paymentUser = await User.findById(attempt.userId).select('name email phoneNumber').lean();
+    const payerNameParts = splitName(paymentUser?.name || 'Student');
+    const payerEmail = String(attempt.paymentEmail || paymentUser?.email || '').trim().toLowerCase();
+    const payerPhone = normalizePhoneNumber(attempt.paymentContact || paymentUser?.phoneNumber);
+
+    if (!attempt.transactionId) {
+        throw new Error('Training payment transaction ID is missing.');
+    }
+
+    if (!payerEmail) {
+        throw new Error('Training payment email is missing.');
+    }
+
+    return {
+        transactionId: attempt.transactionId,
+        referenceId: String(attempt._id),
+        amount: attempt.amount,
+        productInfo: attempt.trainingType === 'language' && attempt.levelName
+            ? `${attempt.courseTitle} - ${attempt.levelName}`
+            : attempt.courseTitle,
+        firstName: payerNameParts.firstName,
+        lastName: payerNameParts.lastName,
+        email: payerEmail,
+        phone: payerPhone,
+        flow: 'training',
+        userDefinedFields: {
+            udf3: attempt.trainingType,
+            udf4: attempt.origin,
+        },
+        successAction: buildPayUCallbackUrl(req, 'success'),
+        failureAction: buildPayUCallbackUrl(req, 'failure'),
+        cancelAction: buildPayUCallbackUrl(req, 'cancel'),
+    };
+};
+
 export const createTrainingCheckout = async (req: Request, res: Response) => {
     let attempt: ITrainingPaymentAttempt | null = null;
 
@@ -661,7 +711,6 @@ export const createTrainingCheckout = async (req: Request, res: Response) => {
 
         const origin = normalizeOrigin(req.body?.origin);
         const selectedLevel = String(req.body?.selectedLevel ?? '').trim();
-        const payerName = String(req.body?.payerName || user.name || '').trim();
         const payerEmail = String(req.body?.payerEmail || user.email || '').trim().toLowerCase();
         const payerPhone = normalizePhoneNumber(req.body?.payerPhone || user.phoneNumber);
 
@@ -733,36 +782,14 @@ export const createTrainingCheckout = async (req: Request, res: Response) => {
 
         attempt.transactionId = buildPayUTransactionId('training', String(attempt._id));
 
-        const payerNameParts = splitName(payerName);
-        const checkout = await createPayUHostedCheckout({
-            transactionId: attempt.transactionId,
-            referenceId: String(attempt._id),
-            amount: resolvedSelection.amount,
-            productInfo: resolvedSelection.trainingType === 'language' && resolvedSelection.levelName
-                ? `${resolvedSelection.courseTitle} - ${resolvedSelection.levelName}`
-                : resolvedSelection.displayCourseTitle,
-            firstName: payerNameParts.firstName,
-            lastName: payerNameParts.lastName,
-            email: payerEmail,
-            phone: payerPhone,
-            flow: 'training',
-            userDefinedFields: {
-                udf3: resolvedSelection.trainingType,
-                udf4: resolvedSelection.origin,
-            },
-            successAction: buildPayUCallbackUrl(req, 'success'),
-            failureAction: buildPayUCallbackUrl(req, 'failure'),
-            cancelAction: buildPayUCallbackUrl(req, 'cancel'),
-        });
-
-        attempt.paymentStatus = checkout.status;
+        attempt.paymentStatus = 'created';
         await attempt.save();
 
         return res.status(201).json({
             message: 'Checkout created successfully.',
             checkout: {
                 attemptId: attempt._id,
-                redirectUrl: checkout.redirectUrl,
+                redirectUrl: buildPayULaunchUrl(req, 'training', String(attempt._id)),
                 transactionId: attempt.transactionId,
                 amount: attempt.amount,
                 currency: attempt.currency,

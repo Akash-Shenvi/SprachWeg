@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createTrainingCheckout = exports.processTrainingPayUPayment = exports.deleteTrainingPaymentAttempt = exports.getAllTrainingPaymentAttempts = void 0;
+exports.createTrainingCheckout = exports.buildTrainingPayUCheckoutLaunch = exports.processTrainingPayUPayment = exports.deleteTrainingPaymentAttempt = exports.getAllTrainingPaymentAttempts = void 0;
 const env_1 = require("../config/env");
 const language_enrollment_model_1 = __importDefault(require("../models/language.enrollment.model"));
 const enrollment_model_1 = __importDefault(require("../models/enrollment.model"));
@@ -521,8 +521,48 @@ const processTrainingPayUPayment = (params) => __awaiter(void 0, void 0, void 0,
     };
 });
 exports.processTrainingPayUPayment = processTrainingPayUPayment;
+const buildTrainingPayUCheckoutLaunch = (attemptId, req) => __awaiter(void 0, void 0, void 0, function* () {
+    const attempt = yield trainingPaymentAttempt_model_1.default.findById(attemptId);
+    if (!attempt) {
+        throw new Error('Training payment attempt not found.');
+    }
+    if (attempt.status !== 'created') {
+        throw new Error('This training checkout attempt is no longer active.');
+    }
+    const paymentUser = yield user_model_1.default.findById(attempt.userId).select('name email phoneNumber').lean();
+    const payerNameParts = splitName((paymentUser === null || paymentUser === void 0 ? void 0 : paymentUser.name) || 'Student');
+    const payerEmail = String(attempt.paymentEmail || (paymentUser === null || paymentUser === void 0 ? void 0 : paymentUser.email) || '').trim().toLowerCase();
+    const payerPhone = normalizePhoneNumber(attempt.paymentContact || (paymentUser === null || paymentUser === void 0 ? void 0 : paymentUser.phoneNumber));
+    if (!attempt.transactionId) {
+        throw new Error('Training payment transaction ID is missing.');
+    }
+    if (!payerEmail) {
+        throw new Error('Training payment email is missing.');
+    }
+    return {
+        transactionId: attempt.transactionId,
+        referenceId: String(attempt._id),
+        amount: attempt.amount,
+        productInfo: attempt.trainingType === 'language' && attempt.levelName
+            ? `${attempt.courseTitle} - ${attempt.levelName}`
+            : attempt.courseTitle,
+        firstName: payerNameParts.firstName,
+        lastName: payerNameParts.lastName,
+        email: payerEmail,
+        phone: payerPhone,
+        flow: 'training',
+        userDefinedFields: {
+            udf3: attempt.trainingType,
+            udf4: attempt.origin,
+        },
+        successAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'success'),
+        failureAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'failure'),
+        cancelAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'cancel'),
+    };
+});
+exports.buildTrainingPayUCheckoutLaunch = buildTrainingPayUCheckoutLaunch;
 const createTrainingCheckout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e;
     let attempt = null;
     try {
         const user = req.user;
@@ -531,9 +571,8 @@ const createTrainingCheckout = (req, res) => __awaiter(void 0, void 0, void 0, f
         }
         const origin = normalizeOrigin((_a = req.body) === null || _a === void 0 ? void 0 : _a.origin);
         const selectedLevel = String((_c = (_b = req.body) === null || _b === void 0 ? void 0 : _b.selectedLevel) !== null && _c !== void 0 ? _c : '').trim();
-        const payerName = String(((_d = req.body) === null || _d === void 0 ? void 0 : _d.payerName) || user.name || '').trim();
-        const payerEmail = String(((_e = req.body) === null || _e === void 0 ? void 0 : _e.payerEmail) || user.email || '').trim().toLowerCase();
-        const payerPhone = normalizePhoneNumber(((_f = req.body) === null || _f === void 0 ? void 0 : _f.payerPhone) || user.phoneNumber);
+        const payerEmail = String(((_d = req.body) === null || _d === void 0 ? void 0 : _d.payerEmail) || user.email || '').trim().toLowerCase();
+        const payerPhone = normalizePhoneNumber(((_e = req.body) === null || _e === void 0 ? void 0 : _e.payerPhone) || user.phoneNumber);
         if (!origin) {
             return res.status(400).json({ message: 'A valid training selection is required.' });
         }
@@ -590,34 +629,13 @@ const createTrainingCheckout = (req, res) => __awaiter(void 0, void 0, void 0, f
             paymentContact: payerPhone,
         });
         attempt.transactionId = (0, payu_1.buildPayUTransactionId)('training', String(attempt._id));
-        const payerNameParts = splitName(payerName);
-        const checkout = yield (0, payu_1.createPayUHostedCheckout)({
-            transactionId: attempt.transactionId,
-            referenceId: String(attempt._id),
-            amount: resolvedSelection.amount,
-            productInfo: resolvedSelection.trainingType === 'language' && resolvedSelection.levelName
-                ? `${resolvedSelection.courseTitle} - ${resolvedSelection.levelName}`
-                : resolvedSelection.displayCourseTitle,
-            firstName: payerNameParts.firstName,
-            lastName: payerNameParts.lastName,
-            email: payerEmail,
-            phone: payerPhone,
-            flow: 'training',
-            userDefinedFields: {
-                udf3: resolvedSelection.trainingType,
-                udf4: resolvedSelection.origin,
-            },
-            successAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'success'),
-            failureAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'failure'),
-            cancelAction: (0, payment_urls_1.buildPayUCallbackUrl)(req, 'cancel'),
-        });
-        attempt.paymentStatus = checkout.status;
+        attempt.paymentStatus = 'created';
         yield attempt.save();
         return res.status(201).json({
             message: 'Checkout created successfully.',
             checkout: {
                 attemptId: attempt._id,
-                redirectUrl: checkout.redirectUrl,
+                redirectUrl: (0, payment_urls_1.buildPayULaunchUrl)(req, 'training', String(attempt._id)),
                 transactionId: attempt.transactionId,
                 amount: attempt.amount,
                 currency: attempt.currency,

@@ -33,6 +33,9 @@ export const getRequestOrigin = (req: Request) => {
 export const buildPayUCallbackUrl = (req: Request, result: PaymentResult) =>
     `${normalizeBaseUrl(getRequestOrigin(req))}/api/payments/payu/callback?result=${encodeURIComponent(result)}`;
 
+export const buildPayULaunchUrl = (req: Request, flow: PaymentFlow, attemptId: string) =>
+    `${normalizeBaseUrl(getRequestOrigin(req))}/api/payments/payu/launch?flow=${encodeURIComponent(flow)}&attemptId=${encodeURIComponent(attemptId)}`;
+
 export const buildFrontendPaymentResultUrl = (params: {
     flow: PaymentFlow;
     result: PaymentResult;
