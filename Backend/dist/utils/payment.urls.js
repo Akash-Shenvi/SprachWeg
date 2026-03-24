@@ -8,6 +8,10 @@ const trimToNull = (value) => {
 };
 const normalizeBaseUrl = (value) => value.replace(/\/+$/, '');
 const getRequestOrigin = (req) => {
+    const configuredBaseUrl = String(env_1.env.BACKEND_PUBLIC_BASE_URL || '').trim();
+    if (configuredBaseUrl) {
+        return normalizeBaseUrl(configuredBaseUrl);
+    }
     const forwardedProtoHeader = req.headers['x-forwarded-proto'];
     const forwardedHostHeader = req.headers['x-forwarded-host'];
     const protocol = Array.isArray(forwardedProtoHeader)

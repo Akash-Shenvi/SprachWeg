@@ -56,6 +56,17 @@ const trimToNull = (value: unknown) => {
     return normalizedValue || null;
 };
 
+const getPayloadValue = (payload: Record<string, unknown>, ...keys: string[]) => {
+    for (const key of keys) {
+        const value = trimToNull(payload[key]);
+        if (value) {
+            return value;
+        }
+    }
+
+    return null;
+};
+
 const ensurePayUConfigured = () => {
     if (!env.PAYU_ACCOUNT_ID || !env.PAYU_SALT) {
         throw new Error('PayU is not configured on the server.');
@@ -255,7 +266,8 @@ const buildReverseHashString = (payload: Record<string, unknown>) => {
     const udf3 = String(payload.udf3 ?? '').trim();
     const udf4 = String(payload.udf4 ?? '').trim();
     const udf5 = String(payload.udf5 ?? '').trim();
-    const additionalCharges = trimToNull(payload.additionalCharges);
+    const additionalCharges = getPayloadValue(payload, 'additional_charges', 'additionalCharges');
+    const splitInfo = getPayloadValue(payload, 'splitInfo');
 
     const reverseHashBase = [
         env.PAYU_SALT,
@@ -278,7 +290,19 @@ const buildReverseHashString = (payload: Record<string, unknown>) => {
         key,
     ].join('|');
 
-    return additionalCharges ? `${additionalCharges}|${reverseHashBase}` : reverseHashBase;
+    if (additionalCharges && splitInfo) {
+        return `${additionalCharges}|${reverseHashBase}|${splitInfo}`;
+    }
+
+    if (additionalCharges) {
+        return `${additionalCharges}|${reverseHashBase}`;
+    }
+
+    if (splitInfo) {
+        return `${reverseHashBase}|${splitInfo}`;
+    }
+
+    return reverseHashBase;
 };
 
 export const verifyPayUResponseHash = (payload: Record<string, unknown>) => {

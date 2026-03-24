@@ -21,5 +21,6 @@ export const env = {
     PAYU_ACCOUNT_ID: process.env.PAYU_ACCOUNT_ID || process.env.PAYU_KEY || process.env.PAYU_MERCHANT_KEY || '',
     PAYU_SALT: process.env.PAYU_SALT || process.env.PAYU_MERCHANT_SALT || '',
     PAYU_ENV: process.env.PAYU_ENV || 'test',
+    BACKEND_PUBLIC_BASE_URL: process.env.BACKEND_PUBLIC_BASE_URL || '',
     FRONTEND_BASE_URL: process.env.FRONTEND_BASE_URL || 'http://localhost:5173',
 };

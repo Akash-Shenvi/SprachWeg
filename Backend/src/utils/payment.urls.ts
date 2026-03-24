@@ -12,6 +12,11 @@ const trimToNull = (value: unknown) => {
 const normalizeBaseUrl = (value: string) => value.replace(/\/+$/, '');
 
 export const getRequestOrigin = (req: Request) => {
+    const configuredBaseUrl = String(env.BACKEND_PUBLIC_BASE_URL || '').trim();
+    if (configuredBaseUrl) {
+        return normalizeBaseUrl(configuredBaseUrl);
+    }
+
     const forwardedProtoHeader = req.headers['x-forwarded-proto'];
     const forwardedHostHeader = req.headers['x-forwarded-host'];
 
