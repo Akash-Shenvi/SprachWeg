@@ -6,6 +6,13 @@ import User from "../models/user.model";
 import { EmailService } from "../utils/email.service";
 import { buildPaymentSnapshot } from "../utils/payment.helpers";
 import { LEARNER_ROLES } from "../utils/roles";
+import {
+  applyLanguageInstitutionScope,
+  buildLanguageBatchQuery,
+  getLanguageEnrollmentInstitutionScope,
+  getLanguageInstitutionScope,
+  findOrCreateLanguageBatch,
+} from "../utils/languageBatchScope";
 
 const emailService = new EmailService();
 
@@ -36,6 +43,7 @@ const toDisplayAmount = (subunits?: number) => {
 export const applyEnrollment = async (req: Request, res: Response) => {
   try {
     const { courseTitle, name } = req.body;
+    const enrollmentScope = getLanguageEnrollmentInstitutionScope((req as any).user);
 
     if (!courseTitle || !name) {
       return res.status(400).json({ message: "courseTitle and name required" });
@@ -51,6 +59,7 @@ export const applyEnrollment = async (req: Request, res: Response) => {
       if (exists.status === "REJECTED") {
         exists.status = "PENDING";
         exists.batchId = undefined;
+        applyLanguageInstitutionScope(exists as any, enrollmentScope);
         await exists.save();
 
         // Send "Request Received" Email for Re-enrollment
@@ -70,6 +79,8 @@ export const applyEnrollment = async (req: Request, res: Response) => {
       userId: (req as any).user._id,
       courseTitle,
       name,
+      institutionId: enrollmentScope.institutionId,
+      institutionName: enrollmentScope.institutionName,
     });
 
     // Send "Request Received" Email
@@ -90,7 +101,7 @@ export const applyEnrollment = async (req: Request, res: Response) => {
 export const getMyEnrollments = async (req: Request, res: Response) => {
   const enrollments = await Enrollment.find({
     userId: (req as any).user._id,
-  }).populate("batchId", "courseTitle name");
+  }).populate("batchId", "courseTitle name institutionId institutionName");
 
   res.json(enrollments);
 };
@@ -124,12 +135,14 @@ export const getEnrollments = async (req: Request, res: Response) => {
           { name: { $regex: search, $options: 'i' } },
           { email: { $regex: search, $options: 'i' } },
           { phoneNumber: { $regex: search, $options: 'i' } },
+          { institutionName: { $regex: search, $options: 'i' } },
         ],
       }).distinct('_id');
 
       filter.$or = [
         { courseTitle: { $regex: search, $options: 'i' } },
         { name: { $regex: search, $options: 'i' } },
+        { institutionName: { $regex: search, $options: 'i' } },
         { userId: { $in: matchingUserIds } },
       ];
     }
@@ -139,7 +152,7 @@ export const getEnrollments = async (req: Request, res: Response) => {
     const currentPage = Math.min(page, totalPages);
 
     const enrollments = await Enrollment.find(filter)
-      .populate('userId', 'name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role createdAt')
+      .populate('userId', 'name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role createdAt institutionId institutionName')
       .sort({ createdAt: -1 })
       .skip((currentPage - 1) * limit)
       .limit(limit);
@@ -225,21 +238,25 @@ export const approveEnrollment = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid enrollment" });
     }
 
-    let batch = await Batch.findOne({
+    const studentUser = enrollment.userId as any;
+    const enrollmentScope = enrollment.institutionId
+      ? getLanguageInstitutionScope({
+        institutionId: enrollment.institutionId,
+        institutionName: enrollment.institutionName,
+      })
+      : getLanguageEnrollmentInstitutionScope(studentUser);
+
+    applyLanguageInstitutionScope(enrollment as any, enrollmentScope);
+    const studentUserId = studentUser?._id ?? enrollment.userId;
+
+    const batch = await findOrCreateLanguageBatch({
       courseTitle: enrollment.courseTitle,
-      name: enrollment.name,
+      levelName: enrollment.name,
+      scope: enrollmentScope,
     });
 
-    if (!batch) {
-      batch = await Batch.create({
-        courseTitle: enrollment.courseTitle,
-        name: enrollment.name,
-        students: [],
-      });
-    }
-
-    if (!batch.students.some(id => id.equals(enrollment.userId))) {
-      batch.students.push(enrollment.userId);
+    if (!batch.students.some(id => id.equals(studentUserId))) {
+      batch.students.push(studentUserId);
       await batch.save();
     }
 
@@ -250,9 +267,15 @@ export const approveEnrollment = async (req: Request, res: Response) => {
     // Send "Approved" Email
     // Since we populated userId, it is now an object (depending on TS types). 
     // We cast to any or check type to access email.
-    const studentUser = enrollment.userId as any;
     if (studentUser && studentUser.email) {
-      await emailService.sendEnrollmentEmail(studentUser.email, studentUser.name, enrollment.courseTitle, 'APPROVED');
+      await emailService.sendEnrollmentEmail(
+        studentUser.email,
+        studentUser.name,
+        enrollment.courseTitle,
+        'APPROVED',
+        undefined,
+        enrollmentScope.institutionName || undefined
+      );
     }
 
     res.json({
@@ -299,6 +322,7 @@ export const getBatches = async (req: Request, res: Response) => {
       filter.$or = [
         { courseTitle: { $regex: search, $options: 'i' } },
         { name: { $regex: search, $options: 'i' } },
+        { institutionName: { $regex: search, $options: 'i' } },
       ];
     }
 
@@ -377,6 +401,7 @@ export const getBatchStudents = async (req: Request, res: Response) => {
         { name: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
         { phoneNumber: { $regex: search, $options: 'i' } },
+        { institutionName: { $regex: search, $options: 'i' } },
       ];
     }
 
@@ -395,6 +420,8 @@ export const getBatchStudents = async (req: Request, res: Response) => {
         _id: batch._id,
         courseTitle: batch.courseTitle,
         name: batch.name,
+        institutionId: batch.institutionId || null,
+        institutionName: batch.institutionName || null,
         trainer: batch.trainerId || null,
         studentCount: batch.students.length,
       },
@@ -469,9 +496,17 @@ export const deleteBatch = async (req: Request, res: Response) => {
       { $set: { status: "REJECTED", batchId: null } }
     );
 
-    // Update enrollments based on course/name matching just in case (legacy safety)
+    const batchScope = getLanguageInstitutionScope({
+      institutionId: batch.institutionId,
+      institutionName: batch.institutionName,
+    });
+
+    // Update enrollments based on course/name/scope matching just in case (legacy safety)
     await Enrollment.updateMany(
-      { courseTitle: batch.courseTitle, name: batch.name, status: "APPROVED" },
+      {
+        ...buildLanguageBatchQuery(batch.courseTitle, batch.name, batchScope),
+        status: "APPROVED",
+      },
       { $set: { status: "REJECTED", batchId: null } }
     );
 

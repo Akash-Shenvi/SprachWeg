@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+    Building2,
     BookOpen,
     Calendar,
     Check,
@@ -29,6 +30,8 @@ interface StudentProfile {
     name: string;
     email: string;
     phoneNumber?: string;
+    institutionId?: string | null;
+    institutionName?: string | null;
     germanLevel?: string;
     guardianName?: string;
     guardianPhone?: string;
@@ -46,6 +49,8 @@ interface Enrollment {
     courseTitle: string;
     name: string;
     status: string;
+    institutionId?: string | null;
+    institutionName?: string | null;
     createdAt?: string;
     payment: PaymentSnapshot | null;
 }
@@ -70,6 +75,8 @@ interface LanguageEnrollment {
     batchId?: {
         _id: string;
         name: string;
+        institutionId?: string | null;
+        institutionName?: string | null;
     };
 }
 
@@ -192,6 +199,15 @@ const formatPaymentAttemptTitle = (attempt: TrainingPaymentAttempt) =>
     attempt.trainingType === 'language' && attempt.levelName
         ? `${attempt.courseTitle} - ${attempt.levelName}`
         : attempt.courseTitle;
+
+const getNormalizedInstitutionName = (value?: string | null) => {
+    const normalizedValue = String(value || '').trim();
+    return normalizedValue || null;
+};
+
+const getEnrollmentInstitutionName = (enrollment?: Enrollment | null) =>
+    getNormalizedInstitutionName(enrollment?.institutionName)
+    || getNormalizedInstitutionName(enrollment?.userId?.institutionName);
 
 const LanguageEnrollmentDetails: React.FC = () => {
     const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -609,7 +625,10 @@ const LanguageEnrollmentDetails: React.FC = () => {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {enrollments.map((enrollment) => (
+                        {enrollments.map((enrollment) => {
+                            const institutionName = getEnrollmentInstitutionName(enrollment);
+
+                            return (
                             <div
                                 key={enrollment._id}
                                 className="bg-[#0B1221] text-white rounded-xl border border-gray-800 p-6 shadow-lg hover:shadow-xl transition-all relative group cursor-pointer"
@@ -660,6 +679,12 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                         <p className="mt-2 text-xs font-medium uppercase tracking-wide text-gray-400">
                                             {enrollment.trainingType === 'language' ? 'Language Training' : 'Skill Training'}
                                         </p>
+                                        {institutionName && (
+                                            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[#d6b161]/30 bg-[#d6b161]/10 px-2.5 py-1 text-xs font-semibold text-[#f0d79a]">
+                                                <Building2 className="h-3.5 w-3.5" />
+                                                {institutionName}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="grid grid-cols-2 gap-3 text-sm">
                                         <div className="rounded-lg border border-gray-800 bg-[#111827] p-3">
@@ -707,7 +732,7 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                     <Eye className="w-5 h-5 text-gray-400 hover:text-white" />
                                 </div>
                             </div>
-                        ))}
+                        )})}
                     </div>
                 )}
             </div>
@@ -958,6 +983,12 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                                 <Phone className="h-4 w-4" />
                                                 <span className="text-sm font-medium">{selectedStudentProfile.phoneNumber || 'Not Provided'}</span>
                                             </div>
+                                            {getEnrollmentInstitutionName(selectedEnrollment) && (
+                                                <div className="flex items-center gap-2 rounded-lg bg-[#d6b161]/15 px-3 py-1.5 text-[#b38f3f] dark:bg-[#d6b161]/10 dark:text-[#f0d79a]">
+                                                    <Building2 className="h-4 w-4" />
+                                                    <span className="text-sm font-medium">{getEnrollmentInstitutionName(selectedEnrollment)}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -981,6 +1012,17 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                             {selectedEnrollment.trainingType === 'language' ? selectedEnrollment.name : 'Skill Training'}
                                         </p>
                                     </div>
+                                    {(selectedEnrollment.trainingType === 'language' || getEnrollmentInstitutionName(selectedEnrollment)) && (
+                                        <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#0a192f]">
+                                            <div className="mb-2 flex items-center gap-3">
+                                                <Building2 className="h-5 w-5 text-emerald-500" />
+                                                <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Institution Scope</span>
+                                            </div>
+                                            <p className="pl-8 font-bold text-gray-900 dark:text-white">
+                                                {getEnrollmentInstitutionName(selectedEnrollment) || 'General Pool'}
+                                            </p>
+                                        </div>
+                                    )}
                                     <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#0a192f]">
                                         <div className="mb-2 flex items-center gap-3">
                                             <Calendar className="h-5 w-5 text-purple-500" />
@@ -1114,6 +1156,9 @@ const LanguageEnrollmentDetails: React.FC = () => {
                                                                 {enrollment.batchId && (
                                                                     <div className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400">
                                                                         Assigned Batch: Class - {enrollment.batchId.name}
+                                                                        {getNormalizedInstitutionName(enrollment.batchId.institutionName)
+                                                                            ? ` (${enrollment.batchId.institutionName})`
+                                                                            : ''}
                                                                     </div>
                                                                 )}
                                                             </div>

@@ -5,7 +5,9 @@ export interface IEnrollment extends Document {
   courseTitle: string;   // "English"
   name: string;          // "A1" (was levelName)
   status: "PENDING" | "APPROVED" | "REJECTED";
-  batchId?: mongoose.Types.ObjectId;
+  batchId?: mongoose.Types.ObjectId | null;
+  institutionId?: mongoose.Types.ObjectId | null;
+  institutionName?: string | null;
 }
 
 const EnrollmentSchema = new Schema(
@@ -32,9 +34,21 @@ const EnrollmentSchema = new Schema(
       default: "PENDING",
     },
 
+    institutionId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    institutionName: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+
     batchId: {
       type: Schema.Types.ObjectId,
-      ref: "Batch",
+      ref: "LanguageBatch",
       default: null,
     },
   },
