@@ -10,12 +10,13 @@ const auth_google_controller_1 = require("../controllers/auth.google.controller"
 const user_controller_1 = require("../controllers/user.controller");
 const auth_middleware_1 = require("../middlewares/auth.middleware");
 const multer_1 = require("../config/multer");
+const institutionBrandUpload_1 = require("../config/institutionBrandUpload");
 const router = express_1.default.Router();
 router.post('/register', auth_controller_1.register);
 router.post('/verify-otp', auth_controller_1.verifyOtp);
 router.post('/resend-otp', auth_controller_1.resendOtp);
 router.post('/login', auth_controller_1.login);
-router.post('/institution/register', institutionAuth_controller_1.registerInstitution);
+router.post('/institution/register', institutionBrandUpload_1.institutionBrandUpload.single('logo'), institutionAuth_controller_1.registerInstitution);
 router.post('/institution/verify-otp', institutionAuth_controller_1.verifyInstitutionOtp);
 router.post('/institution/resend-otp', institutionAuth_controller_1.resendInstitutionOtp);
 router.post('/institution/login', institutionAuth_controller_1.loginInstitution);

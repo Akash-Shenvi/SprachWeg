@@ -3,6 +3,7 @@ import ChatMessage from '../models/chat.message.model';
 import User from '../models/user.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { findAssignedBatchForChat, resolveTrainerIdForStudentChat } from '../utils/chat-access';
+import { isLearnerRole } from '../utils/roles';
 
 // GET /api/chat/:studentId  — load last 50 messages in a private conversation
 export const getChatHistory = async (req: AuthRequest, res: Response) => {
@@ -16,7 +17,7 @@ export const getChatHistory = async (req: AuthRequest, res: Response) => {
         let trainerName = 'Trainer';
         let studentName = 'Student';
 
-        if (requesterRole === 'student') {
+        if (isLearnerRole(requesterRole)) {
             // Student can only fetch their own chat
             if (requesterId !== studentId) {
                 return res.status(403).json({ message: 'Not authorized to view this chat' });

@@ -13,7 +13,10 @@ export interface IUser extends Document {
     qualification?: string;
     dateOfBirth?: Date;
     role: string;
+    institutionId?: mongoose.Types.ObjectId;
     institutionName?: string;
+    institutionLogo?: string;
+    institutionTagline?: string;
     contactPersonName?: string;
     city?: string;
     state?: string;
@@ -39,10 +42,13 @@ const UserSchema: Schema = new Schema({
     dateOfBirth: { type: Date },
     role: {
         type: String,
-        enum: ['student', 'trainer', 'admin', 'institution'],
+        enum: ['student', 'institution_student', 'trainer', 'admin', 'institution'],
         default: 'student'
     },
+    institutionId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     institutionName: { type: String },
+    institutionLogo: { type: String },
+    institutionTagline: { type: String },
     contactPersonName: { type: String },
     city: { type: String },
     state: { type: String },
@@ -69,6 +75,10 @@ UserSchema.virtual('isProfileComplete').get(function (this: IUser) {
             && this.state
             && this.address
         );
+    }
+
+    if (this.role === 'institution_student') {
+        return true;
     }
 
     return !!(this.phoneNumber && this.guardianName && this.guardianPhone && this.qualification && this.avatar);

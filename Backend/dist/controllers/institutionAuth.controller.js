@@ -40,7 +40,13 @@ const registerInstitution = (req, res) => __awaiter(void 0, void 0, void 0, func
     const errors = yield (0, class_validator_1.validate)(registerDto);
     if (errors.length > 0)
         return res.status(400).json({ errors });
+    if (!req.file) {
+        return res.status(400).json({ message: 'Institution logo is required.' });
+    }
     const normalizedEmail = normalizeEmail(registerDto.email);
+    const institutionName = registerDto.institutionName.trim();
+    const institutionLogo = `/uploads/institutions/${req.file.filename}`;
+    const institutionTagline = registerDto.tagline.trim();
     try {
         let user = yield user_model_1.default.findOne({ email: normalizedEmail });
         if (user && user.isVerified && user.role !== 'institution') {
@@ -51,8 +57,10 @@ const registerInstitution = (req, res) => __awaiter(void 0, void 0, void 0, func
         }
         const { hashedPassword, otp, otpHash, otpExpires } = yield buildInstitutionUserPayload(registerDto);
         if (user) {
-            user.name = registerDto.institutionName.trim();
-            user.institutionName = registerDto.institutionName.trim();
+            user.name = institutionName;
+            user.institutionName = institutionName;
+            user.institutionLogo = institutionLogo;
+            user.institutionTagline = institutionTagline;
             user.contactPersonName = registerDto.contactPersonName.trim();
             user.email = normalizedEmail;
             user.password = hashedPassword;
@@ -69,8 +77,10 @@ const registerInstitution = (req, res) => __awaiter(void 0, void 0, void 0, func
         }
         else {
             user = new user_model_1.default({
-                name: registerDto.institutionName.trim(),
-                institutionName: registerDto.institutionName.trim(),
+                name: institutionName,
+                institutionName: institutionName,
+                institutionLogo,
+                institutionTagline,
                 contactPersonName: registerDto.contactPersonName.trim(),
                 email: normalizedEmail,
                 password: hashedPassword,
@@ -85,7 +95,7 @@ const registerInstitution = (req, res) => __awaiter(void 0, void 0, void 0, func
             });
             yield user.save();
         }
-        yield emailService.sendOtp(normalizedEmail, otp, registerDto.institutionName.trim(), 'Institution Portal Verification');
+        yield emailService.sendOtp(normalizedEmail, otp, institutionName, 'Institution Portal Verification');
         return res.status(201).json({ message: 'OTP sent to email' });
     }
     catch (error) {

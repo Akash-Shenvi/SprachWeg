@@ -23,6 +23,7 @@ import Announcement from '../models/announcement.model';
 import SkillMaterial from '../models/skill.material.model';
 import InstitutionEnrollmentRequest from '../models/institutionEnrollmentRequest.model';
 import { buildPaymentSnapshot } from '../utils/payment.helpers';
+import { LEARNER_ROLES } from '../utils/roles';
 
 const buildLanguagePaymentKey = (params: {
     userId: unknown;
@@ -360,7 +361,7 @@ export const getActiveClassStudents = async (req: Request, res: Response) => {
 
             const studentFilter: any = {
                 _id: { $in: batch.students },
-                role: 'student',
+                role: { $in: [...LEARNER_ROLES] },
             };
 
             if (search) {
@@ -411,7 +412,7 @@ export const getActiveClassStudents = async (req: Request, res: Response) => {
 
         const studentFilter: any = {
             _id: { $in: batch.students },
-            role: 'student',
+            role: { $in: [...LEARNER_ROLES] },
         };
 
         if (search) {

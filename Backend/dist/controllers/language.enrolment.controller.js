@@ -30,6 +30,7 @@ const trainingPaymentAttempt_model_1 = __importDefault(require("../models/traini
 const user_model_1 = __importDefault(require("../models/user.model"));
 const email_service_1 = require("../utils/email.service");
 const payment_helpers_1 = require("../utils/payment.helpers");
+const roles_1 = require("../utils/roles");
 const emailService = new email_service_1.EmailService();
 const buildLanguagePaymentKey = (params) => {
     var _a, _b, _c;
@@ -339,7 +340,7 @@ const getBatchStudents = (req, res) => __awaiter(void 0, void 0, void 0, functio
         }
         const studentFilter = {
             _id: { $in: batch.students },
-            role: 'student',
+            role: { $in: [...roles_1.LEARNER_ROLES] },
         };
         if (search) {
             studentFilter.$or = [

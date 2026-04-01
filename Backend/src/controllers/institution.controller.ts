@@ -42,6 +42,8 @@ const sanitizeInstitutionRequest = (request: any) => ({
             email: request.institutionId.email,
             phoneNumber: request.institutionId.phoneNumber,
             institutionName: request.institutionId.institutionName,
+            institutionLogo: request.institutionId.institutionLogo,
+            institutionTagline: request.institutionId.institutionTagline,
             contactPersonName: request.institutionId.contactPersonName,
             city: request.institutionId.city,
             state: request.institutionId.state,
@@ -263,8 +265,12 @@ const processInstitutionApproval = async (params: {
                 name: normalizeText(studentEntry.name),
                 email: normalizeEmail(studentEntry.email),
                 password: studentEntry.passwordHash,
-                role: 'student',
+                role: 'institution_student',
                 isVerified: true,
+                institutionId: institution._id,
+                institutionName: institution.institutionName || institution.name,
+                institutionLogo: institution.institutionLogo || undefined,
+                institutionTagline: institution.institutionTagline || undefined,
             });
 
             if (session) {
@@ -340,7 +346,7 @@ export const getInstitutionDashboard = async (req: Request, res: Response) => {
         const institutionId = String((req.user as any)?._id || '');
         const [institution, germanCourse, submissions] = await Promise.all([
             User.findById(institutionId).select(
-                'name email role phoneNumber institutionName contactPersonName city state address'
+                'name email role phoneNumber institutionName institutionLogo institutionTagline contactPersonName city state address'
             ),
             getGermanCourse(),
             InstitutionEnrollmentRequest.find({ institutionId })
@@ -360,6 +366,8 @@ export const getInstitutionDashboard = async (req: Request, res: Response) => {
                 role: institution.role,
                 phoneNumber: institution.phoneNumber,
                 institutionName: institution.institutionName,
+                institutionLogo: institution.institutionLogo,
+                institutionTagline: institution.institutionTagline,
                 contactPersonName: institution.contactPersonName,
                 city: institution.city,
                 state: institution.state,
@@ -535,7 +543,7 @@ export const getAdminInstitutionRequests = async (req: Request, res: Response) =
         const requests = await InstitutionEnrollmentRequest.find(queryFilter)
             .populate(
                 'institutionId',
-                'name email phoneNumber institutionName contactPersonName city state address'
+                'name email phoneNumber institutionName institutionLogo institutionTagline contactPersonName city state address'
             )
             .sort({ createdAt: -1 })
             .skip(skip)
@@ -620,7 +628,7 @@ export const approveInstitutionRequest = async (req: Request, res: Response) => 
         const approvedRequest = await InstitutionEnrollmentRequest.findById(requestId)
             .populate(
                 'institutionId',
-                'name email phoneNumber institutionName contactPersonName city state address'
+                'name email phoneNumber institutionName institutionLogo institutionTagline contactPersonName city state address'
             );
 
         return res.status(200).json({

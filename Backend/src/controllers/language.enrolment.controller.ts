@@ -5,6 +5,7 @@ import TrainingPaymentAttempt from "../models/trainingPaymentAttempt.model";
 import User from "../models/user.model";
 import { EmailService } from "../utils/email.service";
 import { buildPaymentSnapshot } from "../utils/payment.helpers";
+import { LEARNER_ROLES } from "../utils/roles";
 
 const emailService = new EmailService();
 
@@ -368,7 +369,7 @@ export const getBatchStudents = async (req: Request, res: Response) => {
 
     const studentFilter: any = {
       _id: { $in: batch.students },
-      role: 'student',
+      role: { $in: [...LEARNER_ROLES] },
     };
 
     if (search) {

@@ -56,6 +56,10 @@ export class InstitutionRegisterDto {
     @IsString()
     @IsNotEmpty()
     public address!: string;
+
+    @IsString()
+    @IsNotEmpty()
+    public tagline!: string;
 }
 
 export class GoogleLoginDto {

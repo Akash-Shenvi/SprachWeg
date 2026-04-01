@@ -61,6 +61,7 @@ import InstitutionRegisterPage from './pages/InstitutionRegisterPage';
 import InstitutionDashboard from './pages/InstitutionDashboard';
 import AdminInstitutionRequests from './pages/Admin/AdminInstitutionRequests';
 import { getDashboardPathForRole } from './lib/authRouting';
+import { isInstitutionStudentRole } from './lib/roles';
 
 
 
@@ -160,7 +161,10 @@ const AppContent = () => {
   // user.isProfileComplete is virtual from backend, so it relies on the response
   // If undefined, we assume false or check specific fields if needed. 
   // But safer to rely on flag if backend sends it.
-  const isProfileIncomplete = user && user.role !== 'institution' && user.isProfileComplete === false;
+  const isProfileIncomplete = user
+    && user.role !== 'institution'
+    && !isInstitutionStudentRole(user.role)
+    && user.isProfileComplete === false;
 
   return (
     <>

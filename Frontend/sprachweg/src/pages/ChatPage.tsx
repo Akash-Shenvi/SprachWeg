@@ -6,6 +6,7 @@ import { io, Socket } from 'socket.io-client';
 import Header from '../components/layout/Header';
 import { useAuth } from '../context/AuthContext';
 import api, { API_BASE_URL, getAssetUrl } from '../lib/api';
+import { isLearnerRole } from '../lib/roles';
 
 // ============================================================================
 // TYPES
@@ -104,7 +105,7 @@ const ChatPage: React.FC = () => {
 
     // Support both id and _id from AuthContext
     const myId = (user as any)?._id || (user as any)?.id;
-    const isStudent = user?.role === 'student';
+    const isStudent = isLearnerRole(user?.role);
     const requestedTrainerId = searchParams.get('trainerId');
 
     // ── Load chat history ────────────────────────────────────────────────────

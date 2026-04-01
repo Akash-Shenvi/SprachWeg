@@ -29,6 +29,7 @@ import {
     updateAttendance as updateLanguageAttendance,
     joinClass as joinLanguageClass,
 } from './language.trainer.controller';
+import { isLearnerRole } from '../utils/roles';
 
 const googleService = new GoogleCalendarService();
 const DEFAULT_PAGE_LIMIT = 10;
@@ -1086,7 +1087,7 @@ export const submitTrainerBatchAssessment = async (req: AuthRequest, res: Respon
 
         const access = await getSharedBatchAccess(req, trainingType, String(assessment.batchId));
 
-        if (!access || !access.isStudent || req.user?.role !== 'student') {
+        if (!access || !access.isStudent || !isLearnerRole(req.user?.role)) {
             return res.status(403).json({ message: 'Only enrolled students can submit this assessment' });
         }
 

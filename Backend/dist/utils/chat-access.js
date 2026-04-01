@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.canAccessChatPair = exports.resolveTrainerIdForStudentChat = exports.getAssignedTrainerIdsForStudent = exports.findAssignedBatchForChat = void 0;
 const language_batch_model_1 = __importDefault(require("../models/language.batch.model"));
 const batch_model_1 = __importDefault(require("../models/batch.model"));
+const roles_1 = require("./roles");
 const findAssignedBatchForChat = (studentId, trainerId) => __awaiter(void 0, void 0, void 0, function* () {
     const [languageBatch, skillBatch] = yield Promise.all([
         language_batch_model_1.default.findOne({ students: studentId, trainerId }),
@@ -70,7 +71,7 @@ const resolveTrainerIdForStudentChat = (studentId, requestedTrainerId) => __awai
 });
 exports.resolveTrainerIdForStudentChat = resolveTrainerIdForStudentChat;
 const canAccessChatPair = (userId, userRole, studentId, trainerId) => __awaiter(void 0, void 0, void 0, function* () {
-    if (userRole === 'student') {
+    if ((0, roles_1.isLearnerRole)(userRole)) {
         if (userId !== studentId)
             return false;
         return Boolean(yield (0, exports.findAssignedBatchForChat)(studentId, trainerId));

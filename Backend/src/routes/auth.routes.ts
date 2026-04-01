@@ -10,6 +10,7 @@ import { connectGoogle, googleCallback } from '../controllers/auth.google.contro
 import { updateProfile } from '../controllers/user.controller';
 import { protect } from '../middlewares/auth.middleware';
 import { upload } from '../config/multer';
+import { institutionBrandUpload } from '../config/institutionBrandUpload';
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.post('/register', register);
 router.post('/verify-otp', verifyOtp);
 router.post('/resend-otp', resendOtp);
 router.post('/login', login);
-router.post('/institution/register', registerInstitution);
+router.post('/institution/register', institutionBrandUpload.single('logo'), registerInstitution);
 router.post('/institution/verify-otp', verifyInstitutionOtp);
 router.post('/institution/resend-otp', resendInstitutionOtp);
 router.post('/institution/login', loginInstitution);

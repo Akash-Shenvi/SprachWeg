@@ -29,6 +29,8 @@ import Button from '../components/ui/Button';
 import ProfileCompletionModal from '../components/auth/ProfileCompletionModal';
 import { formatInternshipMode } from '../types/internship';
 import { formatWebinarDateTime, formatWebinarPrice, type ApprovedWebinar } from '../types/webinar';
+import InstitutionStudentHeader from '../components/layout/InstitutionStudentHeader';
+import { formatRoleLabel, isInstitutionStudentRole } from '../lib/roles';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -434,6 +436,7 @@ const StudentDashboard: React.FC = () => {
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
+    const isInstitutionStudent = isInstitutionStudentRole(user?.role);
     const [courses, setCourses] = useState<any[]>([]);
     const [skillCourses, setSkillCourses] = useState<ApprovedSkillCourse[]>([]);
     const [enrolledInternships, setEnrolledInternships] = useState<EnrolledInternship[]>([]);
@@ -560,19 +563,29 @@ const StudentDashboard: React.FC = () => {
             </a>
 
             {/* Hero */}
-            <section className="relative bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#1a365d] overflow-hidden py-24 sm:py-32 text-center">
-                <HeroBackground />
-                <div className="relative z-10 max-w-3xl mx-auto px-4">
-                    <motion.div initial="hidden" animate="visible" variants={fadeInUp}>
-                        <div className="inline-flex items-center gap-2 rounded-full border border-[#d6b161]/30 bg-[#d6b161]/10 px-4 py-1.5 mb-5">
-                            <Layers className="h-3.5 w-3.5 text-[#d6b161]" />
-                            <span className="text-xs font-semibold uppercase tracking-widest text-[#d6b161]">Student Portal</span>
-                        </div>
-                        <h1 className="mb-3 text-4xl font-bold font-sans md:text-5xl text-white">Student Dashboard</h1>
-                        <p className="text-lg text-gray-400">Welcome back, <span className="text-[#d6b161] font-semibold">{user?.name}</span>!</p>
-                    </motion.div>
-                </div>
-            </section>
+            {isInstitutionStudent ? (
+                <InstitutionStudentHeader
+                    institutionName={user?.institutionName}
+                    institutionLogo={user?.institutionLogo}
+                    institutionTagline={user?.institutionTagline}
+                    studentName={user?.name}
+                    className="py-8"
+                />
+            ) : (
+                <section className="relative overflow-hidden bg-gradient-to-br from-[#0a192f] via-[#112240] to-[#1a365d] py-24 text-center sm:py-32">
+                    <HeroBackground />
+                    <div className="relative z-10 mx-auto max-w-3xl px-4">
+                        <motion.div initial="hidden" animate="visible" variants={fadeInUp}>
+                            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#d6b161]/30 bg-[#d6b161]/10 px-4 py-1.5">
+                                <Layers className="h-3.5 w-3.5 text-[#d6b161]" />
+                                <span className="text-xs font-semibold uppercase tracking-widest text-[#d6b161]">Student Portal</span>
+                            </div>
+                            <h1 className="mb-3 text-4xl font-bold font-sans text-white md:text-5xl">Student Dashboard</h1>
+                            <p className="text-lg text-gray-400">Welcome back, <span className="font-semibold text-[#d6b161]">{user?.name}</span>!</p>
+                        </motion.div>
+                    </div>
+                </section>
+            )}
 
             <main id="main-content" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
                 <div className="grid gap-8 lg:grid-cols-12">
@@ -597,21 +610,23 @@ const StudentDashboard: React.FC = () => {
                                     </div>
                                     <h3 className="text-lg font-bold text-white">{user?.name}</h3>
                                     <span className="mt-1 inline-block rounded-full bg-[#d6b161]/20 px-3 py-0.5 text-xs font-bold uppercase tracking-wider text-[#d6b161]">
-                                        {user?.role}
+                                        {formatRoleLabel(user?.role)}
                                     </span>
                                 </div>
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex border-b border-gray-100 dark:border-gray-700 divide-x divide-gray-100 dark:divide-gray-700">
-                                <Button
-                                    onClick={() => setIsProfileModalOpen(true)}
-                                    className="flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-[#d6b161] dark:hover:text-[#d6b161] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                                    title="Edit Profile"
-                                >
-                                    <Edit className="h-4 w-4" />
-                                    Edit Profile
-                                </Button>
+                            <div className={`flex border-b border-gray-100 dark:border-gray-700 ${isInstitutionStudent ? '' : 'divide-x divide-gray-100 dark:divide-gray-700'}`}>
+                                {!isInstitutionStudent && (
+                                    <Button
+                                        onClick={() => setIsProfileModalOpen(true)}
+                                        className="flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-[#d6b161] dark:hover:text-[#d6b161] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                                        title="Edit Profile"
+                                    >
+                                        <Edit className="h-4 w-4" />
+                                        Edit Profile
+                                    </Button>
+                                )}
                                 <button
                                     onClick={() => { logout(); navigate('/login'); }}
                                     className="flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
@@ -627,6 +642,9 @@ const StudentDashboard: React.FC = () => {
                                 <ProfileField icon={<User className="h-4 w-4" />} label="Full Name" value={user?.name} />
                                 <ProfileField icon={<Mail className="h-4 w-4" />} label="Email Address" value={user?.email} />
                                 <ProfileField icon={<Phone className="h-4 w-4" />} label="Phone" value={user?.phoneNumber} />
+                                {isInstitutionStudent && (
+                                    <ProfileField icon={<Layers className="h-4 w-4" />} label="Institution" value={user?.institutionName} />
+                                )}
                                 <ProfileField icon={<CalendarDays className="h-4 w-4" />} label="Date of Birth" value={user?.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString() : null} />
                                 <ProfileField icon={<GraduationCap className="h-4 w-4" />} label="Qualification" value={user?.qualification} />
 

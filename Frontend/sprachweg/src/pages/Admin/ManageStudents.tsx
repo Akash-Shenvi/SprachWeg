@@ -4,6 +4,7 @@ import { BookOpen, Calendar, ChevronLeft, ChevronRight, Eye, GraduationCap, Mail
 import AdminLayout from '../../components/admin/AdminLayout';
 import Button from '../../components/ui/Button';
 import api, { getAssetUrl } from '../../lib/api';
+import { formatRoleLabel } from '../../lib/roles';
 
 interface UserRecord {
     _id: string;
@@ -35,7 +36,7 @@ interface SkillEnrollment {
 
 const LIMIT = 10;
 const formatDate = (value?: string) => (value ? new Date(value).toLocaleDateString() : 'Not Provided');
-const formatRole = (role?: string) => (role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User');
+const formatRole = (role?: string) => formatRoleLabel(role);
 const isAdminUser = (role?: string) => String(role ?? '').trim().toLowerCase() === 'admin';
 const roleClass = (role?: string) => {
     switch (String(role ?? '').toLowerCase()) {

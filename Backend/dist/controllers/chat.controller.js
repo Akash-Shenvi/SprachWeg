@@ -16,6 +16,7 @@ exports.getChatHistory = void 0;
 const chat_message_model_1 = __importDefault(require("../models/chat.message.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const chat_access_1 = require("../utils/chat-access");
+const roles_1 = require("../utils/roles");
 // GET /api/chat/:studentId  — load last 50 messages in a private conversation
 const getChatHistory = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
@@ -27,7 +28,7 @@ const getChatHistory = (req, res) => __awaiter(void 0, void 0, void 0, function*
         let trainerId;
         let trainerName = 'Trainer';
         let studentName = 'Student';
-        if (requesterRole === 'student') {
+        if ((0, roles_1.isLearnerRole)(requesterRole)) {
             // Student can only fetch their own chat
             if (requesterId !== studentId) {
                 return res.status(403).json({ message: 'Not authorized to view this chat' });

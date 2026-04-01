@@ -7,7 +7,8 @@
     "start": "node dist/server.js",
     "dev": "nodemon src/server.ts",
     "build": "tsc",
-    "seed:internships": "ts-node src/seedInternships.ts"
+    "seed:internships": "ts-node src/seedInternships.ts",
+    "backfill:institution-students": "ts-node src/backfillInstitutionStudents.ts"
   },
   "keywords": [],
   "author": "",

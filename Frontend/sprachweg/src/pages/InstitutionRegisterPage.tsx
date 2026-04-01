@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Building2, Mail, MapPin, Phone, User2 } from 'lucide-react';
+import { Building2, ImagePlus, Mail, MapPin, Phone, User2 } from 'lucide-react';
 import { Header } from '../components/layout';
 import Footer from '../components/layout/Footer';
 import Button from '../components/ui/Button';
@@ -28,14 +28,22 @@ const InstitutionRegisterPage: React.FC = () => {
         city: '',
         state: '',
         address: '',
+        tagline: '',
         otp: '',
     });
+    const [logoFile, setLogoFile] = useState<File | null>(null);
 
     const handleRegister = async (event: React.FormEvent) => {
         event.preventDefault();
         setLoading(true);
         setError('');
         setMessage('');
+
+        if (!logoFile) {
+            setError('Institution logo is required.');
+            setLoading(false);
+            return;
+        }
 
         try {
             await institutionRegister({
@@ -47,6 +55,8 @@ const InstitutionRegisterPage: React.FC = () => {
                 city: formData.city,
                 state: formData.state,
                 address: formData.address,
+                tagline: formData.tagline,
+                logo: logoFile as File,
             });
             setStep('verify');
             setMessage('Verification code sent to your institution email.');
@@ -111,6 +121,10 @@ const InstitutionRegisterPage: React.FC = () => {
                             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                                 <p className="text-sm font-semibold text-[#f0d79a]">Basic contact profile</p>
                                 <p className="mt-2 text-sm text-blue-100">Institution name, contact person, phone, address, city, and state.</p>
+                            </div>
+                            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                <p className="text-sm font-semibold text-[#f0d79a]">Brand identity</p>
+                                <p className="mt-2 text-sm text-blue-100">Upload your logo and add a tagline so students see your institution branding in their learning portal.</p>
                             </div>
                             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                                 <p className="text-sm font-semibold text-[#f0d79a]">OTP verification</p>
@@ -255,6 +269,35 @@ const InstitutionRegisterPage: React.FC = () => {
                                         autoComplete="street-address"
                                         required
                                     />
+                                </label>
+
+                                <label className="block">
+                                    <span className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200">Institution Tagline</span>
+                                    <input
+                                        type="text"
+                                        value={formData.tagline}
+                                        onChange={(event) => setFormData((current) => ({ ...current, tagline: event.target.value }))}
+                                        className={institutionFieldClassName}
+                                        placeholder="Example: Industry-ready German training for future engineers"
+                                        required
+                                    />
+                                </label>
+
+                                <label className="block">
+                                    <span className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-200">Institution Logo</span>
+                                    <div className="relative">
+                                        <ImagePlus className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(event) => setLogoFile(event.target.files?.[0] || null)}
+                                            className={institutionFieldWithIconClassName}
+                                            required
+                                        />
+                                    </div>
+                                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                        PNG, JPG, or any image format up to 5 MB.
+                                    </p>
                                 </label>
 
                                 <label className="block">

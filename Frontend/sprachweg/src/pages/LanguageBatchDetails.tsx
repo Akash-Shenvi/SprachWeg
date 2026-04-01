@@ -33,9 +33,11 @@ import {
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
+import InstitutionStudentHeader from '../components/layout/InstitutionStudentHeader';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import api, { getAssetUrl } from '../lib/api';
+import { isInstitutionStudentRole, isLearnerRole } from '../lib/roles';
 
 type TrainingType = 'language' | 'skill';
 
@@ -183,7 +185,8 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
 
     const isTrainer = user?.role === 'trainer' || user?._id === batch?.trainerId;
     const isAdmin = user?.role === 'admin';
-    const isStudent = user?.role === 'student';
+    const isLearner = isLearnerRole(user?.role);
+    const isInstitutionStudent = isInstitutionStudentRole(user?.role);
 
     // --- Paginated fetch helpers ---
     const fetchTab = async (tab: typeof activeTab, page: number, append = false) => {
@@ -290,7 +293,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
     }, [isTrainer]);
 
     useEffect(() => {
-        if (!isStudent) return;
+        if (!isLearner) return;
 
         const handleClickOutside = (event: MouseEvent) => {
             if (quickActionsRef.current && !quickActionsRef.current.contains(event.target as Node)) {
@@ -305,7 +308,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
             document.removeEventListener('mousedown', handleClickOutside);
             document.removeEventListener('touchstart', handleClickOutside as unknown as EventListener);
         };
-    }, [isStudent]);
+    }, [isLearner]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -508,9 +511,17 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-950 dark:to-gray-950 flex flex-col">
-            {!isStudent && <Header />}
+            {!isLearner && <Header />}
+            {isInstitutionStudent && (
+                <InstitutionStudentHeader
+                    institutionName={user?.institutionName}
+                    institutionLogo={user?.institutionLogo}
+                    institutionTagline={user?.institutionTagline}
+                    studentName={user?.name}
+                />
+            )}
 
-            {isStudent && (
+            {isLearner && (
                 <div ref={quickActionsRef} className="fixed right-4 top-4 z-50 flex items-center gap-3">
                     <button
                         type="button"
@@ -563,10 +574,10 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                 </div>
             )}
 
-            <main className={`flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${isStudent ? 'py-20 sm:py-24 lg:py-24' : 'py-6 sm:py-8 lg:py-10'}`}>
+            <main className={`flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${isLearner ? 'py-20 sm:py-24 lg:py-24' : 'py-6 sm:py-8 lg:py-10'}`}>
                 {/* Navigation */}
                 <div className="mb-8 animate-in fade-in slide-in-from-top duration-500">
-                    {!isStudent && (
+                    {!isLearner && (
                         <button
                             onClick={() => isAdmin ? navigate('/admin-dashboard') : navigate(-1)}
                             className="group inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-all duration-300 hover:gap-3 mb-6"
@@ -937,12 +948,12 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                                                 <span className="inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg font-medium">
                                                     Published {new Date(assessment.publishedAt || assessment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                                 </span>
-                                                {isStudent && typeof assessment.latestScore === 'number' && (
+                                                {isLearner && typeof assessment.latestScore === 'number' && (
                                                     <span className="inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-700/50 px-3 py-1.5 rounded-lg font-medium">
                                                         Latest Score {assessment.latestScore}%
                                                     </span>
                                                 )}
-                                                {isStudent && assessment.finalized && (
+                                                {isLearner && assessment.finalized && (
                                                     <span className="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1.5 rounded-lg font-bold text-xs uppercase tracking-wider">
                                                         <BadgeCheck className="h-4 w-4" />
                                                         Finalized
@@ -967,7 +978,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                                                 </div>
                                             )}
 
-                                            {isStudent && (
+                                            {isLearner && (
                                                 <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
                                                     <span className="rounded-xl bg-gray-100 dark:bg-gray-700/50 px-4 py-2 font-semibold">
                                                         Attempts: {assessment.attemptCount}
@@ -992,7 +1003,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                                                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#d6b161] px-5 py-3 text-sm font-bold text-[#0a192f] transition hover:bg-[#c4a055]"
                                             >
                                                 <ExternalLink className="h-4 w-4" />
-                                                {isStudent
+                                                {isLearner
                                                     ? assessment.finalized
                                                         ? 'View Final Result'
                                                         : assessment.attemptCount === 0
@@ -1002,7 +1013,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                                                                 : 'Open Assessment'
                                                     : 'Open Assessment'}
                                             </button>
-                                            {isStudent && assessment.canRetry && assessment.attemptCount > 0 && !assessment.finalized && (
+                                            {isLearner && assessment.canRetry && assessment.attemptCount > 0 && !assessment.finalized && (
                                                 <span className="inline-flex items-center justify-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-semibold text-orange-700 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-300">
                                                     <RotateCcw className="h-3.5 w-3.5" />
                                                     Retry available
@@ -1555,7 +1566,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                 </div>
             )}
 
-            {!isStudent && <Footer />}
+            {!isLearner && <Footer />}
         </div>
     );
 };

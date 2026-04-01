@@ -15,7 +15,10 @@ interface User {
     guardianPhone?: string;
     qualification?: string;
     dateOfBirth?: string;
+    institutionId?: string;
     institutionName?: string;
+    institutionLogo?: string;
+    institutionTagline?: string;
     contactPersonName?: string;
     city?: string;
     state?: string;
@@ -31,6 +34,8 @@ interface InstitutionRegistrationPayload {
     city: string;
     state: string;
     address: string;
+    tagline: string;
+    logo: File;
 }
 
 interface AuthContextType {
@@ -113,7 +118,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const institutionRegister = async (payload: InstitutionRegistrationPayload) => {
-        await api.post('/auth/institution/register', payload);
+        const formData = new FormData();
+        formData.append('institutionName', payload.institutionName);
+        formData.append('contactPersonName', payload.contactPersonName);
+        formData.append('email', payload.email);
+        formData.append('phoneNumber', payload.phoneNumber);
+        formData.append('password', payload.password);
+        formData.append('city', payload.city);
+        formData.append('state', payload.state);
+        formData.append('address', payload.address);
+        formData.append('tagline', payload.tagline);
+        formData.append('logo', payload.logo);
+
+        await api.post('/auth/institution/register', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
     };
 
     const institutionVerifyOtp = async (email: string, otp: string) => {

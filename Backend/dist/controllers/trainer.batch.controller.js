@@ -27,6 +27,7 @@ const skill_material_model_1 = __importDefault(require("../models/skill.material
 const user_model_1 = __importDefault(require("../models/user.model"));
 const google_calendar_service_1 = require("../services/google.calendar.service");
 const language_trainer_controller_1 = require("./language.trainer.controller");
+const roles_1 = require("../utils/roles");
 const googleService = new google_calendar_service_1.GoogleCalendarService();
 const DEFAULT_PAGE_LIMIT = 10;
 const MAX_PAGE_LIMIT = 50;
@@ -864,7 +865,7 @@ const submitTrainerBatchAssessment = (req, res) => __awaiter(void 0, void 0, voi
             return res.status(404).json({ message: 'Assessment not found' });
         }
         const access = yield getSharedBatchAccess(req, trainingType, String(assessment.batchId));
-        if (!access || !access.isStudent || ((_a = req.user) === null || _a === void 0 ? void 0 : _a.role) !== 'student') {
+        if (!access || !access.isStudent || !(0, roles_1.isLearnerRole)((_a = req.user) === null || _a === void 0 ? void 0 : _a.role)) {
             return res.status(403).json({ message: 'Only enrolled students can submit this assessment' });
         }
         const existingPassedAttempt = yield assessmentAttempt_model_1.default.findOne({

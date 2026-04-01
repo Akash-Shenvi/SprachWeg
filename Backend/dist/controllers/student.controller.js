@@ -37,6 +37,7 @@ const announcement_model_1 = __importDefault(require("../models/announcement.mod
 const skill_material_model_1 = __importDefault(require("../models/skill.material.model"));
 const institutionEnrollmentRequest_model_1 = __importDefault(require("../models/institutionEnrollmentRequest.model"));
 const payment_helpers_1 = require("../utils/payment.helpers");
+const roles_1 = require("../utils/roles");
 const buildLanguagePaymentKey = (params) => {
     var _a, _b, _c;
     return [
@@ -346,7 +347,7 @@ const getActiveClassStudents = (req, res) => __awaiter(void 0, void 0, void 0, f
             }
             const studentFilter = {
                 _id: { $in: batch.students },
-                role: 'student',
+                role: { $in: [...roles_1.LEARNER_ROLES] },
             };
             if (search) {
                 studentFilter.$or = [
@@ -391,7 +392,7 @@ const getActiveClassStudents = (req, res) => __awaiter(void 0, void 0, void 0, f
         }
         const studentFilter = {
             _id: { $in: batch.students },
-            role: 'student',
+            role: { $in: [...roles_1.LEARNER_ROLES] },
         };
         if (search) {
             studentFilter.$or = [

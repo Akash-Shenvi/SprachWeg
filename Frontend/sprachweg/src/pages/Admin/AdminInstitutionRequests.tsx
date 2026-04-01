@@ -28,6 +28,8 @@ interface InstitutionRequest {
         email: string;
         phoneNumber?: string;
         institutionName?: string;
+        institutionLogo?: string;
+        institutionTagline?: string;
         contactPersonName?: string;
         city?: string;
         state?: string;

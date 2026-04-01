@@ -30,8 +30,14 @@ export const registerInstitution = async (req: Request, res: Response) => {
     const registerDto = plainToClass(InstitutionRegisterDto, req.body);
     const errors = await validate(registerDto);
     if (errors.length > 0) return res.status(400).json({ errors });
+    if (!req.file) {
+        return res.status(400).json({ message: 'Institution logo is required.' });
+    }
 
     const normalizedEmail = normalizeEmail(registerDto.email);
+    const institutionName = registerDto.institutionName.trim();
+    const institutionLogo = `/uploads/institutions/${req.file.filename}`;
+    const institutionTagline = registerDto.tagline.trim();
 
     try {
         let user = await User.findOne({ email: normalizedEmail });
@@ -47,8 +53,10 @@ export const registerInstitution = async (req: Request, res: Response) => {
         const { hashedPassword, otp, otpHash, otpExpires } = await buildInstitutionUserPayload(registerDto);
 
         if (user) {
-            user.name = registerDto.institutionName.trim();
-            user.institutionName = registerDto.institutionName.trim();
+            user.name = institutionName;
+            user.institutionName = institutionName;
+            user.institutionLogo = institutionLogo;
+            user.institutionTagline = institutionTagline;
             user.contactPersonName = registerDto.contactPersonName.trim();
             user.email = normalizedEmail;
             user.password = hashedPassword;
@@ -64,8 +72,10 @@ export const registerInstitution = async (req: Request, res: Response) => {
             await user.save();
         } else {
             user = new User({
-                name: registerDto.institutionName.trim(),
-                institutionName: registerDto.institutionName.trim(),
+                name: institutionName,
+                institutionName: institutionName,
+                institutionLogo,
+                institutionTagline,
                 contactPersonName: registerDto.contactPersonName.trim(),
                 email: normalizedEmail,
                 password: hashedPassword,
@@ -81,7 +91,7 @@ export const registerInstitution = async (req: Request, res: Response) => {
             await user.save();
         }
 
-        await emailService.sendOtp(normalizedEmail, otp, registerDto.institutionName.trim(), 'Institution Portal Verification');
+        await emailService.sendOtp(normalizedEmail, otp, institutionName, 'Institution Portal Verification');
 
         return res.status(201).json({ message: 'OTP sent to email' });
     } catch (error) {

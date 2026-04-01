@@ -41,6 +41,8 @@ const sanitizeInstitutionRequest = (request) => ({
             email: request.institutionId.email,
             phoneNumber: request.institutionId.phoneNumber,
             institutionName: request.institutionId.institutionName,
+            institutionLogo: request.institutionId.institutionLogo,
+            institutionTagline: request.institutionId.institutionTagline,
             contactPersonName: request.institutionId.contactPersonName,
             city: request.institutionId.city,
             state: request.institutionId.state,
@@ -206,8 +208,12 @@ const processInstitutionApproval = (params) => __awaiter(void 0, void 0, void 0,
                 name: normalizeText(studentEntry.name),
                 email: normalizeEmail(studentEntry.email),
                 password: studentEntry.passwordHash,
-                role: 'student',
+                role: 'institution_student',
                 isVerified: true,
+                institutionId: institution._id,
+                institutionName: institution.institutionName || institution.name,
+                institutionLogo: institution.institutionLogo || undefined,
+                institutionTagline: institution.institutionTagline || undefined,
             });
             if (session) {
                 yield studentUser.save({ session });
@@ -274,7 +280,7 @@ const getInstitutionDashboard = (req, res) => __awaiter(void 0, void 0, void 0, 
     try {
         const institutionId = String(((_a = req.user) === null || _a === void 0 ? void 0 : _a._id) || '');
         const [institution, germanCourse, submissions] = yield Promise.all([
-            user_model_1.default.findById(institutionId).select('name email role phoneNumber institutionName contactPersonName city state address'),
+            user_model_1.default.findById(institutionId).select('name email role phoneNumber institutionName institutionLogo institutionTagline contactPersonName city state address'),
             getGermanCourse(),
             institutionEnrollmentRequest_model_1.default.find({ institutionId })
                 .sort({ createdAt: -1 })
@@ -291,6 +297,8 @@ const getInstitutionDashboard = (req, res) => __awaiter(void 0, void 0, void 0, 
                 role: institution.role,
                 phoneNumber: institution.phoneNumber,
                 institutionName: institution.institutionName,
+                institutionLogo: institution.institutionLogo,
+                institutionTagline: institution.institutionTagline,
                 contactPersonName: institution.contactPersonName,
                 city: institution.city,
                 state: institution.state,
@@ -444,7 +452,7 @@ const getAdminInstitutionRequests = (req, res) => __awaiter(void 0, void 0, void
         const currentPage = Math.min(rawPage, totalPages);
         const skip = (currentPage - 1) * limit;
         const requests = yield institutionEnrollmentRequest_model_1.default.find(queryFilter)
-            .populate('institutionId', 'name email phoneNumber institutionName contactPersonName city state address')
+            .populate('institutionId', 'name email phoneNumber institutionName institutionLogo institutionTagline contactPersonName city state address')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
@@ -520,7 +528,7 @@ const approveInstitutionRequest = (req, res) => __awaiter(void 0, void 0, void 0
         }
         yield sendInstitutionStudentWelcomeEmailsInBatches(approvalArtifacts.createdStudentsForEmail);
         const approvedRequest = yield institutionEnrollmentRequest_model_1.default.findById(requestId)
-            .populate('institutionId', 'name email phoneNumber institutionName contactPersonName city state address');
+            .populate('institutionId', 'name email phoneNumber institutionName institutionLogo institutionTagline contactPersonName city state address');
         return res.status(200).json({
             message: 'Institution request approved successfully.',
             request: approvedRequest ? sanitizeInstitutionRequest(approvedRequest.toObject()) : null,

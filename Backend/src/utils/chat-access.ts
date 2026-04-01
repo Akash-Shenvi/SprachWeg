@@ -1,5 +1,6 @@
 import LanguageBatch from '../models/language.batch.model';
 import Batch from '../models/batch.model';
+import { isLearnerRole } from './roles';
 
 type ChatRole = 'student' | 'trainer' | string | undefined;
 
@@ -72,7 +73,7 @@ export const canAccessChatPair = async (
     studentId: string,
     trainerId: string
 ) => {
-    if (userRole === 'student') {
+    if (isLearnerRole(userRole)) {
         if (userId !== studentId) return false;
         return Boolean(await findAssignedBatchForChat(studentId, trainerId));
     }
