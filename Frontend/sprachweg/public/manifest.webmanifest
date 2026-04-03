@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "SoVir Skilling & Training Center",
+  "short_name": "SprachWeg",
+  "description": "Training portal for student, trainer, and institution notifications and learning workflows.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/sovir-logo.png",
+      "sizes": "666x375",
+      "type": "image/png"
+    }
+  ]
+}

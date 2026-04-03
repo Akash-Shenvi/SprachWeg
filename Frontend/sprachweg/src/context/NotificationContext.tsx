@@ -4,10 +4,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { API_BASE_URL, chatAPI, notificationsAPI, pushAPI } from '../lib/api';
 import {
+    getBrowserPushSupportDetails,
     clearBrowserPushEnabledFlag,
     getBrowserPushEnabledStorageKey,
     getExistingBrowserPushSubscription,
-    isBrowserPushSupported,
     PUSH_NOTIFICATION_QUERY_PARAM,
     registerBrowserPushServiceWorker,
     serializeBrowserPushSubscription,
@@ -234,14 +234,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             return;
         }
 
-        const supported = isBrowserPushSupported();
-        setPushSupported(supported);
-        setPushPermission(supported ? Notification.permission : 'unsupported');
+        const supportDetails = getBrowserPushSupportDetails();
+        setPushSupported(supportDetails.supported);
+        setPushPermission(supportDetails.supported ? Notification.permission : 'unsupported');
 
-        if (!supported) {
+        if (!supportDetails.supported) {
             setPushAvailable(false);
             setPushEnabled(false);
-            setPushHelperText('Not supported in this browser.');
+            setPushHelperText(supportDetails.helperText);
+            return;
+        }
+
+        if (!supportDetails.canUse) {
+            setPushAvailable(false);
+            setPushEnabled(false);
+            setPushHelperText(supportDetails.helperText);
             return;
         }
 
@@ -390,11 +397,21 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             return;
         }
 
-        if (!isBrowserPushSupported()) {
-            setPushSupported(false);
+        const supportDetails = getBrowserPushSupportDetails();
+        setPushSupported(supportDetails.supported);
+        setPushPermission(supportDetails.supported ? Notification.permission : 'unsupported');
+
+        if (!supportDetails.supported) {
             setPushAvailable(false);
-            setPushPermission('unsupported');
-            setPushHelperText('Not supported in this browser.');
+            setPushEnabled(false);
+            setPushHelperText(supportDetails.helperText);
+            return;
+        }
+
+        if (!supportDetails.canUse) {
+            setPushAvailable(false);
+            setPushEnabled(false);
+            setPushHelperText(supportDetails.helperText);
             return;
         }
 

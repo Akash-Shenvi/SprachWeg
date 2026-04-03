@@ -1,8 +1,80 @@
 import { API_BASE_URL } from './api';
 
 export const PUSH_NOTIFICATION_QUERY_PARAM = 'notificationId';
+export const APPLE_HOME_SCREEN_PUSH_HELPER =
+    'On iPhone and iPad, add this app to Home Screen and open it from there to enable push notifications.';
 
 const PUSH_SERVICE_WORKER_PATH = '/push-sw.js';
+
+type BrowserPushSupportDetails = {
+    supported: boolean;
+    canUse: boolean;
+    helperText: string;
+};
+
+const isBrowserEnvironment = () => (
+    typeof window !== 'undefined'
+    && typeof navigator !== 'undefined'
+);
+
+const isAppleMobileDevice = () => {
+    if (!isBrowserEnvironment()) {
+        return false;
+    }
+
+    const userAgent = navigator.userAgent || '';
+    const platform = navigator.platform || '';
+
+    return /iPhone|iPad|iPod/i.test(userAgent)
+        || (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
+export const isStandaloneWebApp = () => {
+    if (!isBrowserEnvironment()) {
+        return false;
+    }
+
+    const mediaQueryMatches = typeof window.matchMedia === 'function'
+        && window.matchMedia('(display-mode: standalone)').matches;
+    const navigatorStandalone = 'standalone' in navigator
+        && Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+
+    return mediaQueryMatches || navigatorStandalone;
+};
+
+export const getBrowserPushSupportDetails = (): BrowserPushSupportDetails => {
+    if (!isBrowserEnvironment()) {
+        return {
+            supported: false,
+            canUse: false,
+            helperText: 'Not supported in this browser.',
+        };
+    }
+
+    const hasCoreSupport = 'serviceWorker' in navigator && 'Notification' in window;
+
+    if (!hasCoreSupport) {
+        return {
+            supported: false,
+            canUse: false,
+            helperText: 'Not supported in this browser.',
+        };
+    }
+
+    if (isAppleMobileDevice() && !isStandaloneWebApp()) {
+        return {
+            supported: true,
+            canUse: false,
+            helperText: APPLE_HOME_SCREEN_PUSH_HELPER,
+        };
+    }
+
+    return {
+        supported: true,
+        canUse: true,
+        helperText: '',
+    };
+};
 
 export const getBrowserPushEnabledStorageKey = (userId: string) => (
     `browser_push_enabled_${String(userId || '').trim()}`
@@ -16,12 +88,7 @@ export const clearBrowserPushEnabledFlag = (userId: string) => {
     }
 };
 
-export const isBrowserPushSupported = () => (
-    typeof window !== 'undefined'
-    && 'serviceWorker' in navigator
-    && 'PushManager' in window
-    && 'Notification' in window
-);
+export const isBrowserPushSupported = () => getBrowserPushSupportDetails().supported;
 
 const urlBase64ToUint8Array = (value: string) => {
     const padding = '='.repeat((4 - value.length % 4) % 4);
@@ -37,16 +104,25 @@ const urlBase64ToUint8Array = (value: string) => {
 };
 
 export const registerBrowserPushServiceWorker = async () => {
-    if (!isBrowserPushSupported()) {
+    const supportDetails = getBrowserPushSupportDetails();
+
+    if (!supportDetails.canUse) {
+        throw new Error(supportDetails.helperText || 'Browser push is not supported');
+    }
+
+    const registration = await navigator.serviceWorker.register(PUSH_SERVICE_WORKER_PATH);
+    const readyRegistration = await navigator.serviceWorker.ready;
+    const pushRegistration = readyRegistration || registration;
+
+    if (!pushRegistration.pushManager) {
         throw new Error('Browser push is not supported');
     }
 
-    await navigator.serviceWorker.register(PUSH_SERVICE_WORKER_PATH);
-    return navigator.serviceWorker.ready;
+    return pushRegistration;
 };
 
 export const getExistingBrowserPushSubscription = async () => {
-    if (!isBrowserPushSupported()) {
+    if (!getBrowserPushSupportDetails().canUse) {
         return null;
     }
 
@@ -81,7 +157,7 @@ export const serializeBrowserPushSubscription = (subscription: PushSubscription)
 };
 
 export const bestEffortUnbindBrowserPushOnLogout = async (token: string) => {
-    if (!token || !isBrowserPushSupported()) {
+    if (!token || !getBrowserPushSupportDetails().canUse) {
         return;
     }
 
