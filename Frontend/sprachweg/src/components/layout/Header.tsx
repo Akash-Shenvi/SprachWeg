@@ -1,6 +1,6 @@
 // Header.tsx
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Sun, Moon, ChevronDown, Settings } from 'lucide-react';
 import Button from '../ui/Button';
@@ -19,6 +19,7 @@ const Header: React.FC = () => {
     const [internships, setInternships] = useState<InternshipListing[]>([]);
     const { theme, toggleTheme } = useTheme();
     const { user } = useAuth();
+    const location = useLocation();
     const showTrainerNotifications = String(user?.role || '').trim().toLowerCase() === 'trainer';
 
 
@@ -58,6 +59,12 @@ const Header: React.FC = () => {
 
         fetchInternships();
     }, []);
+
+    useEffect(() => {
+        setIsMenuOpen(false);
+        setOpenDropdown(null);
+        setIsSettingsOpen(false);
+    }, [location.pathname, location.search]);
 
     return (
         <nav ref={navRef} className="fixed w-full z-50 bg-white/90 dark:bg-[#0a192f]/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">

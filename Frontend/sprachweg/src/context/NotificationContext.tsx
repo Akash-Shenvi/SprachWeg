@@ -494,7 +494,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         void refreshUnreadCount();
         void refreshUnreadConversations();
         void refreshPushState();
-    }, [currentUserId, isEligible, loadNotifications, refreshPushState, refreshUnreadConversations, refreshUnreadCount]);
+    }, [currentUserId, isEligible]);
 
     useEffect(() => {
         if (!isEligible) {
@@ -512,7 +512,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return () => {
             window.removeEventListener('focus', handleWindowFocus);
         };
-    }, [isEligible, loadNotifications, refreshPushState, refreshUnreadConversations, refreshUnreadCount]);
+    }, [isEligible]);
 
     useEffect(() => {
         if (!isEligible || !user?._id) {
@@ -590,7 +590,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return () => {
             socket.disconnect();
         };
-    }, [isEligible, loadNotifications, markConversationAsRead, refreshUnreadConversations, refreshUnreadCount, user?._id]);
+    }, [isEligible, user?._id]);
 
     useEffect(() => {
         if (!isEligible) {
@@ -615,7 +615,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             },
             { replace: true }
         );
-    }, [isEligible, location.hash, location.pathname, location.search, markNotificationAsRead, navigate]);
+    }, [isEligible, location.hash, location.pathname, location.search, navigate]);
 
     const refreshNotifications = async () => {
         await loadNotifications(1, false);
