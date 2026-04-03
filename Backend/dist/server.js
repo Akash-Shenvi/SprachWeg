@@ -21,6 +21,9 @@ const database_1 = require("./config/database");
 const env_1 = require("./config/env");
 const chat_message_model_1 = __importDefault(require("./models/chat.message.model"));
 const user_model_1 = __importDefault(require("./models/user.model"));
+const chat_conversation_service_1 = require("./services/chat.conversation.service");
+const notification_service_1 = require("./services/notification.service");
+const socket_1 = require("./socket");
 const chat_access_1 = require("./utils/chat-access");
 const socketAllowedOrigins = Array.from(new Set([
     env_1.env.FRONTEND_BASE_URL,
@@ -45,6 +48,7 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
             credentials: true,
         }
     });
+    (0, socket_1.setSocketServer)(io);
     // ─── Socket.IO JWT Auth Middleware ───────────────────────────────────────────
     io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
@@ -69,6 +73,7 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     io.on('connection', (socket) => {
         const userId = socket.userId;
         const userRole = socket.userRole;
+        socket.join((0, socket_1.getUserSocketRoom)(userId));
         // Client joins their private 1-on-1 room
         socket.on('joinRoom', (_a, ack_1) => __awaiter(void 0, [_a, ack_1], void 0, function* ({ studentId, trainerId }, ack) {
             const sId = String(studentId);
@@ -87,6 +92,7 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         }));
         // Client sends a message
         socket.on('sendMessage', (_a, ack_1) => __awaiter(void 0, [_a, ack_1], void 0, function* ({ studentId, trainerId, content }, ack) {
+            var _b;
             if (!(content === null || content === void 0 ? void 0 : content.trim())) {
                 ack === null || ack === void 0 ? void 0 : ack({ ok: false, message: 'Message cannot be empty.' });
                 return;
@@ -110,8 +116,51 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
                 });
                 const populated = yield message.populate('senderId', 'name avatar _id');
                 const serializedMessage = typeof populated.toObject === 'function' ? populated.toObject() : populated;
+                const senderName = String(((_b = serializedMessage === null || serializedMessage === void 0 ? void 0 : serializedMessage.senderId) === null || _b === void 0 ? void 0 : _b.name) || 'New message').trim();
+                const sentAt = message.createdAt instanceof Date ? message.createdAt : new Date(message.createdAt);
+                const recipientUserId = userRole === 'trainer' ? sId : tId;
+                const linkPath = recipientUserId === sId
+                    ? `/chat/${encodeURIComponent(sId)}?trainerId=${encodeURIComponent(tId)}`
+                    : `/chat/${encodeURIComponent(sId)}`;
+                yield (0, chat_conversation_service_1.upsertConversationStateOnMessage)({
+                    studentId: sId,
+                    trainerId: tId,
+                    senderId: userId,
+                    senderRole: userRole,
+                    sentAt,
+                });
                 const room = `chat_${sId}_${tId}`;
                 io.to(room).emit('newMessage', serializedMessage);
+                (0, chat_conversation_service_1.emitChatConversationStateToUser)({
+                    recipientUserId: userId,
+                    studentId: sId,
+                    trainerId: tId,
+                    hasUnread: false,
+                    lastMessageAt: sentAt,
+                });
+                (0, chat_conversation_service_1.emitChatConversationStateToUser)({
+                    recipientUserId,
+                    studentId: sId,
+                    trainerId: tId,
+                    hasUnread: true,
+                    lastMessageAt: sentAt,
+                });
+                yield (0, notification_service_1.createNotifications)({
+                    recipientUserIds: [recipientUserId],
+                    actorUserId: userId,
+                    kind: 'chat_message',
+                    title: `New message from ${senderName}`,
+                    body: (0, notification_service_1.truncateNotificationText)(content.trim(), 140),
+                    linkPath,
+                    metadata: {
+                        messageId: String((serializedMessage === null || serializedMessage === void 0 ? void 0 : serializedMessage._id) || message._id),
+                        studentId: sId,
+                        trainerId: tId,
+                        senderId: userId,
+                        senderName,
+                    },
+                    allowedRoles: ['trainer', 'student', 'institution_student'],
+                });
                 ack === null || ack === void 0 ? void 0 : ack({ ok: true, chatMessage: serializedMessage });
                 console.log(`[Socket] Message sent in room: ${room}`);
             }

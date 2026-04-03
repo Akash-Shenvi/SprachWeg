@@ -91,4 +91,8 @@ const trainer_batch_routes_1 = __importDefault(require("./routes/trainer.batch.r
 app.use('/api/trainer-batches', trainer_batch_routes_1.default);
 const skill_batch_routes_1 = __importDefault(require("./routes/skill.batch.routes"));
 app.use('/api/skill-batches', skill_batch_routes_1.default);
+const notification_routes_1 = __importDefault(require("./routes/notification.routes"));
+app.use('/api/notifications', notification_routes_1.default);
+const push_routes_1 = __importDefault(require("./routes/push.routes"));
+app.use('/api/push', push_routes_1.default);
 exports.default = app;

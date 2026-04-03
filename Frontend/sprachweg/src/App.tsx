@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import ScrollToTop from './components/layout/ScrollToTop';
 import ProfileCompletionModal from './components/auth/ProfileCompletionModal';
@@ -490,7 +491,9 @@ const App = () => {
       <ThemeProvider>
         <AuthProvider>
           <BrowserRouter>
-            <AppContent />
+            <NotificationProvider>
+              <AppContent />
+            </NotificationProvider>
           </BrowserRouter>
         </AuthProvider>
       </ThemeProvider>

@@ -8,8 +8,17 @@ import LanguageClass from '../models/language.class.model';
 import User from '../models/user.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { GoogleCalendarService } from '../services/google.calendar.service';
+import {
+    buildBatchNotificationLink,
+    createNotifications,
+    formatNotificationDateTime,
+    truncateNotificationText,
+} from '../services/notification.service';
 
 const googleService = new GoogleCalendarService();
+const getLanguageBatchLabel = (batch: { courseTitle?: string; name?: string }) => (
+    [String(batch.courseTitle || '').trim(), String(batch.name || '').trim()].filter(Boolean).join(' - ') || 'your language batch'
+);
 
 // Get all batches assigned to the trainer
 export const getTrainerBatches = async (req: AuthRequest, res: Response) => {
@@ -74,6 +83,21 @@ export const addMaterial = async (req: AuthRequest, res: Response) => {
         });
 
         await material.save();
+        await createNotifications({
+            recipientUserIds: batch.students as any[],
+            actorUserId: trainerId || null,
+            kind: 'material',
+            trainingType: 'language',
+            batchId,
+            title: `New material: ${String(title || '').trim() || 'Course material'}`,
+            body: truncateNotificationText(
+                String(description || subtitle || `A new material has been added to ${getLanguageBatchLabel(batch)}.`)
+            ) || `A new material has been added to ${getLanguageBatchLabel(batch)}.`,
+            linkPath: buildBatchNotificationLink('language', batchId, 'materials'),
+            metadata: {
+                materialId: String(material._id),
+            },
+        });
         res.status(201).json(material);
     } catch (error) {
         console.error("Error adding material:", error);
@@ -104,6 +128,19 @@ export const addAnnouncement = async (req: AuthRequest, res: Response) => {
         });
 
         await announcement.save();
+        await createNotifications({
+            recipientUserIds: batch.students as any[],
+            actorUserId: trainerId || null,
+            kind: 'announcement',
+            trainingType: 'language',
+            batchId,
+            title: `New announcement: ${String(title || '').trim() || 'Course update'}`,
+            body: truncateNotificationText(String(content || '')) || `A new announcement was posted in ${getLanguageBatchLabel(batch)}.`,
+            linkPath: buildBatchNotificationLink('language', batchId, 'announcements'),
+            metadata: {
+                announcementId: String(announcement._id),
+            },
+        });
         res.status(201).json(announcement);
     } catch (error) {
         res.status(500).json({ message: 'Error adding announcement', error });
@@ -321,6 +358,20 @@ export const scheduleClass = async (req: AuthRequest, res: Response) => {
         });
 
         await newClass.save();
+        await createNotifications({
+            recipientUserIds: batch.students as any[],
+            actorUserId: trainerId || null,
+            kind: 'class',
+            trainingType: 'language',
+            batchId,
+            title: `New class scheduled: ${String(topic || '').trim() || 'Live class'}`,
+            body: `${getLanguageBatchLabel(batch)} class is scheduled for ${formatNotificationDateTime(startTime)}.`,
+            linkPath: buildBatchNotificationLink('language', batchId, 'classes'),
+            metadata: {
+                classId: String(newClass._id),
+                startTime,
+            },
+        });
         res.status(201).json(newClass);
     } catch (error) {
         console.error(error);

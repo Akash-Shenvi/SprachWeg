@@ -5,7 +5,8 @@ import { Send, ArrowLeft, MessageCircle, WifiOff } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import Header from '../components/layout/Header';
 import { useAuth } from '../context/AuthContext';
-import api, { API_BASE_URL, getAssetUrl } from '../lib/api';
+import { useNotifications } from '../context/NotificationContext';
+import { API_BASE_URL, chatAPI, getAssetUrl } from '../lib/api';
 import { isLearnerRole } from '../lib/roles';
 
 // ============================================================================
@@ -88,6 +89,7 @@ const ChatPage: React.FC = () => {
     const { studentId } = useParams<{ studentId: string }>();
     const [searchParams] = useSearchParams();
     const { user } = useAuth();
+    const { markConversationAsRead, registerOpenConversation } = useNotifications();
     const navigate = useNavigate();
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -118,17 +120,15 @@ const ChatPage: React.FC = () => {
                 setError(null);
                 setSocketError(null);
                 setConnected(false);
-                const res = await api.get(`/chat/${studentId}`, {
-                    params: requestedTrainerId ? { trainerId: requestedTrainerId } : undefined
-                });
-                setMessages(res.data.messages || []);
-                setTrainerId(res.data.trainerId);
+                const response = await chatAPI.getHistory(studentId, requestedTrainerId);
+                setMessages(response.messages || []);
+                setTrainerId(response.trainerId);
 
                 // Determine who the "other party" is
                 if (isStudent) {
-                    setOtherPartyName(res.data.trainerName || 'Trainer');
+                    setOtherPartyName(response.trainerName || 'Trainer');
                 } else {
-                    setOtherPartyName(res.data.studentName || 'Student');
+                    setOtherPartyName(response.studentName || 'Student');
                 }
             } catch (err: any) {
                 setMessages([]);
@@ -141,6 +141,44 @@ const ChatPage: React.FC = () => {
 
         loadHistory();
     }, [studentId, isStudent, requestedTrainerId]);
+
+    useEffect(() => {
+        if (!studentId || !trainerId) {
+            registerOpenConversation(null);
+            return;
+        }
+
+        registerOpenConversation({ studentId, trainerId });
+
+        return () => {
+            registerOpenConversation(null);
+        };
+    }, [registerOpenConversation, studentId, trainerId]);
+
+    useEffect(() => {
+        if (!studentId || !trainerId) {
+            return;
+        }
+
+        void markConversationAsRead({ studentId, trainerId });
+    }, [markConversationAsRead, studentId, trainerId]);
+
+    useEffect(() => {
+        if (!studentId || !trainerId) {
+            return;
+        }
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                void markConversationAsRead({ studentId, trainerId });
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [markConversationAsRead, studentId, trainerId]);
 
     // ── Set up Socket.IO once trainerId is known ─────────────────────────────
     useEffect(() => {
@@ -190,6 +228,10 @@ const ChatPage: React.FC = () => {
 
         socket.on('newMessage', (msg: ChatMessage) => {
             setMessages((prev) => appendUniqueChatMessage(prev, msg));
+
+            if (msg.senderId._id !== myId && document.visibilityState === 'visible') {
+                void markConversationAsRead({ studentId, trainerId });
+            }
         });
 
         socket.on('error', (err: { message: string }) => {
@@ -204,7 +246,7 @@ const ChatPage: React.FC = () => {
             socket.disconnect();
             socketRef.current = null;
         };
-    }, [studentId, myId, trainerId]);
+    }, [markConversationAsRead, myId, studentId, trainerId]);
 
     // ── Auto-scroll to bottom ────────────────────────────────────────────────
     useEffect(() => {

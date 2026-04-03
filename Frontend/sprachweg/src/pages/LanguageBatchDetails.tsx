@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Video,
     FileText,
@@ -24,22 +24,33 @@ import {
     Eye,
     ExternalLink,
     MessageCircle,
-    LayoutDashboard,
     RotateCcw,
-    Settings,
-    Moon,
-    Sun
 
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import InstitutionStudentHeader from '../components/layout/InstitutionStudentHeader';
+import LearnerQuickActions from '../components/layout/LearnerQuickActions';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useNotifications } from '../context/NotificationContext';
 import api, { getAssetUrl } from '../lib/api';
 import { isInstitutionStudentRole, isLearnerRole } from '../lib/roles';
 
 type TrainingType = 'language' | 'skill';
+type BatchTab = 'announcements' | 'materials' | 'students' | 'classes' | 'assessments';
+
+const BATCH_TABS: BatchTab[] = ['announcements', 'materials', 'students', 'classes', 'assessments'];
+
+const getBatchTabFromSearchParams = (searchParams: URLSearchParams, fallbackTab: BatchTab): BatchTab => {
+    const requestedTab = String(searchParams.get('tab') || '').trim().toLowerCase();
+    return BATCH_TABS.includes(requestedTab as BatchTab) ? requestedTab as BatchTab : fallbackTab;
+};
+
+const getUnreadTrainerChatButtonClasses = (hasUnread: boolean) => (
+    hasUnread
+        ? 'flex items-center gap-2 px-3 py-2 rounded-xl border border-[#d6b161]/30 bg-[#d6b161] text-[#0a192f] text-sm font-semibold shadow-sm transition-colors duration-200 hover:bg-[#cfaa5b]'
+        : 'flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#d6b161]/10 text-[#d6b161] hover:bg-[#d6b161]/20 text-sm font-semibold transition-colors duration-200'
+);
 
 interface Annotation {
     _id: string;
@@ -121,17 +132,19 @@ interface LanguageBatchDetailsProps {
 const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingType = 'language' }) => {
     const { batchId } = useParams<{ batchId: string }>();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { user } = useAuth();
-    const { theme, toggleTheme } = useTheme();
+    const { hasUnreadConversation } = useNotifications();
     const trainerBatchBasePath = `/trainer-batches/${trainingType}`;
     const batchRouteBasePath = trainingType === 'language' ? '/language-batch' : '/skill-batch';
     const [batch, setBatch] = useState<BatchDetails | null>(null);
     const [loading, setLoading] = useState(true);
     const isAdminUser = user?.role === 'admin';
-    const [activeTab, setActiveTab] = useState<'announcements' | 'materials' | 'students' | 'classes' | 'assessments'>(isAdminUser ? 'classes' : 'announcements');
+    const [activeTab, setActiveTab] = useState<BatchTab>(() => (
+        getBatchTabFromSearchParams(searchParams, isAdminUser ? 'classes' : 'announcements')
+    ));
     const contentContainerRef = useRef<HTMLDivElement>(null);
     const tabsContainerRef = useRef<HTMLDivElement>(null);
-    const quickActionsRef = useRef<HTMLDivElement>(null);
 
     // Forms State
     const [showAddModal, setShowAddModal] = useState(false);
@@ -153,7 +166,6 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
     // View Student Profile State
     const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
     const [isAvatarFullScreen, setIsAvatarFullScreen] = useState(false);
-    const [isQuickSettingsOpen, setIsQuickSettingsOpen] = useState(false);
 
     // Pagination State — per tab
     const PAGE_LIMIT = 10;
@@ -187,6 +199,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
     const isAdmin = user?.role === 'admin';
     const isLearner = isLearnerRole(user?.role);
     const isInstitutionStudent = isInstitutionStudentRole(user?.role);
+    const currentUserId = user?._id || (user as any)?.id;
 
     // --- Paginated fetch helpers ---
     const fetchTab = async (tab: typeof activeTab, page: number, append = false) => {
@@ -263,6 +276,25 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
         };
     }, [activeTab, batchId, trainingType]);
 
+    useEffect(() => {
+        const fallbackTab = isAdminUser ? 'classes' : 'announcements';
+        const requestedTab = getBatchTabFromSearchParams(searchParams, fallbackTab);
+
+        setActiveTab((currentTab) => currentTab === requestedTab ? currentTab : requestedTab);
+    }, [searchParams, isAdminUser]);
+
+    useEffect(() => {
+        const currentTab = String(searchParams.get('tab') || '').trim().toLowerCase();
+
+        if (currentTab === activeTab) {
+            return;
+        }
+
+        const nextSearchParams = new URLSearchParams(searchParams);
+        nextSearchParams.set('tab', activeTab);
+        setSearchParams(nextSearchParams, { replace: true });
+    }, [activeTab, searchParams, setSearchParams]);
+
     const fetchBatchDetails = async () => {
         try {
             const response = await api.get(`${trainerBatchBasePath}/${batchId}`);
@@ -291,24 +323,6 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
         };
         checkGoogleConnection();
     }, [isTrainer]);
-
-    useEffect(() => {
-        if (!isLearner) return;
-
-        const handleClickOutside = (event: MouseEvent) => {
-            if (quickActionsRef.current && !quickActionsRef.current.contains(event.target as Node)) {
-                setIsQuickSettingsOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        document.addEventListener('touchstart', handleClickOutside as unknown as EventListener);
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-            document.removeEventListener('touchstart', handleClickOutside as unknown as EventListener);
-        };
-    }, [isLearner]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -522,56 +536,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
             )}
 
             {isLearner && (
-                <div ref={quickActionsRef} className="fixed right-4 top-4 z-50 flex items-center gap-3">
-                    <button
-                        type="button"
-                        onClick={() => navigate('/')}
-                        aria-label="Go to home page"
-                        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/50 bg-white/90 text-[#0a192f] shadow-lg backdrop-blur-md transition-colors hover:bg-white dark:border-gray-700 dark:bg-[#112240]/90 dark:text-white dark:hover:bg-[#112240]"
-                    >
-                        <LayoutDashboard className="h-5 w-5" />
-                    </button>
-
-                    <div className="relative">
-                        <button
-                            type="button"
-                            onClick={() => setIsQuickSettingsOpen((currentState) => !currentState)}
-                            aria-label="Dashboard settings"
-                            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/50 bg-white/90 text-[#0a192f] shadow-lg backdrop-blur-md transition-colors hover:bg-white dark:border-gray-700 dark:bg-[#112240]/90 dark:text-white dark:hover:bg-[#112240]"
-                        >
-                            <Settings className="h-5 w-5" />
-                        </button>
-
-                        {isQuickSettingsOpen && (
-                            <div className="absolute right-0 top-14 w-72 rounded-2xl border border-gray-200 bg-white/95 p-4 shadow-2xl backdrop-blur-md dark:border-gray-700 dark:bg-[#112240]/95">
-                                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-gray-400 dark:text-gray-500">Settings</p>
-
-                                <div className="mt-4 flex items-center justify-between rounded-xl bg-gray-50 px-3 py-3 dark:bg-[#0a192f]/80">
-                                    <div className="flex items-center gap-2.5">
-                                        {theme === 'dark' ? (
-                                            <Moon className="h-4 w-4 text-[#d6b161]" />
-                                        ) : (
-                                            <Sun className="h-4 w-4 text-[#d6b161]" />
-                                        )}
-                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                                            {theme === 'dark' ? 'Dark mode' : 'Light mode'}
-                                        </span>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={toggleTheme}
-                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 dark:focus:ring-offset-[#112240] ${theme === 'dark' ? 'bg-[#d6b161]' : 'bg-gray-300'}`}
-                                        aria-label="Toggle theme"
-                                    >
-                                        <span
-                                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'}`}
-                                        />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
+                <LearnerQuickActions homeTo="/" />
             )}
 
             <main className={`flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${isLearner ? 'py-20 sm:py-24 lg:py-24' : 'py-6 sm:py-8 lg:py-10'}`}>
@@ -1040,7 +1005,14 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                                     <p className="text-gray-500 dark:text-gray-400 text-base font-medium">No students enrolled yet.</p>
                                 </div>
                             )}
-                            {students.map((student, idx) => (
+                            {students.map((student, idx) => {
+                                const hasUnreadChat = Boolean(
+                                    isTrainer
+                                    && currentUserId
+                                    && hasUnreadConversation(student._id, currentUserId)
+                                );
+
+                                return (
                                 <div key={student._id} className="group relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-800/50 backdrop-blur-xl p-5 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-in fade-in slide-in-from-left duration-500" style={{ animationDelay: `${idx * 50}ms` }}>
                                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                                     <div className="relative z-10 flex items-center justify-between gap-4">
@@ -1057,9 +1029,12 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                 <button
                                                     onClick={() => navigate(`/chat/${student._id}`)}
-                                                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#d6b161]/10 text-[#d6b161] hover:bg-[#d6b161]/20 text-sm font-semibold transition-colors duration-200"
+                                                    className={getUnreadTrainerChatButtonClasses(hasUnreadChat)}
                                                     aria-label={`Chat with ${student.name}`}
                                                 >
+                                                    {hasUnreadChat && (
+                                                        <span className="h-2.5 w-2.5 rounded-full bg-[#0a192f]" />
+                                                    )}
                                                     <MessageCircle className="h-4 w-4" />
                                                     <span className="hidden sm:inline">Chat</span>
                                                 </button>
@@ -1071,7 +1046,8 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                                         )}
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                             {stuHasMore && (
                                 <div className="flex justify-center mt-6 pb-4">
                                     <button onClick={() => fetchTab('students', stuPage + 1, true)} disabled={stuLoading} className="px-6 py-2.5 bg-white dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 font-semibold rounded-xl border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors shadow-sm disabled:opacity-50">

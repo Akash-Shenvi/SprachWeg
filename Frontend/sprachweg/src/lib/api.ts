@@ -73,6 +73,70 @@ export const dashboardAPI = {
     }
 };
 
+export const notificationsAPI = {
+    async list(params?: { page?: number; limit?: number }) {
+        const searchParams = new URLSearchParams();
+
+        if (params?.page) {
+            searchParams.set('page', String(params.page));
+        }
+
+        if (params?.limit) {
+            searchParams.set('limit', String(params.limit));
+        }
+
+        const queryString = searchParams.toString();
+        const response = await api.get(`/notifications${queryString ? `?${queryString}` : ''}`);
+        return response.data;
+    },
+    async getUnreadCount() {
+        const response = await api.get('/notifications/unread-count');
+        return response.data;
+    },
+    async markRead(notificationId: string) {
+        const response = await api.patch(`/notifications/${notificationId}/read`);
+        return response.data;
+    },
+    async markAllRead() {
+        const response = await api.patch('/notifications/read-all');
+        return response.data;
+    },
+};
+
+export const pushAPI = {
+    async getPublicKey() {
+        const response = await api.get('/push/public-key');
+        return response.data;
+    },
+    async saveSubscription(subscription: { endpoint: string; keys: { p256dh: string; auth: string } }) {
+        const response = await api.post('/push/subscriptions', { subscription });
+        return response.data;
+    },
+    async deleteSubscription(endpoint: string) {
+        const response = await api.delete('/push/subscriptions', {
+            data: { endpoint },
+        });
+        return response.data;
+    },
+};
+
+export const chatAPI = {
+    async getHistory(studentId: string, trainerId?: string | null) {
+        const response = await api.get(`/chat/${studentId}`, {
+            params: trainerId ? { trainerId } : undefined,
+        });
+        return response.data;
+    },
+    async getUnreadConversations() {
+        const response = await api.get('/chat/conversations/unread');
+        return response.data;
+    },
+    async markConversationRead(studentId: string, trainerId?: string | null) {
+        const response = await api.patch(`/chat/${studentId}/read`, trainerId ? { trainerId } : {});
+        return response.data;
+    },
+};
+
 export const enrollmentAPI = {
     enroll: async (courseId: string) => {
         const response = await api.post('/enrollment/enroll', { courseId });

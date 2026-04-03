@@ -9,6 +9,8 @@ import { useAuth } from '../../context/AuthContext';
 import { internshipCatalogAPI } from '../../lib/api';
 import type { InternshipListing } from '../../types/internship';
 import { getDashboardPathForRole } from '../../lib/authRouting';
+import NotificationBell from '../notifications/NotificationBell';
+import PushNotificationToggle from '../notifications/PushNotificationToggle';
 
 const Header: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -17,6 +19,7 @@ const Header: React.FC = () => {
     const [internships, setInternships] = useState<InternshipListing[]>([]);
     const { theme, toggleTheme } = useTheme();
     const { user } = useAuth();
+    const showTrainerNotifications = String(user?.role || '').trim().toLowerCase() === 'trainer';
 
 
     const navRef = useRef<HTMLElement>(null);
@@ -285,6 +288,8 @@ const Header: React.FC = () => {
 
                     {/* Right Area */}
                     <div className="hidden lg:flex items-center gap-4">
+                        {showTrainerNotifications && <NotificationBell />}
+
                         {/* Settings Dropdown */}
                         <div className="relative">
                             <button
@@ -326,6 +331,8 @@ const Header: React.FC = () => {
                                         {/* Divider for future settings */}
                                         <div className="border-t border-gray-200 dark:border-gray-700 my-3"></div>
 
+                                        {showTrainerNotifications && <PushNotificationToggle />}
+
                                         {/* Feedback Link */}
                                         <Link
                                             to="/feedback"
@@ -366,6 +373,8 @@ const Header: React.FC = () => {
 
                     {/* Mobile Menu Button */}
                     <div className="lg:hidden flex items-center gap-3">
+                        {showTrainerNotifications && <NotificationBell />}
+
                         <button
                             onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300"
@@ -404,6 +413,8 @@ const Header: React.FC = () => {
 
                                     {/* Divider for future settings */}
                                     <div className="border-t border-gray-200 dark:border-gray-700 my-3"></div>
+
+                                    {showTrainerNotifications && <PushNotificationToggle />}
 
                                     {/* Feedback Link */}
                                     <Link

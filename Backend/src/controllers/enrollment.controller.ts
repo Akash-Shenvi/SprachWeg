@@ -5,6 +5,7 @@ import Batch from '../models/batch.model';
 import SkillCourse from '../models/skillCourse.model';
 import User from '../models/user.model';
 import { EmailService } from '../utils/email.service';
+import { buildBatchNotificationLink, createNotifications } from '../services/notification.service';
 
 const emailService = new EmailService();
 
@@ -142,6 +143,23 @@ export const acceptEnrollment = async (req: Request, res: Response) => {
                 course?.title || 'Skill Training',
                 'APPROVED'
             );
+        }
+
+        if (batch?._id) {
+            await createNotifications({
+                recipientUserIds: [enrollment.studentId],
+                actorUserId: actingUserId || null,
+                kind: 'enrollment_approved',
+                trainingType: 'skill',
+                batchId: batch._id,
+                title: 'Enrollment approved',
+                body: `Your enrollment for ${course?.title || 'Skill Training'} has been approved.`,
+                linkPath: buildBatchNotificationLink('skill', batch._id),
+                metadata: {
+                    enrollmentId: String(enrollment._id),
+                    courseId: String(enrollment.courseId),
+                },
+            });
         }
 
         res.json({ message: 'Enrollment accepted', batch: batch?.name || null, enrollment });

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../lib/api';
+import { bestEffortUnbindBrowserPushOnLogout, clearBrowserPushEnabledFlag } from '../lib/browserPush';
 
 interface User {
     _id: string;
@@ -190,6 +191,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const logout = () => {
+        const token = localStorage.getItem('token');
+        const currentUserId = user?._id || user?.id;
+
+        if (token) {
+            void bestEffortUnbindBrowserPushOnLogout(token);
+        }
+
+        if (currentUserId) {
+            clearBrowserPushEnabledFlag(currentUserId);
+        }
+
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);

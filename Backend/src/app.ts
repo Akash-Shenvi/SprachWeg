@@ -119,4 +119,10 @@ app.use('/api/trainer-batches', trainerBatchRoutes);
 import skillBatchRoutes from './routes/skill.batch.routes';
 app.use('/api/skill-batches', skillBatchRoutes);
 
+import notificationRoutes from './routes/notification.routes';
+app.use('/api/notifications', notificationRoutes);
+
+import pushRoutes from './routes/push.routes';
+app.use('/api/push', pushRoutes);
+
 export default app;

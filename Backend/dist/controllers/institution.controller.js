@@ -24,6 +24,7 @@ const user_model_1 = __importDefault(require("../models/user.model"));
 const language_batch_model_1 = __importDefault(require("../models/language.batch.model"));
 const language_enrollment_model_1 = __importDefault(require("../models/language.enrollment.model"));
 const email_service_1 = require("../utils/email.service");
+const notification_service_1 = require("../services/notification.service");
 const emailService = new email_service_1.EmailService();
 const MAX_INSTITUTION_STUDENTS_PER_REQUEST = 25;
 const STUDENT_WELCOME_EMAIL_BATCH_SIZE = 5;
@@ -158,6 +159,7 @@ const processInstitutionApproval = (params) => __awaiter(void 0, void 0, void 0,
     const { requestId, adminUserId, session } = params;
     const approvalArtifacts = {
         createdStudentsForEmail: [],
+        createdStudentUserIds: [],
     };
     const requestQuery = institutionEnrollmentRequest_model_1.default.findById(requestId);
     if (session) {
@@ -222,6 +224,7 @@ const processInstitutionApproval = (params) => __awaiter(void 0, void 0, void 0,
                 yield studentUser.save();
             }
             createdUserIds.push(studentUser._id);
+            approvalArtifacts.createdStudentUserIds.push(studentUser._id);
             const createdEnrollments = yield language_enrollment_model_1.default.create([{
                     userId: studentUser._id,
                     courseTitle: request.courseTitle,
@@ -246,6 +249,9 @@ const processInstitutionApproval = (params) => __awaiter(void 0, void 0, void 0,
         request.adminDecisionAt = new Date();
         request.rejectionReason = null;
         request.approvedBatchId = batch._id;
+        approvalArtifacts.approvedBatchId = batch._id;
+        approvalArtifacts.approvedCourseTitle = request.courseTitle;
+        approvalArtifacts.approvedLevelName = request.levelName;
         if (session) {
             yield batch.save({ session });
             yield request.save({ session });
@@ -483,14 +489,14 @@ const getAdminInstitutionRequests = (req, res) => __awaiter(void 0, void 0, void
 });
 exports.getAdminInstitutionRequests = getAdminInstitutionRequests;
 const approveInstitutionRequest = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     const requestId = String(req.params.id || '').trim();
     if (!requestId) {
         return res.status(400).json({ message: 'Institution request id is required' });
     }
     const session = yield mongoose_1.default.startSession();
     try {
-        let approvalArtifacts;
+        let approvalArtifacts = null;
         try {
             yield session.withTransaction(() => __awaiter(void 0, void 0, void 0, function* () {
                 var _a;
@@ -515,6 +521,9 @@ const approveInstitutionRequest = (req, res) => __awaiter(void 0, void 0, void 0
         finally {
             session.endSession();
         }
+        if (!approvalArtifacts) {
+            throw new Error('Institution approval could not be completed.');
+        }
         const decisionEmailPayload = approvalArtifacts.institutionEmailPayload;
         if (decisionEmailPayload) {
             yield emailService.sendInstitutionSubmissionDecisionEmail({
@@ -527,6 +536,21 @@ const approveInstitutionRequest = (req, res) => __awaiter(void 0, void 0, void 0
             });
         }
         yield sendInstitutionStudentWelcomeEmailsInBatches(approvalArtifacts.createdStudentsForEmail);
+        if (approvalArtifacts.createdStudentUserIds.length > 0 && approvalArtifacts.approvedBatchId) {
+            yield (0, notification_service_1.createNotifications)({
+                recipientUserIds: approvalArtifacts.createdStudentUserIds,
+                actorUserId: ((_b = req.user) === null || _b === void 0 ? void 0 : _b._id) || null,
+                kind: 'institution_access_approved',
+                trainingType: 'language',
+                batchId: approvalArtifacts.approvedBatchId,
+                title: 'Batch access approved',
+                body: `Your access for ${approvalArtifacts.approvedCourseTitle || 'German'} - ${approvalArtifacts.approvedLevelName || 'Level'} is ready.`,
+                linkPath: (0, notification_service_1.buildBatchNotificationLink)('language', approvalArtifacts.approvedBatchId),
+                metadata: {
+                    source: 'institution_approval',
+                },
+            });
+        }
         const approvedRequest = yield institutionEnrollmentRequest_model_1.default.findById(requestId)
             .populate('institutionId', 'name email phoneNumber institutionName institutionLogo institutionTagline contactPersonName city state address');
         return res.status(200).json({

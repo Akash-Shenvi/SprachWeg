@@ -10,6 +10,7 @@ import User from '../models/user.model';
 import LanguageBatch from '../models/language.batch.model';
 import LanguageEnrollment from '../models/language.enrollment.model';
 import { EmailService } from '../utils/email.service';
+import { buildBatchNotificationLink, createNotifications } from '../services/notification.service';
 
 const emailService = new EmailService();
 const MAX_INSTITUTION_STUDENTS_PER_REQUEST = 25;
@@ -17,6 +18,10 @@ const STUDENT_WELCOME_EMAIL_BATCH_SIZE = 5;
 
 type ApprovalArtifacts = {
     createdStudentsForEmail: Array<{ name: string; email: string; courseTitle: string; levelName: string }>;
+    createdStudentUserIds: mongoose.Types.ObjectId[];
+    approvedBatchId?: mongoose.Types.ObjectId | null;
+    approvedCourseTitle?: string;
+    approvedLevelName?: string;
     institutionEmailPayload?: {
         email: string;
         institutionName: string;
@@ -203,6 +208,7 @@ const processInstitutionApproval = async (params: {
     const { requestId, adminUserId, session } = params;
     const approvalArtifacts: ApprovalArtifacts = {
         createdStudentsForEmail: [],
+        createdStudentUserIds: [],
     };
 
     const requestQuery = InstitutionEnrollmentRequest.findById(requestId);
@@ -280,6 +286,7 @@ const processInstitutionApproval = async (params: {
             }
 
             createdUserIds.push(studentUser._id);
+            approvalArtifacts.createdStudentUserIds.push(studentUser._id);
 
             const createdEnrollments = await LanguageEnrollment.create([{
                 userId: studentUser._id,
@@ -309,6 +316,9 @@ const processInstitutionApproval = async (params: {
         request.adminDecisionAt = new Date();
         request.rejectionReason = null;
         request.approvedBatchId = batch._id;
+        approvalArtifacts.approvedBatchId = batch._id;
+        approvalArtifacts.approvedCourseTitle = request.courseTitle;
+        approvalArtifacts.approvedLevelName = request.levelName;
 
         if (session) {
             await batch.save({ session });
@@ -585,7 +595,7 @@ export const approveInstitutionRequest = async (req: Request, res: Response) => 
     const session = await mongoose.startSession();
 
     try {
-        let approvalArtifacts: ApprovalArtifacts;
+        let approvalArtifacts: ApprovalArtifacts | null = null;
 
         try {
             await session.withTransaction(async () => {
@@ -610,7 +620,11 @@ export const approveInstitutionRequest = async (req: Request, res: Response) => 
             session.endSession();
         }
 
-        const decisionEmailPayload = approvalArtifacts!.institutionEmailPayload;
+        if (!approvalArtifacts) {
+            throw new Error('Institution approval could not be completed.');
+        }
+
+        const decisionEmailPayload = approvalArtifacts.institutionEmailPayload;
 
         if (decisionEmailPayload) {
             await emailService.sendInstitutionSubmissionDecisionEmail({
@@ -623,7 +637,23 @@ export const approveInstitutionRequest = async (req: Request, res: Response) => 
             });
         }
 
-        await sendInstitutionStudentWelcomeEmailsInBatches(approvalArtifacts!.createdStudentsForEmail);
+        await sendInstitutionStudentWelcomeEmailsInBatches(approvalArtifacts.createdStudentsForEmail);
+
+        if (approvalArtifacts.createdStudentUserIds.length > 0 && approvalArtifacts.approvedBatchId) {
+            await createNotifications({
+                recipientUserIds: approvalArtifacts.createdStudentUserIds,
+                actorUserId: (req.user as any)?._id || null,
+                kind: 'institution_access_approved',
+                trainingType: 'language',
+                batchId: approvalArtifacts.approvedBatchId,
+                title: 'Batch access approved',
+                body: `Your access for ${approvalArtifacts.approvedCourseTitle || 'German'} - ${approvalArtifacts.approvedLevelName || 'Level'} is ready.`,
+                linkPath: buildBatchNotificationLink('language', approvalArtifacts.approvedBatchId),
+                metadata: {
+                    source: 'institution_approval',
+                },
+            });
+        }
 
         const approvedRequest = await InstitutionEnrollmentRequest.findById(requestId)
             .populate(

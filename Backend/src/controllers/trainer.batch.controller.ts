@@ -14,6 +14,12 @@ import User from '../models/user.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { GoogleCalendarService } from '../services/google.calendar.service';
 import {
+    buildBatchNotificationLink,
+    createNotifications,
+    formatNotificationDateTime,
+    truncateNotificationText,
+} from '../services/notification.service';
+import {
     addAnnouncement as addLanguageAnnouncement,
     addMaterial as addLanguageMaterial,
     deleteAnnouncement as deleteLanguageAnnouncement,
@@ -77,6 +83,10 @@ type SubmittedAssessmentAnswer = {
     booleanAnswer?: boolean;
     textAnswer?: string;
 };
+
+const getBatchDisplayLabel = (params: { courseTitle?: string; batchName?: string }) => (
+    [String(params.courseTitle || '').trim(), String(params.batchName || '').trim()].filter(Boolean).join(' - ') || 'your batch'
+);
 
 const getObjectIdString = (value: any): string | null => {
     if (!value) return null;
@@ -982,6 +992,22 @@ export const createTrainerBatchAssessment = async (req: AuthRequest, res: Respon
             questions: normalizedQuestions.questions,
         });
 
+        await createNotifications({
+            recipientUserIds: access.batch.students as any[],
+            actorUserId: req.user?._id || null,
+            kind: 'assessment',
+            trainingType,
+            batchId,
+            title: `New assessment: ${normalizedTitle}`,
+            body: truncateNotificationText(
+                String(description || '')
+            ) || `A new assessment is available in ${getBatchDisplayLabel({ courseTitle: access.courseTitle, batchName: access.batchName })}.`,
+            linkPath: buildBatchNotificationLink(trainingType, batchId, 'assessments'),
+            metadata: {
+                assessmentId: String(assessment._id),
+            },
+        });
+
         return res.status(201).json({
             _id: String(assessment._id),
             batchId: String(assessment.batchId),
@@ -1198,6 +1224,20 @@ export const addTrainerBatchAnnouncement = async (req: AuthRequest, res: Respons
             content,
         });
 
+        await createNotifications({
+            recipientUserIds: batch.students as any[],
+            actorUserId: trainerId || null,
+            kind: 'announcement',
+            trainingType: 'skill',
+            batchId,
+            title: `New announcement: ${String(title || '').trim() || 'Batch update'}`,
+            body: truncateNotificationText(String(content || '')) || `A new announcement was posted in ${String(batch.name || '').trim() || 'your batch'}.`,
+            linkPath: buildBatchNotificationLink('skill', batchId, 'announcements'),
+            metadata: {
+                announcementId: String(announcement._id),
+            },
+        });
+
         return res.status(201).json(announcement);
     } catch (error) {
         console.error('Failed to add trainer batch announcement:', error);
@@ -1267,6 +1307,22 @@ export const addTrainerBatchMaterial = async (req: AuthRequest, res: Response) =
             description,
             fileUrl: req.file ? `/uploads/materials/${req.file.filename}` : '',
             uploadedBy: trainerId,
+        });
+
+        await createNotifications({
+            recipientUserIds: batch.students as any[],
+            actorUserId: trainerId || null,
+            kind: 'material',
+            trainingType: 'skill',
+            batchId,
+            title: `New material: ${String(title || '').trim() || 'Course material'}`,
+            body: truncateNotificationText(
+                String(description || subtitle || `A new material has been added to ${String(batch.name || '').trim() || 'your batch'}.`)
+            ) || `A new material has been added to ${String(batch.name || '').trim() || 'your batch'}.`,
+            linkPath: buildBatchNotificationLink('skill', batchId, 'materials'),
+            metadata: {
+                materialId: String(material._id),
+            },
         });
 
         return res.status(201).json(material);
@@ -1365,6 +1421,23 @@ export const scheduleTrainerBatchClass = async (req: AuthRequest, res: Response)
             meetingLink,
             eventId,
             status: 'scheduled',
+        });
+
+        const courseTitle = String((batch.courseId as any)?.title || 'Skill Training').trim();
+
+        await createNotifications({
+            recipientUserIds: batch.students as any[],
+            actorUserId: actualTrainerId,
+            kind: 'class',
+            trainingType: 'skill',
+            batchId,
+            title: `New class scheduled: ${String(topic || '').trim() || 'Live class'}`,
+            body: `${getBatchDisplayLabel({ courseTitle, batchName: batch.name })} class is scheduled for ${formatNotificationDateTime(startTime)}.`,
+            linkPath: buildBatchNotificationLink('skill', batchId, 'classes'),
+            metadata: {
+                classId: String(newClass._id),
+                startTime,
+            },
         });
 
         return res.status(201).json(mapSkillClassForView(newClass, []));

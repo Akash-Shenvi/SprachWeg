@@ -27,4 +27,7 @@ exports.env = {
     PAYU_ENV: process.env.PAYU_ENV || 'test',
     BACKEND_PUBLIC_BASE_URL: process.env.BACKEND_PUBLIC_BASE_URL || '',
     FRONTEND_BASE_URL: process.env.FRONTEND_BASE_URL || 'http://localhost:5173',
+    WEB_PUSH_PUBLIC_KEY: process.env.WEB_PUSH_PUBLIC_KEY || '',
+    WEB_PUSH_PRIVATE_KEY: process.env.WEB_PUSH_PRIVATE_KEY || '',
+    WEB_PUSH_SUBJECT: process.env.WEB_PUSH_SUBJECT || '',
 };

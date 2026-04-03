@@ -18,6 +18,7 @@ const batch_model_1 = __importDefault(require("../models/batch.model"));
 const skillCourse_model_1 = __importDefault(require("../models/skillCourse.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const email_service_1 = require("../utils/email.service");
+const notification_service_1 = require("../services/notification.service");
 const emailService = new email_service_1.EmailService();
 // 1. Student requests enrollment
 const enrollStudent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -132,6 +133,22 @@ const acceptEnrollment = (req, res) => __awaiter(void 0, void 0, void 0, functio
         ]);
         if (student === null || student === void 0 ? void 0 : student.email) {
             yield emailService.sendEnrollmentEmail(student.email, student.name || 'Student', (course === null || course === void 0 ? void 0 : course.title) || 'Skill Training', 'APPROVED');
+        }
+        if (batch === null || batch === void 0 ? void 0 : batch._id) {
+            yield (0, notification_service_1.createNotifications)({
+                recipientUserIds: [enrollment.studentId],
+                actorUserId: actingUserId || null,
+                kind: 'enrollment_approved',
+                trainingType: 'skill',
+                batchId: batch._id,
+                title: 'Enrollment approved',
+                body: `Your enrollment for ${(course === null || course === void 0 ? void 0 : course.title) || 'Skill Training'} has been approved.`,
+                linkPath: (0, notification_service_1.buildBatchNotificationLink)('skill', batch._id),
+                metadata: {
+                    enrollmentId: String(enrollment._id),
+                    courseId: String(enrollment.courseId),
+                },
+            });
         }
         res.json({ message: 'Enrollment accepted', batch: (batch === null || batch === void 0 ? void 0 : batch.name) || null, enrollment });
     }

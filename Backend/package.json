@@ -30,7 +30,8 @@
     "nodemailer": "^7.0.11",
     "react-hot-toast": "^2.6.0",
     "reflect-metadata": "^0.2.2",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

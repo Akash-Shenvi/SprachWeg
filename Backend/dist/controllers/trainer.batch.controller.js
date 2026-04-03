@@ -26,12 +26,14 @@ const language_batch_model_1 = __importDefault(require("../models/language.batch
 const skill_material_model_1 = __importDefault(require("../models/skill.material.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const google_calendar_service_1 = require("../services/google.calendar.service");
+const notification_service_1 = require("../services/notification.service");
 const language_trainer_controller_1 = require("./language.trainer.controller");
 const roles_1 = require("../utils/roles");
 const googleService = new google_calendar_service_1.GoogleCalendarService();
 const DEFAULT_PAGE_LIMIT = 10;
 const MAX_PAGE_LIMIT = 50;
 const FILE_SERVE_DIR = '/home/sovirtraining/file_serve';
+const getBatchDisplayLabel = (params) => ([String(params.courseTitle || '').trim(), String(params.batchName || '').trim()].filter(Boolean).join(' - ') || 'your batch');
 const getObjectIdString = (value) => {
     if (!value)
         return null;
@@ -747,7 +749,7 @@ const getTrainerBatchAssessments = (req, res) => __awaiter(void 0, void 0, void 
 });
 exports.getTrainerBatchAssessments = getTrainerBatchAssessments;
 const createTrainerBatchAssessment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     const trainingType = normalizeTrainingType(req.params.trainingType);
     if (!trainingType) {
         return res.status(400).json({ message: 'Invalid trainingType provided.' });
@@ -778,6 +780,19 @@ const createTrainerBatchAssessment = (req, res) => __awaiter(void 0, void 0, voi
             createdBy: (_a = req.user) === null || _a === void 0 ? void 0 : _a._id,
             publishedAt: new Date(),
             questions: normalizedQuestions.questions,
+        });
+        yield (0, notification_service_1.createNotifications)({
+            recipientUserIds: access.batch.students,
+            actorUserId: ((_b = req.user) === null || _b === void 0 ? void 0 : _b._id) || null,
+            kind: 'assessment',
+            trainingType,
+            batchId,
+            title: `New assessment: ${normalizedTitle}`,
+            body: (0, notification_service_1.truncateNotificationText)(String(description || '')) || `A new assessment is available in ${getBatchDisplayLabel({ courseTitle: access.courseTitle, batchName: access.batchName })}.`,
+            linkPath: (0, notification_service_1.buildBatchNotificationLink)(trainingType, batchId, 'assessments'),
+            metadata: {
+                assessmentId: String(assessment._id),
+            },
         });
         return res.status(201).json({
             _id: String(assessment._id),
@@ -957,6 +972,19 @@ const addTrainerBatchAnnouncement = (req, res) => __awaiter(void 0, void 0, void
             title,
             content,
         });
+        yield (0, notification_service_1.createNotifications)({
+            recipientUserIds: batch.students,
+            actorUserId: trainerId || null,
+            kind: 'announcement',
+            trainingType: 'skill',
+            batchId,
+            title: `New announcement: ${String(title || '').trim() || 'Batch update'}`,
+            body: (0, notification_service_1.truncateNotificationText)(String(content || '')) || `A new announcement was posted in ${String(batch.name || '').trim() || 'your batch'}.`,
+            linkPath: (0, notification_service_1.buildBatchNotificationLink)('skill', batchId, 'announcements'),
+            metadata: {
+                announcementId: String(announcement._id),
+            },
+        });
         return res.status(201).json(announcement);
     }
     catch (error) {
@@ -1020,6 +1048,19 @@ const addTrainerBatchMaterial = (req, res) => __awaiter(void 0, void 0, void 0, 
             fileUrl: req.file ? `/uploads/materials/${req.file.filename}` : '',
             uploadedBy: trainerId,
         });
+        yield (0, notification_service_1.createNotifications)({
+            recipientUserIds: batch.students,
+            actorUserId: trainerId || null,
+            kind: 'material',
+            trainingType: 'skill',
+            batchId,
+            title: `New material: ${String(title || '').trim() || 'Course material'}`,
+            body: (0, notification_service_1.truncateNotificationText)(String(description || subtitle || `A new material has been added to ${String(batch.name || '').trim() || 'your batch'}.`)) || `A new material has been added to ${String(batch.name || '').trim() || 'your batch'}.`,
+            linkPath: (0, notification_service_1.buildBatchNotificationLink)('skill', batchId, 'materials'),
+            metadata: {
+                materialId: String(material._id),
+            },
+        });
         return res.status(201).json(material);
     }
     catch (error) {
@@ -1058,7 +1099,7 @@ const deleteTrainerBatchMaterial = (req, res) => __awaiter(void 0, void 0, void 
 });
 exports.deleteTrainerBatchMaterial = deleteTrainerBatchMaterial;
 const scheduleTrainerBatchClass = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     const trainingType = normalizeTrainingType(req.params.trainingType);
     if (!trainingType) {
         return res.status(400).json({ message: 'Invalid trainingType provided.' });
@@ -1101,6 +1142,21 @@ const scheduleTrainerBatchClass = (req, res) => __awaiter(void 0, void 0, void 0
             meetingLink,
             eventId,
             status: 'scheduled',
+        });
+        const courseTitle = String(((_d = batch.courseId) === null || _d === void 0 ? void 0 : _d.title) || 'Skill Training').trim();
+        yield (0, notification_service_1.createNotifications)({
+            recipientUserIds: batch.students,
+            actorUserId: actualTrainerId,
+            kind: 'class',
+            trainingType: 'skill',
+            batchId,
+            title: `New class scheduled: ${String(topic || '').trim() || 'Live class'}`,
+            body: `${getBatchDisplayLabel({ courseTitle, batchName: batch.name })} class is scheduled for ${(0, notification_service_1.formatNotificationDateTime)(startTime)}.`,
+            linkPath: (0, notification_service_1.buildBatchNotificationLink)('skill', batchId, 'classes'),
+            metadata: {
+                classId: String(newClass._id),
+                startTime,
+            },
         });
         return res.status(201).json(mapSkillClassForView(newClass, []));
     }

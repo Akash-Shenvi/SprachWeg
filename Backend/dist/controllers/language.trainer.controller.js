@@ -21,7 +21,9 @@ const language_announcement_model_1 = __importDefault(require("../models/languag
 const language_class_model_1 = __importDefault(require("../models/language.class.model"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const google_calendar_service_1 = require("../services/google.calendar.service");
+const notification_service_1 = require("../services/notification.service");
 const googleService = new google_calendar_service_1.GoogleCalendarService();
+const getLanguageBatchLabel = (batch) => ([String(batch.courseTitle || '').trim(), String(batch.name || '').trim()].filter(Boolean).join(' - ') || 'your language batch');
 // Get all batches assigned to the trainer
 const getTrainerBatches = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -84,6 +86,19 @@ const addMaterial = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             uploadedBy: trainerId
         });
         yield material.save();
+        yield (0, notification_service_1.createNotifications)({
+            recipientUserIds: batch.students,
+            actorUserId: trainerId || null,
+            kind: 'material',
+            trainingType: 'language',
+            batchId,
+            title: `New material: ${String(title || '').trim() || 'Course material'}`,
+            body: (0, notification_service_1.truncateNotificationText)(String(description || subtitle || `A new material has been added to ${getLanguageBatchLabel(batch)}.`)) || `A new material has been added to ${getLanguageBatchLabel(batch)}.`,
+            linkPath: (0, notification_service_1.buildBatchNotificationLink)('language', batchId, 'materials'),
+            metadata: {
+                materialId: String(material._id),
+            },
+        });
         res.status(201).json(material);
     }
     catch (error) {
@@ -113,6 +128,19 @@ const addAnnouncement = (req, res) => __awaiter(void 0, void 0, void 0, function
             senderId: trainerId
         });
         yield announcement.save();
+        yield (0, notification_service_1.createNotifications)({
+            recipientUserIds: batch.students,
+            actorUserId: trainerId || null,
+            kind: 'announcement',
+            trainingType: 'language',
+            batchId,
+            title: `New announcement: ${String(title || '').trim() || 'Course update'}`,
+            body: (0, notification_service_1.truncateNotificationText)(String(content || '')) || `A new announcement was posted in ${getLanguageBatchLabel(batch)}.`,
+            linkPath: (0, notification_service_1.buildBatchNotificationLink)('language', batchId, 'announcements'),
+            metadata: {
+                announcementId: String(announcement._id),
+            },
+        });
         res.status(201).json(announcement);
     }
     catch (error) {
@@ -309,6 +337,20 @@ const scheduleClass = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             eventId
         });
         yield newClass.save();
+        yield (0, notification_service_1.createNotifications)({
+            recipientUserIds: batch.students,
+            actorUserId: trainerId || null,
+            kind: 'class',
+            trainingType: 'language',
+            batchId,
+            title: `New class scheduled: ${String(topic || '').trim() || 'Live class'}`,
+            body: `${getLanguageBatchLabel(batch)} class is scheduled for ${(0, notification_service_1.formatNotificationDateTime)(startTime)}.`,
+            linkPath: (0, notification_service_1.buildBatchNotificationLink)('language', batchId, 'classes'),
+            metadata: {
+                classId: String(newClass._id),
+                startTime,
+            },
+        });
         res.status(201).json(newClass);
     }
     catch (error) {

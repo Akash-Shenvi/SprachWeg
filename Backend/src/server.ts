@@ -7,6 +7,9 @@ import { connectDB } from './config/database';
 import { env } from './config/env';
 import ChatMessage from './models/chat.message.model';
 import User from './models/user.model';
+import { emitChatConversationStateToUser, upsertConversationStateOnMessage } from './services/chat.conversation.service';
+import { createNotifications, truncateNotificationText } from './services/notification.service';
+import { getUserSocketRoom, setSocketServer } from './socket';
 import { canAccessChatPair } from './utils/chat-access';
 
 type SocketAck<T> = ((payload: T) => void) | undefined;
@@ -40,6 +43,7 @@ const startServer = async () => {
             credentials: true,
         }
     });
+    setSocketServer(io);
 
     // ─── Socket.IO JWT Auth Middleware ───────────────────────────────────────────
     io.use(async (socket, next) => {
@@ -64,6 +68,7 @@ const startServer = async () => {
     io.on('connection', (socket) => {
         const userId = (socket as any).userId as string;
         const userRole = (socket as any).userRole as string;
+        socket.join(getUserSocketRoom(userId));
 
         // Client joins their private 1-on-1 room
         socket.on('joinRoom', async (
@@ -119,9 +124,57 @@ const startServer = async () => {
 
                 const populated = await message.populate('senderId', 'name avatar _id');
                 const serializedMessage = typeof populated.toObject === 'function' ? populated.toObject() : populated;
+                const senderName = String((serializedMessage as any)?.senderId?.name || 'New message').trim();
+                const sentAt = message.createdAt instanceof Date ? message.createdAt : new Date(message.createdAt);
+                const recipientUserId = userRole === 'trainer' ? sId : tId;
+                const linkPath = recipientUserId === sId
+                    ? `/chat/${encodeURIComponent(sId)}?trainerId=${encodeURIComponent(tId)}`
+                    : `/chat/${encodeURIComponent(sId)}`;
+
+                await upsertConversationStateOnMessage({
+                    studentId: sId,
+                    trainerId: tId,
+                    senderId: userId,
+                    senderRole: userRole,
+                    sentAt,
+                });
 
                 const room = `chat_${sId}_${tId}`;
                 io.to(room).emit('newMessage', serializedMessage);
+
+                emitChatConversationStateToUser({
+                    recipientUserId: userId,
+                    studentId: sId,
+                    trainerId: tId,
+                    hasUnread: false,
+                    lastMessageAt: sentAt,
+                });
+
+                emitChatConversationStateToUser({
+                    recipientUserId,
+                    studentId: sId,
+                    trainerId: tId,
+                    hasUnread: true,
+                    lastMessageAt: sentAt,
+                });
+
+                await createNotifications({
+                    recipientUserIds: [recipientUserId],
+                    actorUserId: userId,
+                    kind: 'chat_message',
+                    title: `New message from ${senderName}`,
+                    body: truncateNotificationText(content.trim(), 140),
+                    linkPath,
+                    metadata: {
+                        messageId: String((serializedMessage as any)?._id || message._id),
+                        studentId: sId,
+                        trainerId: tId,
+                        senderId: userId,
+                        senderName,
+                    },
+                    allowedRoles: ['trainer', 'student', 'institution_student'],
+                });
+
                 ack?.({ ok: true, chatMessage: serializedMessage });
                 console.log(`[Socket] Message sent in room: ${room}`);
             } catch (err) {
