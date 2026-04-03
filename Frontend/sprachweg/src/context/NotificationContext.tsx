@@ -515,7 +515,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }, [isEligible]);
 
     useEffect(() => {
-        if (!isEligible || !user?._id) {
+        if (!isEligible || !currentUserId) {
             return;
         }
 
@@ -590,7 +590,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return () => {
             socket.disconnect();
         };
-    }, [isEligible, user?._id]);
+    }, [currentUserId, isEligible]);
 
     useEffect(() => {
         if (!isEligible) {

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { env } from './env';
 import LanguageBatch from '../models/language.batch.model';
+import Notification from '../models/notification.model';
 
 export const connectDB = async () => {
     try {
@@ -12,6 +13,13 @@ export const connectDB = async () => {
             console.log('LanguageBatch indexes synchronized.');
         } catch (indexError) {
             console.error('Failed to synchronize LanguageBatch indexes:', indexError);
+        }
+
+        try {
+            await Notification.syncIndexes();
+            console.log('Notification indexes synchronized.');
+        } catch (indexError) {
+            console.error('Failed to synchronize Notification indexes:', indexError);
         }
     } catch (error) {
         console.error(`Error: ${(error as Error).message}`);

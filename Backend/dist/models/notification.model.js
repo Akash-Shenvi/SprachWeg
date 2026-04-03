@@ -44,6 +44,7 @@ exports.NOTIFICATION_KINDS = [
     'institution_access_approved',
     'chat_message',
 ];
+const NOTIFICATION_TTL_SECONDS = 15 * 24 * 60 * 60;
 const NotificationSchema = new mongoose_1.Schema({
     recipientUserId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     actorUserId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', default: null },
@@ -69,4 +70,5 @@ const NotificationSchema = new mongoose_1.Schema({
 });
 NotificationSchema.index({ recipientUserId: 1, createdAt: -1 });
 NotificationSchema.index({ recipientUserId: 1, isRead: 1, createdAt: -1 });
+NotificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: NOTIFICATION_TTL_SECONDS });
 exports.default = mongoose_1.default.model('Notification', NotificationSchema);

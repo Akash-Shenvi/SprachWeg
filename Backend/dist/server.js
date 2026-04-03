@@ -78,17 +78,25 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         socket.on('joinRoom', (_a, ack_1) => __awaiter(void 0, [_a, ack_1], void 0, function* ({ studentId, trainerId }, ack) {
             const sId = String(studentId);
             const tId = String(trainerId);
-            const isAuthorized = yield (0, chat_access_1.canAccessChatPair)(userId, userRole, sId, tId);
-            if (!isAuthorized) {
-                const message = 'Not authorized for this chat room';
+            try {
+                const isAuthorized = yield (0, chat_access_1.canAccessChatPair)(userId, userRole, sId, tId);
+                if (!isAuthorized) {
+                    const message = 'Not authorized for this chat room';
+                    socket.emit('error', { message });
+                    ack === null || ack === void 0 ? void 0 : ack({ ok: false, message });
+                    return;
+                }
+                const room = `chat_${sId}_${tId}`;
+                socket.join(room);
+                ack === null || ack === void 0 ? void 0 : ack({ ok: true, room });
+                console.log(`[Socket] User ${userId} (${userRole}) joined room: ${room}`);
+            }
+            catch (error) {
+                console.error('[Socket] Failed to join chat room:', error);
+                const message = 'Failed to join chat room';
                 socket.emit('error', { message });
                 ack === null || ack === void 0 ? void 0 : ack({ ok: false, message });
-                return;
             }
-            const room = `chat_${sId}_${tId}`;
-            socket.join(room);
-            ack === null || ack === void 0 ? void 0 : ack({ ok: true, room });
-            console.log(`[Socket] User ${userId} (${userRole}) joined room: ${room}`);
         }));
         // Client sends a message
         socket.on('sendMessage', (_a, ack_1) => __awaiter(void 0, [_a, ack_1], void 0, function* ({ studentId, trainerId, content }, ack) {
@@ -99,14 +107,14 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
             }
             const sId = String(studentId);
             const tId = String(trainerId);
-            const isAuthorized = yield (0, chat_access_1.canAccessChatPair)(userId, userRole, sId, tId);
-            if (!isAuthorized) {
-                const message = 'Not authorized to send messages in this chat';
-                socket.emit('error', { message });
-                ack === null || ack === void 0 ? void 0 : ack({ ok: false, message });
-                return;
-            }
             try {
+                const isAuthorized = yield (0, chat_access_1.canAccessChatPair)(userId, userRole, sId, tId);
+                if (!isAuthorized) {
+                    const message = 'Not authorized to send messages in this chat';
+                    socket.emit('error', { message });
+                    ack === null || ack === void 0 ? void 0 : ack({ ok: false, message });
+                    return;
+                }
                 const message = yield chat_message_model_1.default.create({
                     studentId: sId,
                     trainerId: tId,
@@ -122,47 +130,60 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
                 const linkPath = recipientUserId === sId
                     ? `/chat/${encodeURIComponent(sId)}?trainerId=${encodeURIComponent(tId)}`
                     : `/chat/${encodeURIComponent(sId)}`;
-                yield (0, chat_conversation_service_1.upsertConversationStateOnMessage)({
-                    studentId: sId,
-                    trainerId: tId,
-                    senderId: userId,
-                    senderRole: userRole,
-                    sentAt,
-                });
                 const room = `chat_${sId}_${tId}`;
                 io.to(room).emit('newMessage', serializedMessage);
-                (0, chat_conversation_service_1.emitChatConversationStateToUser)({
-                    recipientUserId: userId,
-                    studentId: sId,
-                    trainerId: tId,
-                    hasUnread: false,
-                    lastMessageAt: sentAt,
-                });
-                (0, chat_conversation_service_1.emitChatConversationStateToUser)({
-                    recipientUserId,
-                    studentId: sId,
-                    trainerId: tId,
-                    hasUnread: true,
-                    lastMessageAt: sentAt,
-                });
-                yield (0, notification_service_1.createNotifications)({
-                    recipientUserIds: [recipientUserId],
-                    actorUserId: userId,
-                    kind: 'chat_message',
-                    title: `New message from ${senderName}`,
-                    body: (0, notification_service_1.truncateNotificationText)(content.trim(), 140),
-                    linkPath,
-                    metadata: {
-                        messageId: String((serializedMessage === null || serializedMessage === void 0 ? void 0 : serializedMessage._id) || message._id),
-                        studentId: sId,
-                        trainerId: tId,
-                        senderId: userId,
-                        senderName,
-                    },
-                    allowedRoles: ['trainer', 'student', 'institution_student'],
-                });
                 ack === null || ack === void 0 ? void 0 : ack({ ok: true, chatMessage: serializedMessage });
                 console.log(`[Socket] Message sent in room: ${room}`);
+                // Keep message delivery reliable even if metadata/notification side-effects fail.
+                void (() => __awaiter(void 0, void 0, void 0, function* () {
+                    try {
+                        yield (0, chat_conversation_service_1.upsertConversationStateOnMessage)({
+                            studentId: sId,
+                            trainerId: tId,
+                            senderId: userId,
+                            senderRole: userRole,
+                            sentAt,
+                        });
+                        (0, chat_conversation_service_1.emitChatConversationStateToUser)({
+                            recipientUserId: userId,
+                            studentId: sId,
+                            trainerId: tId,
+                            hasUnread: false,
+                            lastMessageAt: sentAt,
+                        });
+                        (0, chat_conversation_service_1.emitChatConversationStateToUser)({
+                            recipientUserId,
+                            studentId: sId,
+                            trainerId: tId,
+                            hasUnread: true,
+                            lastMessageAt: sentAt,
+                        });
+                    }
+                    catch (stateError) {
+                        console.error('[Socket] Failed to update chat conversation state:', stateError);
+                    }
+                    try {
+                        yield (0, notification_service_1.createNotifications)({
+                            recipientUserIds: [recipientUserId],
+                            actorUserId: userId,
+                            kind: 'chat_message',
+                            title: `New message from ${senderName}`,
+                            body: (0, notification_service_1.truncateNotificationText)(content.trim(), 140),
+                            linkPath,
+                            metadata: {
+                                messageId: String((serializedMessage === null || serializedMessage === void 0 ? void 0 : serializedMessage._id) || message._id),
+                                studentId: sId,
+                                trainerId: tId,
+                                senderId: userId,
+                                senderName,
+                            },
+                            allowedRoles: ['trainer', 'student', 'institution_student'],
+                        });
+                    }
+                    catch (notificationError) {
+                        console.error('[Socket] Failed to create chat notification:', notificationError);
+                    }
+                }))();
             }
             catch (err) {
                 console.error('[Socket] Failed to save message:', err);

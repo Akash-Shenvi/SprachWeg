@@ -16,6 +16,7 @@ exports.connectDB = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const env_1 = require("./env");
 const language_batch_model_1 = __importDefault(require("../models/language.batch.model"));
+const notification_model_1 = __importDefault(require("../models/notification.model"));
 const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const conn = yield mongoose_1.default.connect(env_1.env.MONGO_URI);
@@ -26,6 +27,13 @@ const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
         }
         catch (indexError) {
             console.error('Failed to synchronize LanguageBatch indexes:', indexError);
+        }
+        try {
+            yield notification_model_1.default.syncIndexes();
+            console.log('Notification indexes synchronized.');
+        }
+        catch (indexError) {
+            console.error('Failed to synchronize Notification indexes:', indexError);
         }
     }
     catch (error) {

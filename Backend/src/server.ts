@@ -77,19 +77,26 @@ const startServer = async () => {
         ) => {
             const sId = String(studentId);
             const tId = String(trainerId);
-            const isAuthorized = await canAccessChatPair(userId, userRole, sId, tId);
+            try {
+                const isAuthorized = await canAccessChatPair(userId, userRole, sId, tId);
 
-            if (!isAuthorized) {
-                const message = 'Not authorized for this chat room';
+                if (!isAuthorized) {
+                    const message = 'Not authorized for this chat room';
+                    socket.emit('error', { message });
+                    ack?.({ ok: false, message });
+                    return;
+                }
+
+                const room = `chat_${sId}_${tId}`;
+                socket.join(room);
+                ack?.({ ok: true, room });
+                console.log(`[Socket] User ${userId} (${userRole}) joined room: ${room}`);
+            } catch (error) {
+                console.error('[Socket] Failed to join chat room:', error);
+                const message = 'Failed to join chat room';
                 socket.emit('error', { message });
                 ack?.({ ok: false, message });
-                return;
             }
-
-            const room = `chat_${sId}_${tId}`;
-            socket.join(room);
-            ack?.({ ok: true, room });
-            console.log(`[Socket] User ${userId} (${userRole}) joined room: ${room}`);
         });
 
         // Client sends a message
@@ -104,16 +111,15 @@ const startServer = async () => {
 
             const sId = String(studentId);
             const tId = String(trainerId);
-            const isAuthorized = await canAccessChatPair(userId, userRole, sId, tId);
-
-            if (!isAuthorized) {
-                const message = 'Not authorized to send messages in this chat';
-                socket.emit('error', { message });
-                ack?.({ ok: false, message });
-                return;
-            }
-
             try {
+                const isAuthorized = await canAccessChatPair(userId, userRole, sId, tId);
+                if (!isAuthorized) {
+                    const message = 'Not authorized to send messages in this chat';
+                    socket.emit('error', { message });
+                    ack?.({ ok: false, message });
+                    return;
+                }
+
                 const message = await ChatMessage.create({
                     studentId: sId,
                     trainerId: tId,
@@ -131,52 +137,62 @@ const startServer = async () => {
                     ? `/chat/${encodeURIComponent(sId)}?trainerId=${encodeURIComponent(tId)}`
                     : `/chat/${encodeURIComponent(sId)}`;
 
-                await upsertConversationStateOnMessage({
-                    studentId: sId,
-                    trainerId: tId,
-                    senderId: userId,
-                    senderRole: userRole,
-                    sentAt,
-                });
-
                 const room = `chat_${sId}_${tId}`;
                 io.to(room).emit('newMessage', serializedMessage);
-
-                emitChatConversationStateToUser({
-                    recipientUserId: userId,
-                    studentId: sId,
-                    trainerId: tId,
-                    hasUnread: false,
-                    lastMessageAt: sentAt,
-                });
-
-                emitChatConversationStateToUser({
-                    recipientUserId,
-                    studentId: sId,
-                    trainerId: tId,
-                    hasUnread: true,
-                    lastMessageAt: sentAt,
-                });
-
-                await createNotifications({
-                    recipientUserIds: [recipientUserId],
-                    actorUserId: userId,
-                    kind: 'chat_message',
-                    title: `New message from ${senderName}`,
-                    body: truncateNotificationText(content.trim(), 140),
-                    linkPath,
-                    metadata: {
-                        messageId: String((serializedMessage as any)?._id || message._id),
-                        studentId: sId,
-                        trainerId: tId,
-                        senderId: userId,
-                        senderName,
-                    },
-                    allowedRoles: ['trainer', 'student', 'institution_student'],
-                });
-
                 ack?.({ ok: true, chatMessage: serializedMessage });
                 console.log(`[Socket] Message sent in room: ${room}`);
+
+                // Keep message delivery reliable even if metadata/notification side-effects fail.
+                void (async () => {
+                    try {
+                        await upsertConversationStateOnMessage({
+                            studentId: sId,
+                            trainerId: tId,
+                            senderId: userId,
+                            senderRole: userRole,
+                            sentAt,
+                        });
+
+                        emitChatConversationStateToUser({
+                            recipientUserId: userId,
+                            studentId: sId,
+                            trainerId: tId,
+                            hasUnread: false,
+                            lastMessageAt: sentAt,
+                        });
+
+                        emitChatConversationStateToUser({
+                            recipientUserId,
+                            studentId: sId,
+                            trainerId: tId,
+                            hasUnread: true,
+                            lastMessageAt: sentAt,
+                        });
+                    } catch (stateError) {
+                        console.error('[Socket] Failed to update chat conversation state:', stateError);
+                    }
+
+                    try {
+                        await createNotifications({
+                            recipientUserIds: [recipientUserId],
+                            actorUserId: userId,
+                            kind: 'chat_message',
+                            title: `New message from ${senderName}`,
+                            body: truncateNotificationText(content.trim(), 140),
+                            linkPath,
+                            metadata: {
+                                messageId: String((serializedMessage as any)?._id || message._id),
+                                studentId: sId,
+                                trainerId: tId,
+                                senderId: userId,
+                                senderName,
+                            },
+                            allowedRoles: ['trainer', 'student', 'institution_student'],
+                        });
+                    } catch (notificationError) {
+                        console.error('[Socket] Failed to create chat notification:', notificationError);
+                    }
+                })();
             } catch (err) {
                 console.error('[Socket] Failed to save message:', err);
                 const message = 'Failed to send message';

@@ -29,6 +29,8 @@ export interface INotification extends Document {
     updatedAt: Date;
 }
 
+const NOTIFICATION_TTL_SECONDS = 15 * 24 * 60 * 60;
+
 const NotificationSchema = new Schema<INotification>(
     {
         recipientUserId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -58,5 +60,6 @@ const NotificationSchema = new Schema<INotification>(
 
 NotificationSchema.index({ recipientUserId: 1, createdAt: -1 });
 NotificationSchema.index({ recipientUserId: 1, isRead: 1, createdAt: -1 });
+NotificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: NOTIFICATION_TTL_SECONDS });
 
 export default mongoose.model<INotification>('Notification', NotificationSchema);
