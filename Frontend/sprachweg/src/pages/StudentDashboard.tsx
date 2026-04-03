@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import api from '../lib/api';
 import { dashboardAPI, getAssetUrl, internshipApplicationAPI, webinarRegistrationAPI } from '../lib/api';
@@ -24,6 +24,7 @@ import { useNotifications } from '../context/NotificationContext';
 import Button from '../components/ui/Button';
 import ProfileCompletionModal from '../components/auth/ProfileCompletionModal';
 import LearnerQuickActions from '../components/layout/LearnerQuickActions';
+import { getDashboardPathForRole } from '../lib/authRouting';
 import { formatInternshipMode } from '../types/internship';
 import { formatWebinarDateTime, formatWebinarPrice, type ApprovedWebinar } from '../types/webinar';
 import InstitutionStudentHeader from '../components/layout/InstitutionStudentHeader';
@@ -180,18 +181,30 @@ const getChatButtonClasses = (hasUnread: boolean) => (
 
 const CourseCard: React.FC<{ course: any }> = ({ course }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user } = useAuth();
     const { hasUnreadConversation } = useNotifications();
     const myId = user?._id || (user as any)?.id;
     const trainerId = getTrainerId(course.trainerId);
     const trainerName = getTrainerName(course.trainerId, 'Unknown');
     const hasUnreadChat = Boolean(myId && trainerId && hasUnreadConversation(myId, trainerId));
+    const currentPath = `${location.pathname}${location.search}`;
 
-    const handleCardClick = () => { navigate(`/language-batch/${course._id}`); };
+    const handleCardClick = () => {
+        navigate(`/language-batch/${course._id}`, {
+            state: {
+                from: currentPath,
+            },
+        });
+    };
     const handleChatClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
         if (!trainerId || !myId) return;
-        navigate(`/chat/${myId}?trainerId=${encodeURIComponent(trainerId)}`);
+        navigate(`/chat/${myId}?trainerId=${encodeURIComponent(trainerId)}`, {
+            state: {
+                from: currentPath,
+            },
+        });
     };
 
     return (
@@ -246,6 +259,7 @@ const CourseCard: React.FC<{ course: any }> = ({ course }) => {
 
 const SkillCourseCard: React.FC<{ course: ApprovedSkillCourse }> = ({ course }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user } = useAuth();
     const { hasUnreadConversation } = useNotifications();
     const myId = user?._id || (user as any)?.id;
@@ -253,6 +267,7 @@ const SkillCourseCard: React.FC<{ course: ApprovedSkillCourse }> = ({ course }) 
     const trainerId = getTrainerId(course.trainerId);
     const trainerName = getTrainerName(course.trainerId);
     const hasUnreadChat = Boolean(myId && trainerId && hasUnreadConversation(myId, trainerId));
+    const currentPath = `${location.pathname}${location.search}`;
     const hasImageThumbnail =
         typeof course.thumbnail === 'string'
         && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('/'));
@@ -260,7 +275,11 @@ const SkillCourseCard: React.FC<{ course: ApprovedSkillCourse }> = ({ course }) 
     const handleChatClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
         if (!trainerId || !myId) return;
-        navigate(`/chat/${myId}?trainerId=${encodeURIComponent(trainerId)}`);
+        navigate(`/chat/${myId}?trainerId=${encodeURIComponent(trainerId)}`, {
+            state: {
+                from: currentPath,
+            },
+        });
     };
 
     return (
@@ -268,7 +287,11 @@ const SkillCourseCard: React.FC<{ course: ApprovedSkillCourse }> = ({ course }) 
             variants={itemVariants}
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
             className="group relative cursor-pointer overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-xl dark:border-gray-700 dark:bg-gray-800"
-            onClick={() => navigate(targetRoute)}
+            onClick={() => navigate(targetRoute, {
+                state: {
+                    from: currentPath,
+                },
+            })}
         >
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#d6b161]/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
             <div className="relative">
@@ -295,7 +318,11 @@ const SkillCourseCard: React.FC<{ course: ApprovedSkillCourse }> = ({ course }) 
                         type="button"
                         onClick={(event) => {
                             event.stopPropagation();
-                            navigate(targetRoute);
+                            navigate(targetRoute, {
+                                state: {
+                                    from: currentPath,
+                                },
+                            });
                         }}
                         className="flex-1 rounded-xl bg-[#0a192f] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 dark:bg-[#d6b161] dark:text-[#0a192f] flex items-center justify-center gap-1.5"
                     >
@@ -484,7 +511,7 @@ const StudentDashboard: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <LearnerQuickActions homeTo="/" showFeedbackLink />
+            <LearnerQuickActions homeTo={getDashboardPathForRole(user?.role)} showFeedbackLink />
 
             <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-[#0a192f] focus:px-4 focus:py-2 focus:text-white focus:outline-none focus:ring-2 focus:ring-[#d6b161]">
                 Skip to content

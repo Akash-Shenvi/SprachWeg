@@ -45,7 +45,7 @@ const LearnerQuickActions: React.FC<LearnerQuickActionsProps> = ({
             <button
                 type="button"
                 onClick={() => navigate(homeTo)}
-                aria-label="Go to home page"
+                aria-label="Go to dashboard"
                 className="flex h-11 w-11 items-center justify-center rounded-full border border-white/50 bg-white/90 text-[#0a192f] shadow-lg backdrop-blur-md transition-colors hover:bg-white dark:border-gray-700 dark:bg-[#112240]/90 dark:text-white dark:hover:bg-[#112240]"
             >
                 <LayoutDashboard className="h-5 w-5" />

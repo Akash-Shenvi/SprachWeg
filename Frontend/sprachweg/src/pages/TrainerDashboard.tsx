@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import api, { webinarCatalogAPI } from '../lib/api';
 import {
@@ -311,6 +311,7 @@ const TrainerDashboard: React.FC = () => {
     const [webinarsLoading, setWebinarsLoading] = useState(true);
     const [trainerCalendarConnected, setTrainerCalendarConnected] = useState(true);
     const navigate = useNavigate();
+    const location = useLocation();
     const { logout } = useAuth();
 
     useEffect(() => {
@@ -353,7 +354,14 @@ const TrainerDashboard: React.FC = () => {
     }, []);
 
     const handleBatchClick = (batch: Batch) => {
-        navigate(batch.trainingType === 'skill' ? `/skill-batch/${batch._id}` : `/language-batch/${batch._id}`);
+        navigate(
+            batch.trainingType === 'skill' ? `/skill-batch/${batch._id}` : `/language-batch/${batch._id}`,
+            {
+                state: {
+                    from: `${location.pathname}${location.search}`,
+                },
+            }
+        );
     };
     const handleConnectGoogle = async () => {
         try {

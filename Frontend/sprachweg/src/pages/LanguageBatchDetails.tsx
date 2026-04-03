@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Video,
     FileText,
@@ -34,6 +34,7 @@ import LearnerQuickActions from '../components/layout/LearnerQuickActions';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import api, { getAssetUrl } from '../lib/api';
+import { getDashboardPathForRole } from '../lib/authRouting';
 import { isInstitutionStudentRole, isLearnerRole } from '../lib/roles';
 
 type TrainingType = 'language' | 'skill';
@@ -132,6 +133,7 @@ interface LanguageBatchDetailsProps {
 const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingType = 'language' }) => {
     const { batchId } = useParams<{ batchId: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
     const { user } = useAuth();
     const { hasUnreadConversation } = useNotifications();
@@ -200,6 +202,13 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
     const isLearner = isLearnerRole(user?.role);
     const isInstitutionStudent = isInstitutionStudentRole(user?.role);
     const currentUserId = user?._id || (user as any)?.id;
+    const currentPath = `${location.pathname}${location.search}`;
+    const stateFrom = typeof location.state === 'object' && location.state && 'from' in location.state
+        ? String((location.state as { from?: unknown }).from || '').trim()
+        : '';
+    const backTarget = stateFrom && stateFrom !== currentPath
+        ? stateFrom
+        : getDashboardPathForRole(user?.role);
 
     // --- Paginated fetch helpers ---
     const fetchTab = async (tab: typeof activeTab, page: number, append = false) => {
@@ -536,7 +545,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
             )}
 
             {isLearner && (
-                <LearnerQuickActions homeTo="/" />
+                <LearnerQuickActions homeTo={getDashboardPathForRole(user?.role)} />
             )}
 
             <main className={`flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${isLearner ? 'py-20 sm:py-24 lg:py-24' : 'py-6 sm:py-8 lg:py-10'}`}>
@@ -544,7 +553,7 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                 <div className="mb-8 animate-in fade-in slide-in-from-top duration-500">
                     {!isLearner && (
                         <button
-                            onClick={() => isAdmin ? navigate('/admin-dashboard') : navigate(-1)}
+                            onClick={() => navigate(isAdmin ? '/admin-dashboard' : backTarget)}
                             className="group inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-all duration-300 hover:gap-3 mb-6"
                         >
                             <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" />
@@ -1028,7 +1037,11 @@ const LanguageBatchDetails: React.FC<LanguageBatchDetailsProps> = ({ trainingTyp
                                         {isTrainer && (
                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                 <button
-                                                    onClick={() => navigate(`/chat/${student._id}`)}
+                                                    onClick={() => navigate(`/chat/${student._id}`, {
+                                                        state: {
+                                                            from: currentPath,
+                                                        },
+                                                    })}
                                                     className={getUnreadTrainerChatButtonClasses(hasUnreadChat)}
                                                     aria-label={`Chat with ${student.name}`}
                                                 >

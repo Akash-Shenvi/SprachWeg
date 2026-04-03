@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell, CheckCheck, LoaderCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { type NotificationItem, useNotifications } from '../../context/NotificationContext';
 import { extractChatConversationFromNotification } from '../../lib/chat';
 
@@ -87,6 +87,7 @@ const NotificationCard: React.FC<{
 
 const NotificationBell: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const {
         notifications,
         unreadCount,
@@ -128,7 +129,11 @@ const NotificationBell: React.FC = () => {
         if (conversation) {
             void markConversationAsRead(conversation);
         }
-        navigate(notification.linkPath);
+        navigate(notification.linkPath, {
+            state: {
+                from: `${location.pathname}${location.search}`,
+            },
+        });
     };
 
     return (

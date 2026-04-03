@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Send, ArrowLeft, MessageCircle, WifiOff } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
@@ -7,6 +7,7 @@ import Header from '../components/layout/Header';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { API_BASE_URL, chatAPI, getAssetUrl } from '../lib/api';
+import { getDashboardPathForRole } from '../lib/authRouting';
 import { isLearnerRole } from '../lib/roles';
 
 // ============================================================================
@@ -91,6 +92,7 @@ const ChatPage: React.FC = () => {
     const { user } = useAuth();
     const { markConversationAsRead, registerOpenConversation } = useNotifications();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [otherPartyName, setOtherPartyName] = useState<string>('');
@@ -109,6 +111,13 @@ const ChatPage: React.FC = () => {
     const myId = (user as any)?._id || (user as any)?.id;
     const isStudent = isLearnerRole(user?.role);
     const requestedTrainerId = searchParams.get('trainerId');
+    const currentPath = `${location.pathname}${location.search}`;
+    const stateFrom = typeof location.state === 'object' && location.state && 'from' in location.state
+        ? String((location.state as { from?: unknown }).from || '').trim()
+        : '';
+    const backTarget = stateFrom && stateFrom !== currentPath
+        ? stateFrom
+        : getDashboardPathForRole(user?.role);
 
     // ── Load chat history ────────────────────────────────────────────────────
     useEffect(() => {
@@ -298,7 +307,7 @@ const ChatPage: React.FC = () => {
                 {/* Chat Header */}
                 <div className="px-4 py-3 bg-white dark:bg-[#112240] border-b border-gray-200 dark:border-gray-800 flex items-center gap-3 shadow-sm">
                     <button
-                        onClick={() => navigate(-1)}
+                        onClick={() => navigate(backTarget)}
                         className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors"
                     >
                         <ArrowLeft className="w-5 h-5" />
