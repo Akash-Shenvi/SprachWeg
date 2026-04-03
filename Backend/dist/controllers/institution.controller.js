@@ -25,6 +25,7 @@ const language_batch_model_1 = __importDefault(require("../models/language.batch
 const language_enrollment_model_1 = __importDefault(require("../models/language.enrollment.model"));
 const email_service_1 = require("../utils/email.service");
 const notification_service_1 = require("../services/notification.service");
+const languageBatchScope_1 = require("../utils/languageBatchScope");
 const emailService = new email_service_1.EmailService();
 const MAX_INSTITUTION_STUDENTS_PER_REQUEST = 25;
 const STUDENT_WELCOME_EMAIL_BATCH_SIZE = 5;
@@ -109,32 +110,9 @@ const sendInstitutionStudentWelcomeEmailsInBatches = (students) => __awaiter(voi
             studentName: student.name,
             courseTitle: student.courseTitle,
             levelName: student.levelName,
+            institutionName: student.institutionName || undefined,
         })));
     }
-});
-const createOrLoadBatch = (courseTitle, levelName, session) => __awaiter(void 0, void 0, void 0, function* () {
-    const batchQuery = language_batch_model_1.default.findOne({
-        courseTitle,
-        name: levelName,
-    });
-    if (session) {
-        batchQuery.session(session);
-    }
-    let batch = yield batchQuery;
-    if (!batch) {
-        batch = new language_batch_model_1.default({
-            courseTitle,
-            name: levelName,
-            students: [],
-        });
-        if (session) {
-            yield batch.save({ session });
-        }
-        else {
-            yield batch.save();
-        }
-    }
-    return batch;
 });
 const isTransactionUnsupportedError = (error) => {
     const message = String((error === null || error === void 0 ? void 0 : error.message) || '');
@@ -199,7 +177,16 @@ const processInstitutionApproval = (params) => __awaiter(void 0, void 0, void 0,
     if (!institution) {
         throw new Error('Institution account not found.');
     }
-    const batch = yield createOrLoadBatch(request.courseTitle, request.levelName, session);
+    const institutionScope = (0, languageBatchScope_1.getLanguageInstitutionScope)({
+        institutionId: institution._id,
+        institutionName: institution.institutionName || institution.name,
+    });
+    const batch = yield (0, languageBatchScope_1.findOrCreateLanguageBatch)({
+        courseTitle: request.courseTitle,
+        levelName: request.levelName,
+        scope: institutionScope,
+        session,
+    });
     const originalBatchStudentIds = [...batch.students];
     const createdUserIds = [];
     const createdEnrollmentIds = [];
@@ -229,6 +216,8 @@ const processInstitutionApproval = (params) => __awaiter(void 0, void 0, void 0,
                     userId: studentUser._id,
                     courseTitle: request.courseTitle,
                     name: request.levelName,
+                    institutionId: institutionScope.institutionId,
+                    institutionName: institutionScope.institutionName,
                     status: 'APPROVED',
                     batchId: batch._id,
                 }], session ? { session } : undefined);
@@ -242,8 +231,10 @@ const processInstitutionApproval = (params) => __awaiter(void 0, void 0, void 0,
                 email: studentUser.email,
                 courseTitle: request.courseTitle,
                 levelName: request.levelName,
+                institutionName: institutionScope.institutionName,
             });
         }
+        (0, languageBatchScope_1.applyLanguageInstitutionScope)(batch, institutionScope);
         request.status = 'APPROVED';
         request.adminDecisionBy = adminUserId;
         request.adminDecisionAt = new Date();

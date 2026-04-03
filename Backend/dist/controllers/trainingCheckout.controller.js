@@ -26,6 +26,7 @@ const payment_helpers_1 = require("../utils/payment.helpers");
 const payu_1 = require("../utils/payu");
 const payment_urls_1 = require("../utils/payment.urls");
 const payment_pricing_1 = require("../utils/payment.pricing");
+const languageBatchScope_1 = require("../utils/languageBatchScope");
 const emailService = new email_service_1.EmailService();
 const trainingPortalBaseUrl = String(env_1.env.FRONTEND_BASE_URL || 'http://localhost:5173').replace(/\/+$/, '');
 const extractNumericPrice = (value) => {
@@ -318,6 +319,10 @@ const upsertLanguageEnrollment = (attempt) => __awaiter(void 0, void 0, void 0, 
     if (!attempt.levelName) {
         throw new Error('Language level details are missing for this payment attempt.');
     }
+    const enrollmentUser = yield user_model_1.default.findById(attempt.userId)
+        .select('role institutionId institutionName')
+        .lean();
+    const enrollmentScope = (0, languageBatchScope_1.getLanguageEnrollmentInstitutionScope)(enrollmentUser);
     const existingEnrollment = yield language_enrollment_model_1.default.findOne({
         userId: attempt.userId,
         courseTitle: attempt.courseTitle,
@@ -330,12 +335,15 @@ const upsertLanguageEnrollment = (attempt) => __awaiter(void 0, void 0, void 0, 
             userId: attempt.userId,
             courseTitle: attempt.courseTitle,
             name: attempt.levelName,
+            institutionId: enrollmentScope.institutionId,
+            institutionName: enrollmentScope.institutionName,
         });
         shouldSendEnrollmentEmail = true;
     }
     else if (enrollment.status === 'REJECTED') {
         enrollment.status = 'PENDING';
         enrollment.batchId = undefined;
+        (0, languageBatchScope_1.applyLanguageInstitutionScope)(enrollment, enrollmentScope);
         yield enrollment.save();
         shouldSendEnrollmentEmail = true;
     }

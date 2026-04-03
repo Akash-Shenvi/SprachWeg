@@ -31,6 +31,7 @@ const user_model_1 = __importDefault(require("../models/user.model"));
 const email_service_1 = require("../utils/email.service");
 const payment_helpers_1 = require("../utils/payment.helpers");
 const roles_1 = require("../utils/roles");
+const languageBatchScope_1 = require("../utils/languageBatchScope");
 const emailService = new email_service_1.EmailService();
 const buildLanguagePaymentKey = (params) => {
     var _a, _b, _c;
@@ -54,6 +55,7 @@ const toDisplayAmount = (subunits) => {
 const applyEnrollment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { courseTitle, name } = req.body;
+        const enrollmentScope = (0, languageBatchScope_1.getLanguageEnrollmentInstitutionScope)(req.user);
         if (!courseTitle || !name) {
             return res.status(400).json({ message: "courseTitle and name required" });
         }
@@ -66,6 +68,7 @@ const applyEnrollment = (req, res) => __awaiter(void 0, void 0, void 0, function
             if (exists.status === "REJECTED") {
                 exists.status = "PENDING";
                 exists.batchId = undefined;
+                (0, languageBatchScope_1.applyLanguageInstitutionScope)(exists, enrollmentScope);
                 yield exists.save();
                 // Send "Request Received" Email for Re-enrollment
                 const userEmail = req.user.email;
@@ -82,6 +85,8 @@ const applyEnrollment = (req, res) => __awaiter(void 0, void 0, void 0, function
             userId: req.user._id,
             courseTitle,
             name,
+            institutionId: enrollmentScope.institutionId,
+            institutionName: enrollmentScope.institutionName,
         });
         // Send "Request Received" Email
         const userEmail = req.user.email;
@@ -101,7 +106,7 @@ exports.applyEnrollment = applyEnrollment;
 const getMyEnrollments = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const enrollments = yield language_enrollment_model_1.default.find({
         userId: req.user._id,
-    }).populate("batchId", "courseTitle name");
+    }).populate("batchId", "courseTitle name institutionId institutionName");
     res.json(enrollments);
 });
 exports.getMyEnrollments = getMyEnrollments;
@@ -130,11 +135,13 @@ const getEnrollments = (req, res) => __awaiter(void 0, void 0, void 0, function*
                     { name: { $regex: search, $options: 'i' } },
                     { email: { $regex: search, $options: 'i' } },
                     { phoneNumber: { $regex: search, $options: 'i' } },
+                    { institutionName: { $regex: search, $options: 'i' } },
                 ],
             }).distinct('_id');
             filter.$or = [
                 { courseTitle: { $regex: search, $options: 'i' } },
                 { name: { $regex: search, $options: 'i' } },
+                { institutionName: { $regex: search, $options: 'i' } },
                 { userId: { $in: matchingUserIds } },
             ];
         }
@@ -142,7 +149,7 @@ const getEnrollments = (req, res) => __awaiter(void 0, void 0, void 0, function*
         const totalPages = Math.max(1, Math.ceil(totalEnrollments / limit));
         const currentPage = Math.min(page, totalPages);
         const enrollments = yield language_enrollment_model_1.default.find(filter)
-            .populate('userId', 'name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role createdAt')
+            .populate('userId', 'name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role createdAt institutionId institutionName')
             .sort({ createdAt: -1 })
             .skip((currentPage - 1) * limit)
             .limit(limit);
@@ -214,24 +221,28 @@ const getEnrollments = (req, res) => __awaiter(void 0, void 0, void 0, function*
 exports.getEnrollments = getEnrollments;
 // POST /api/language-training/admin/enroll/:id/approve
 const approveEnrollment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     try {
         const enrollment = yield language_enrollment_model_1.default.findById(req.params.id).populate('userId');
         if (!enrollment || enrollment.status !== "PENDING") {
             return res.status(400).json({ message: "Invalid enrollment" });
         }
-        let batch = yield language_batch_model_1.default.findOne({
+        const studentUser = enrollment.userId;
+        const enrollmentScope = enrollment.institutionId
+            ? (0, languageBatchScope_1.getLanguageInstitutionScope)({
+                institutionId: enrollment.institutionId,
+                institutionName: enrollment.institutionName,
+            })
+            : (0, languageBatchScope_1.getLanguageEnrollmentInstitutionScope)(studentUser);
+        (0, languageBatchScope_1.applyLanguageInstitutionScope)(enrollment, enrollmentScope);
+        const studentUserId = (_a = studentUser === null || studentUser === void 0 ? void 0 : studentUser._id) !== null && _a !== void 0 ? _a : enrollment.userId;
+        const batch = yield (0, languageBatchScope_1.findOrCreateLanguageBatch)({
             courseTitle: enrollment.courseTitle,
-            name: enrollment.name,
+            levelName: enrollment.name,
+            scope: enrollmentScope,
         });
-        if (!batch) {
-            batch = yield language_batch_model_1.default.create({
-                courseTitle: enrollment.courseTitle,
-                name: enrollment.name,
-                students: [],
-            });
-        }
-        if (!batch.students.some(id => id.equals(enrollment.userId))) {
-            batch.students.push(enrollment.userId);
+        if (!batch.students.some(id => id.equals(studentUserId))) {
+            batch.students.push(studentUserId);
             yield batch.save();
         }
         enrollment.status = "APPROVED";
@@ -240,9 +251,8 @@ const approveEnrollment = (req, res) => __awaiter(void 0, void 0, void 0, functi
         // Send "Approved" Email
         // Since we populated userId, it is now an object (depending on TS types). 
         // We cast to any or check type to access email.
-        const studentUser = enrollment.userId;
         if (studentUser && studentUser.email) {
-            yield emailService.sendEnrollmentEmail(studentUser.email, studentUser.name, enrollment.courseTitle, 'APPROVED');
+            yield emailService.sendEnrollmentEmail(studentUser.email, studentUser.name, enrollment.courseTitle, 'APPROVED', undefined, enrollmentScope.institutionName || undefined);
         }
         res.json({
             message: "Enrollment approved and assigned to batch",
@@ -283,6 +293,7 @@ const getBatches = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             filter.$or = [
                 { courseTitle: { $regex: search, $options: 'i' } },
                 { name: { $regex: search, $options: 'i' } },
+                { institutionName: { $regex: search, $options: 'i' } },
             ];
         }
         if (!hasPaginationQuery) {
@@ -347,6 +358,7 @@ const getBatchStudents = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 { name: { $regex: search, $options: 'i' } },
                 { email: { $regex: search, $options: 'i' } },
                 { phoneNumber: { $regex: search, $options: 'i' } },
+                { institutionName: { $regex: search, $options: 'i' } },
             ];
         }
         const totalStudents = yield user_model_1.default.countDocuments(studentFilter);
@@ -362,6 +374,8 @@ const getBatchStudents = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 _id: batch._id,
                 courseTitle: batch.courseTitle,
                 name: batch.name,
+                institutionId: batch.institutionId || null,
+                institutionName: batch.institutionName || null,
                 trainer: batch.trainerId || null,
                 studentCount: batch.students.length,
             },
@@ -426,8 +440,12 @@ const deleteBatch = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         // If enrollments have batchId populated, use that.
         // Update enrollments
         yield language_enrollment_model_1.default.updateMany({ batchId: id }, { $set: { status: "REJECTED", batchId: null } });
-        // Update enrollments based on course/name matching just in case (legacy safety)
-        yield language_enrollment_model_1.default.updateMany({ courseTitle: batch.courseTitle, name: batch.name, status: "APPROVED" }, { $set: { status: "REJECTED", batchId: null } });
+        const batchScope = (0, languageBatchScope_1.getLanguageInstitutionScope)({
+            institutionId: batch.institutionId,
+            institutionName: batch.institutionName,
+        });
+        // Update enrollments based on course/name/scope matching just in case (legacy safety)
+        yield language_enrollment_model_1.default.updateMany(Object.assign(Object.assign({}, (0, languageBatchScope_1.buildLanguageBatchQuery)(batch.courseTitle, batch.name, batchScope)), { status: "APPROVED" }), { $set: { status: "REJECTED", batchId: null } });
         yield batch.deleteOne();
         res.json({ message: "Batch deleted and students un-enrolled" });
     }

@@ -11,13 +11,24 @@ import LanguageBatch from '../models/language.batch.model';
 import LanguageEnrollment from '../models/language.enrollment.model';
 import { EmailService } from '../utils/email.service';
 import { buildBatchNotificationLink, createNotifications } from '../services/notification.service';
+import {
+    applyLanguageInstitutionScope,
+    findOrCreateLanguageBatch,
+    getLanguageInstitutionScope,
+} from '../utils/languageBatchScope';
 
 const emailService = new EmailService();
 const MAX_INSTITUTION_STUDENTS_PER_REQUEST = 25;
 const STUDENT_WELCOME_EMAIL_BATCH_SIZE = 5;
 
 type ApprovalArtifacts = {
-    createdStudentsForEmail: Array<{ name: string; email: string; courseTitle: string; levelName: string }>;
+    createdStudentsForEmail: Array<{
+        name: string;
+        email: string;
+        courseTitle: string;
+        levelName: string;
+        institutionName: string | null;
+    }>;
     createdStudentUserIds: mongoose.Types.ObjectId[];
     approvedBatchId?: mongoose.Types.ObjectId | null;
     approvedCourseTitle?: string;
@@ -132,41 +143,10 @@ const sendInstitutionStudentWelcomeEmailsInBatches = async (
                 studentName: student.name,
                 courseTitle: student.courseTitle,
                 levelName: student.levelName,
+                institutionName: student.institutionName || undefined,
             }))
         );
     }
-};
-
-const createOrLoadBatch = async (
-    courseTitle: string,
-    levelName: string,
-    session?: ClientSession | null
-) => {
-    const batchQuery = LanguageBatch.findOne({
-        courseTitle,
-        name: levelName,
-    });
-
-    if (session) {
-        batchQuery.session(session);
-    }
-
-    let batch = await batchQuery;
-
-    if (!batch) {
-        batch = new LanguageBatch({
-            courseTitle,
-            name: levelName,
-            students: [],
-        });
-        if (session) {
-            await batch.save({ session });
-        } else {
-            await batch.save();
-        }
-    }
-
-    return batch;
 };
 
 const isTransactionUnsupportedError = (error: unknown) => {
@@ -259,7 +239,17 @@ const processInstitutionApproval = async (params: {
         throw new Error('Institution account not found.');
     }
 
-    const batch = await createOrLoadBatch(request.courseTitle, request.levelName, session);
+    const institutionScope = getLanguageInstitutionScope({
+        institutionId: institution._id,
+        institutionName: institution.institutionName || institution.name,
+    });
+
+    const batch = await findOrCreateLanguageBatch({
+        courseTitle: request.courseTitle,
+        levelName: request.levelName,
+        scope: institutionScope,
+        session,
+    });
     const originalBatchStudentIds = [...batch.students];
     const createdUserIds: mongoose.Types.ObjectId[] = [];
     const createdEnrollmentIds: mongoose.Types.ObjectId[] = [];
@@ -292,6 +282,8 @@ const processInstitutionApproval = async (params: {
                 userId: studentUser._id,
                 courseTitle: request.courseTitle,
                 name: request.levelName,
+                institutionId: institutionScope.institutionId,
+                institutionName: institutionScope.institutionName,
                 status: 'APPROVED',
                 batchId: batch._id,
             }], session ? { session } : undefined);
@@ -308,9 +300,11 @@ const processInstitutionApproval = async (params: {
                 email: studentUser.email,
                 courseTitle: request.courseTitle,
                 levelName: request.levelName,
+                institutionName: institutionScope.institutionName,
             });
         }
 
+        applyLanguageInstitutionScope(batch as any, institutionScope);
         request.status = 'APPROVED';
         request.adminDecisionBy = adminUserId;
         request.adminDecisionAt = new Date();

@@ -3,7 +3,9 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IBatch extends Document {
   courseTitle: string;   // English
   name: string;          // e.g. A1, N5 (was levelName)
-  trainerId: mongoose.Types.ObjectId;
+  trainerId?: mongoose.Types.ObjectId | null;
+  institutionId?: mongoose.Types.ObjectId | null;
+  institutionName?: string | null;
   students: mongoose.Types.ObjectId[];
 }
 
@@ -17,6 +19,18 @@ const BatchSchema = new Schema(
     name: {
       type: String,
       required: true,
+    },
+
+    institutionId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    institutionName: {
+      type: String,
+      default: null,
+      trim: true,
     },
 
     trainerId: {
@@ -39,7 +53,7 @@ const BatchSchema = new Schema(
 );
 
 BatchSchema.index(
-  { courseTitle: 1, name: 1 },
+  { courseTitle: 1, name: 1, institutionId: 1 },
   { unique: true }
 );
 

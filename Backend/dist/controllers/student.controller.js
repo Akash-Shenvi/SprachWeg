@@ -38,6 +38,7 @@ const skill_material_model_1 = __importDefault(require("../models/skill.material
 const institutionEnrollmentRequest_model_1 = __importDefault(require("../models/institutionEnrollmentRequest.model"));
 const payment_helpers_1 = require("../utils/payment.helpers");
 const roles_1 = require("../utils/roles");
+const languageBatchScope_1 = require("../utils/languageBatchScope");
 const buildLanguagePaymentKey = (params) => {
     var _a, _b, _c;
     return [
@@ -87,6 +88,8 @@ const buildActiveClassSummary = (batch, trainingType) => {
             ? String(batch.courseTitle || '').trim()
             : String(((_a = batch.courseId) === null || _a === void 0 ? void 0 : _a.title) || 'Skill Training').trim(),
         name: String(batch.name || '').trim(),
+        institutionId: trainingType === 'language' && batch.institutionId ? String(batch.institutionId) : null,
+        institutionName: trainingType === 'language' ? String(batch.institutionName || '').trim() || null : null,
         studentCount: Array.isArray(batch.students) ? batch.students.length : 0,
         trainer: batch.trainerId || null,
         trainingType,
@@ -127,6 +130,7 @@ const getPendingAdminEnrollments = (req, res) => __awaiter(void 0, void 0, void 
                     { name: { $regex: search, $options: 'i' } },
                     { email: { $regex: search, $options: 'i' } },
                     { phoneNumber: { $regex: search, $options: 'i' } },
+                    { institutionName: { $regex: search, $options: 'i' } },
                 ],
             }).distinct('_id')
             : [];
@@ -138,6 +142,7 @@ const getPendingAdminEnrollments = (req, res) => __awaiter(void 0, void 0, void 
             languageFilter.$or = [
                 { courseTitle: { $regex: search, $options: 'i' } },
                 { name: { $regex: search, $options: 'i' } },
+                { institutionName: { $regex: search, $options: 'i' } },
                 { userId: { $in: matchingUserIds } },
             ];
         }
@@ -153,7 +158,7 @@ const getPendingAdminEnrollments = (req, res) => __awaiter(void 0, void 0, void 
         }
         const [languageEnrollments, skillEnrollments, availableLevels] = yield Promise.all([
             language_enrollment_model_1.default.find(languageFilter)
-                .populate('userId', 'name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role createdAt')
+                .populate('userId', 'name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role createdAt institutionId institutionName')
                 .sort({ createdAt: -1 }),
             level && level !== 'All'
                 ? Promise.resolve([])
@@ -303,6 +308,7 @@ const getActiveClasses = (req, res) => __awaiter(void 0, void 0, void 0, functio
                 ? true
                 : item.courseTitle.toLowerCase().includes(search)
                     || item.name.toLowerCase().includes(search)
+                    || String(item.institutionName || '').toLowerCase().includes(search)
                     || (((_a = item.trainer) === null || _a === void 0 ? void 0 : _a.name) || '').toLowerCase().includes(search);
             return matchesTrainingType && matchesCourse && matchesSearch;
         });
@@ -354,6 +360,7 @@ const getActiveClassStudents = (req, res) => __awaiter(void 0, void 0, void 0, f
                     { name: { $regex: search, $options: 'i' } },
                     { email: { $regex: search, $options: 'i' } },
                     { phoneNumber: { $regex: search, $options: 'i' } },
+                    { institutionName: { $regex: search, $options: 'i' } },
                 ];
             }
             const totalStudents = yield user_model_1.default.countDocuments(studentFilter);
@@ -369,6 +376,8 @@ const getActiveClassStudents = (req, res) => __awaiter(void 0, void 0, void 0, f
                     _id: batch._id,
                     courseTitle: batch.courseTitle,
                     name: batch.name,
+                    institutionId: batch.institutionId ? String(batch.institutionId) : null,
+                    institutionName: batch.institutionName || null,
                     trainer: batch.trainerId || null,
                     studentCount: batch.students.length,
                     trainingType,
@@ -399,6 +408,7 @@ const getActiveClassStudents = (req, res) => __awaiter(void 0, void 0, void 0, f
                 { name: { $regex: search, $options: 'i' } },
                 { email: { $regex: search, $options: 'i' } },
                 { phoneNumber: { $regex: search, $options: 'i' } },
+                { institutionName: { $regex: search, $options: 'i' } },
             ];
         }
         const totalStudents = yield user_model_1.default.countDocuments(studentFilter);
@@ -533,7 +543,11 @@ const deleteActiveClass = (req, res) => __awaiter(void 0, void 0, void 0, functi
                 return res.status(404).json({ message: 'Batch not found' });
             }
             yield language_enrollment_model_1.default.updateMany({ batchId: id }, { $set: { status: 'REJECTED', batchId: null } });
-            yield language_enrollment_model_1.default.updateMany({ courseTitle: batch.courseTitle, name: batch.name, status: 'APPROVED' }, { $set: { status: 'REJECTED', batchId: null } });
+            const batchScope = (0, languageBatchScope_1.getLanguageInstitutionScope)({
+                institutionId: batch.institutionId,
+                institutionName: batch.institutionName,
+            });
+            yield language_enrollment_model_1.default.updateMany(Object.assign(Object.assign({}, (0, languageBatchScope_1.buildLanguageBatchQuery)(batch.courseTitle, batch.name, batchScope)), { status: 'APPROVED' }), { $set: { status: 'REJECTED', batchId: null } });
             yield batch.deleteOne();
             return res.status(200).json({ message: 'Active class deleted and students unenrolled successfully' });
         }
@@ -610,7 +624,7 @@ const getStudentDetails = (req, res) => __awaiter(void 0, void 0, void 0, functi
         }
         // Fetch Language Enrollments
         const languageEnrollments = yield language_enrollment_model_1.default.find({ userId: id })
-            .populate('batchId', 'courseTitle name')
+            .populate('batchId', 'courseTitle name institutionId institutionName')
             .sort({ createdAt: -1 });
         // Fetch Skill Enrollments
         const skillEnrollments = yield enrollment_model_1.default.find({ studentId: id })

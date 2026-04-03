@@ -26,6 +26,10 @@ import {
     type PaymentResult,
 } from '../utils/payment.urls';
 import { buildDisplayPaymentPricing, buildPaymentPricingBreakdown } from '../utils/payment.pricing';
+import {
+    applyLanguageInstitutionScope,
+    getLanguageEnrollmentInstitutionScope,
+} from '../utils/languageBatchScope';
 
 const emailService = new EmailService();
 const trainingPortalBaseUrl = String(env.FRONTEND_BASE_URL || 'http://localhost:5173').replace(/\/+$/, '');
@@ -394,6 +398,11 @@ const upsertLanguageEnrollment = async (attempt: ITrainingPaymentAttempt): Promi
         throw new Error('Language level details are missing for this payment attempt.');
     }
 
+    const enrollmentUser = await User.findById(attempt.userId)
+        .select('role institutionId institutionName')
+        .lean();
+    const enrollmentScope = getLanguageEnrollmentInstitutionScope(enrollmentUser);
+
     const existingEnrollment = await LanguageEnrollment.findOne({
         userId: attempt.userId,
         courseTitle: attempt.courseTitle,
@@ -408,11 +417,14 @@ const upsertLanguageEnrollment = async (attempt: ITrainingPaymentAttempt): Promi
             userId: attempt.userId,
             courseTitle: attempt.courseTitle,
             name: attempt.levelName,
+            institutionId: enrollmentScope.institutionId,
+            institutionName: enrollmentScope.institutionName,
         });
         shouldSendEnrollmentEmail = true;
     } else if (enrollment.status === 'REJECTED') {
         enrollment.status = 'PENDING';
         enrollment.batchId = undefined as any;
+        applyLanguageInstitutionScope(enrollment as any, enrollmentScope);
         await enrollment.save();
         shouldSendEnrollmentEmail = true;
     }

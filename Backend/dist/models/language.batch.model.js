@@ -43,6 +43,16 @@ const BatchSchema = new mongoose_1.Schema({
         type: String,
         required: true,
     },
+    institutionId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+    },
+    institutionName: {
+        type: String,
+        default: null,
+        trim: true,
+    },
     trainerId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: "User",
@@ -58,7 +68,7 @@ const BatchSchema = new mongoose_1.Schema({
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
 });
-BatchSchema.index({ courseTitle: 1, name: 1 }, { unique: true });
+BatchSchema.index({ courseTitle: 1, name: 1, institutionId: 1 }, { unique: true });
 // Virtual for announcements
 BatchSchema.virtual('announcements', {
     ref: 'LanguageAnnouncement',

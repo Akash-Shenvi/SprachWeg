@@ -53,9 +53,19 @@ const EnrollmentSchema = new mongoose_1.Schema({
         enum: ["PENDING", "APPROVED", "REJECTED"],
         default: "PENDING",
     },
+    institutionId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+    },
+    institutionName: {
+        type: String,
+        default: null,
+        trim: true,
+    },
     batchId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Batch",
+        ref: "LanguageBatch",
         default: null,
     },
 }, { timestamps: true });

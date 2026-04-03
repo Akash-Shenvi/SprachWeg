@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
     AlertCircle,
+    Building2,
     BookOpen,
     Calendar,
     ChevronDown,
@@ -29,6 +30,8 @@ interface Student {
     name: string;
     email: string;
     phoneNumber?: string;
+    institutionId?: string | null;
+    institutionName?: string | null;
     avatar?: string;
     guardianName?: string;
     guardianPhone?: string;
@@ -48,6 +51,8 @@ interface BatchListItem {
     _id: string;
     courseTitle: string;
     name: string;
+    institutionId?: string | null;
+    institutionName?: string | null;
     studentCount: number;
     trainer: Trainer | null;
     trainingType: 'language' | 'skill';
@@ -61,6 +66,8 @@ interface LanguageEnrollment {
     batchId?: {
         _id: string;
         name: string;
+        institutionId?: string | null;
+        institutionName?: string | null;
     };
 }
 
@@ -105,6 +112,19 @@ const activeClassTypeMeta = (trainingType: BatchListItem['trainingType']) =>
             badgeClassName: 'border-blue-200 bg-blue-100 text-blue-700 dark:border-blue-900/50 dark:bg-blue-900/30 dark:text-blue-300',
             iconClassName: 'bg-[#d6b161]/10 text-[#d6b161]',
         };
+
+const getNormalizedInstitutionName = (value?: string | null) => {
+    const normalizedValue = String(value || '').trim();
+    return normalizedValue || null;
+};
+
+const getLanguageBatchScopeLabel = (batch?: Pick<BatchListItem, 'trainingType' | 'institutionName'> | null) => {
+    if (!batch || batch.trainingType !== 'language') {
+        return null;
+    }
+
+    return getNormalizedInstitutionName(batch.institutionName) || 'General Pool';
+};
 const getBatchDetailsPath = (batch: Pick<BatchListItem, '_id' | 'trainingType'>) =>
     batch.trainingType === 'skill' ? `/skill-batch/${batch._id}` : `/language-batch/${batch._id}`;
 
@@ -560,6 +580,7 @@ const LanguageBatches: React.FC = () => {
                         {batches.map((batch) => {
                             const isExpanded = expandedBatch?._id === batch._id;
                             const typeMeta = activeClassTypeMeta(batch.trainingType);
+                            const institutionScopeLabel = getLanguageBatchScopeLabel(batch);
 
                             return (
                                 <div
@@ -588,6 +609,12 @@ const LanguageBatches: React.FC = () => {
                                                     <span className="rounded-full border border-blue-200 bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:border-blue-900/50 dark:bg-blue-900/30 dark:text-blue-300">
                                                         {batch.name}
                                                     </span>
+                                                    {institutionScopeLabel && (
+                                                        <span className="inline-flex items-center gap-1 rounded-full border border-[#d6b161]/30 bg-[#d6b161]/10 px-2 py-0.5 text-xs text-[#b38f3f] dark:text-[#f0d79a]">
+                                                            <Building2 className="h-3.5 w-3.5" />
+                                                            {institutionScopeLabel}
+                                                        </span>
+                                                    )}
                                                 </h2>
                                                 <div className="mt-1 flex flex-wrap items-center gap-4 text-sm">
                                                     <p className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
@@ -649,6 +676,11 @@ const LanguageBatches: React.FC = () => {
                                                         <span className="font-semibold text-gray-900 dark:text-white">{studentEnd}</span> of{' '}
                                                         <span className="font-semibold text-gray-900 dark:text-white">{studentPagination.totalStudents}</span> students
                                                     </p>
+                                                    {institutionScopeLabel && (
+                                                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                                            Batch scope: <span className="font-semibold text-gray-900 dark:text-white">{institutionScopeLabel}</span>
+                                                        </p>
+                                                    )}
                                                 </div>
                                                 <p className="text-sm text-gray-500 dark:text-gray-400">
                                                     Use <span className="font-semibold text-gray-900 dark:text-white">View Profile</span> for full details and avatar preview.
@@ -690,6 +722,12 @@ const LanguageBatches: React.FC = () => {
                                                                                 <div>
                                                                                     <p className="font-semibold text-gray-900 dark:text-white">{student.name}</p>
                                                                                     <p className="text-xs text-gray-500 dark:text-gray-400">{student.qualification || 'Qualification not provided'}</p>
+                                                                                    {batch.trainingType === 'language' && (
+                                                                                        <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-[#b38f3f] dark:text-[#f0d79a]">
+                                                                                            <Building2 className="h-3.5 w-3.5" />
+                                                                                            {getNormalizedInstitutionName(student.institutionName) || 'General Pool'}
+                                                                                        </p>
+                                                                                    )}
                                                                                 </div>
                                                                             </div>
                                                                         </td>
@@ -906,6 +944,12 @@ const LanguageBatches: React.FC = () => {
                                                 <Phone className="h-4 w-4" />
                                                 <span className="text-sm font-medium">{selectedStudent.phoneNumber || 'Not Provided'}</span>
                                             </div>
+                                            {getNormalizedInstitutionName(selectedStudent.institutionName) && (
+                                                <div className="flex items-center gap-2 rounded-lg bg-[#d6b161]/15 px-3 py-1.5 text-[#b38f3f] dark:bg-[#d6b161]/10 dark:text-[#f0d79a]">
+                                                    <Building2 className="h-4 w-4" />
+                                                    <span className="text-sm font-medium">{selectedStudent.institutionName}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -927,6 +971,17 @@ const LanguageBatches: React.FC = () => {
                                         </div>
                                         <p className="pl-8 font-bold text-gray-900 dark:text-white">{selectedStudent.qualification || 'Not Provided'}</p>
                                     </div>
+                                    {(expandedBatch?.trainingType === 'language' || getNormalizedInstitutionName(selectedStudent.institutionName)) && (
+                                        <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#0a192f]">
+                                            <div className="mb-2 flex items-center gap-3">
+                                                <Building2 className="h-5 w-5 text-emerald-500" />
+                                                <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Institution Scope</span>
+                                            </div>
+                                            <p className="pl-8 font-bold text-gray-900 dark:text-white">
+                                                {getNormalizedInstitutionName(selectedStudent.institutionName) || 'General Pool'}
+                                            </p>
+                                        </div>
+                                    )}
                                     <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-[#0a192f]">
                                         <div className="mb-2 flex items-center gap-3">
                                             <BookOpen className="h-5 w-5 text-[#d6b161]" />
@@ -996,6 +1051,9 @@ const LanguageBatches: React.FC = () => {
                                                                 {enrollment.batchId && (
                                                                     <div className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400">
                                                                         Assigned Batch: Class - {enrollment.batchId.name}
+                                                                        {getNormalizedInstitutionName(enrollment.batchId.institutionName)
+                                                                            ? ` (${enrollment.batchId.institutionName})`
+                                                                            : ''}
                                                                     </div>
                                                                 )}
                                                             </div>

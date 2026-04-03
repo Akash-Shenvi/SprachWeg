@@ -24,6 +24,10 @@ import SkillMaterial from '../models/skill.material.model';
 import InstitutionEnrollmentRequest from '../models/institutionEnrollmentRequest.model';
 import { buildPaymentSnapshot } from '../utils/payment.helpers';
 import { LEARNER_ROLES } from '../utils/roles';
+import {
+    buildLanguageBatchQuery,
+    getLanguageInstitutionScope,
+} from '../utils/languageBatchScope';
 
 const buildLanguagePaymentKey = (params: {
     userId: unknown;
@@ -80,6 +84,8 @@ const buildActiveClassSummary = (batch: any, trainingType: 'language' | 'skill')
             ? String(batch.courseTitle || '').trim()
             : String(batch.courseId?.title || 'Skill Training').trim(),
     name: String(batch.name || '').trim(),
+    institutionId: trainingType === 'language' && batch.institutionId ? String(batch.institutionId) : null,
+    institutionName: trainingType === 'language' ? String(batch.institutionName || '').trim() || null : null,
     studentCount: Array.isArray(batch.students) ? batch.students.length : 0,
     trainer: batch.trainerId || null,
     trainingType,
@@ -122,6 +128,7 @@ export const getPendingAdminEnrollments = async (req: Request, res: Response) =>
                     { name: { $regex: search, $options: 'i' } },
                     { email: { $regex: search, $options: 'i' } },
                     { phoneNumber: { $regex: search, $options: 'i' } },
+                    { institutionName: { $regex: search, $options: 'i' } },
                 ],
             }).distinct('_id')
             : [];
@@ -134,6 +141,7 @@ export const getPendingAdminEnrollments = async (req: Request, res: Response) =>
             languageFilter.$or = [
                 { courseTitle: { $regex: search, $options: 'i' } },
                 { name: { $regex: search, $options: 'i' } },
+                { institutionName: { $regex: search, $options: 'i' } },
                 { userId: { $in: matchingUserIds } },
             ];
         }
@@ -152,7 +160,7 @@ export const getPendingAdminEnrollments = async (req: Request, res: Response) =>
 
         const [languageEnrollments, skillEnrollments, availableLevels] = await Promise.all([
             Enrollment.find(languageFilter)
-                .populate('userId', 'name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role createdAt')
+                .populate('userId', 'name email phoneNumber germanLevel guardianName guardianPhone qualification dateOfBirth avatar role createdAt institutionId institutionName')
                 .sort({ createdAt: -1 }),
             level && level !== 'All'
                 ? Promise.resolve([])
@@ -313,6 +321,7 @@ export const getActiveClasses = async (req: Request, res: Response) => {
                 ? true
                 : item.courseTitle.toLowerCase().includes(search)
                 || item.name.toLowerCase().includes(search)
+                || String(item.institutionName || '').toLowerCase().includes(search)
                 || (item.trainer?.name || '').toLowerCase().includes(search);
 
             return matchesTrainingType && matchesCourse && matchesSearch;
@@ -369,6 +378,7 @@ export const getActiveClassStudents = async (req: Request, res: Response) => {
                     { name: { $regex: search, $options: 'i' } },
                     { email: { $regex: search, $options: 'i' } },
                     { phoneNumber: { $regex: search, $options: 'i' } },
+                    { institutionName: { $regex: search, $options: 'i' } },
                 ];
             }
 
@@ -387,6 +397,8 @@ export const getActiveClassStudents = async (req: Request, res: Response) => {
                     _id: batch._id,
                     courseTitle: batch.courseTitle,
                     name: batch.name,
+                    institutionId: batch.institutionId ? String(batch.institutionId) : null,
+                    institutionName: batch.institutionName || null,
                     trainer: batch.trainerId || null,
                     studentCount: batch.students.length,
                     trainingType,
@@ -420,6 +432,7 @@ export const getActiveClassStudents = async (req: Request, res: Response) => {
                 { name: { $regex: search, $options: 'i' } },
                 { email: { $regex: search, $options: 'i' } },
                 { phoneNumber: { $regex: search, $options: 'i' } },
+                { institutionName: { $regex: search, $options: 'i' } },
             ];
         }
 
@@ -580,8 +593,16 @@ export const deleteActiveClass = async (req: Request, res: Response) => {
                 { $set: { status: 'REJECTED', batchId: null } }
             );
 
+            const batchScope = getLanguageInstitutionScope({
+                institutionId: batch.institutionId,
+                institutionName: batch.institutionName,
+            });
+
             await Enrollment.updateMany(
-                { courseTitle: batch.courseTitle, name: batch.name, status: 'APPROVED' },
+                {
+                    ...buildLanguageBatchQuery(batch.courseTitle, batch.name, batchScope),
+                    status: 'APPROVED',
+                },
                 { $set: { status: 'REJECTED', batchId: null } }
             );
 
@@ -672,7 +693,7 @@ export const getStudentDetails = async (req: Request, res: Response) => {
 
         // Fetch Language Enrollments
         const languageEnrollments = await Enrollment.find({ userId: id })
-            .populate('batchId', 'courseTitle name')
+            .populate('batchId', 'courseTitle name institutionId institutionName')
             .sort({ createdAt: -1 });
 
         // Fetch Skill Enrollments

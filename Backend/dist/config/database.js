@@ -15,10 +15,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.connectDB = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const env_1 = require("./env");
+const language_batch_model_1 = __importDefault(require("../models/language.batch.model"));
 const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const conn = yield mongoose_1.default.connect(env_1.env.MONGO_URI);
         console.log(`MongoDB Connected: ${conn.connection.host}`);
+        try {
+            yield language_batch_model_1.default.syncIndexes();
+            console.log('LanguageBatch indexes synchronized.');
+        }
+        catch (indexError) {
+            console.error('Failed to synchronize LanguageBatch indexes:', indexError);
+        }
     }
     catch (error) {
         console.error(`Error: ${error.message}`);

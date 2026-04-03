@@ -362,9 +362,10 @@ class EmailService {
             }
         });
     }
-    sendEnrollmentEmail(to, name, courseTitle, status, paymentDetails) {
+    sendEnrollmentEmail(to, name, courseTitle, status, paymentDetails, institutionName) {
         return __awaiter(this, void 0, void 0, function* () {
             const isApproved = status === 'APPROVED';
+            const normalizedInstitutionName = String(institutionName || '').trim();
             const hasPaymentDetails = !!((paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount) !== undefined
                 || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod)
                 || (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.transactionId)
@@ -389,7 +390,9 @@ class EmailService {
                         : 'Your enrollment request and payment have been received successfully.',
                     paragraphs: isApproved
                         ? [
-                            `We are pleased to confirm that your enrollment for <strong>${courseTitle}</strong> has been approved.`,
+                            normalizedInstitutionName
+                                ? `We are pleased to confirm that your enrollment under <strong>${normalizedInstitutionName}</strong> for <strong>${courseTitle}</strong> has been approved.`
+                                : `We are pleased to confirm that your enrollment for <strong>${courseTitle}</strong> has been approved.`,
                             'Your payment has been recorded successfully, and the transaction details are included below for your records.',
                             'You can now continue through your student dashboard and keep checking your registered email for class schedules and updates from our admissions team.',
                         ]
@@ -400,6 +403,9 @@ class EmailService {
                         ],
                     infoRows: [
                         { label: 'Course', value: courseTitle },
+                        ...(isApproved && normalizedInstitutionName
+                            ? [{ label: 'Institution', value: normalizedInstitutionName }]
+                            : []),
                         { label: 'Status', value: isApproved ? 'Approved' : 'Pending Approval' },
                         ...paymentRows,
                     ],
@@ -414,7 +420,7 @@ class EmailService {
                     subject,
                     html,
                     text: isApproved
-                        ? `Dear ${name},\n\nYour enrollment for ${courseTitle} has been approved and your payment is confirmed.\nStatus: Approved\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nTransaction ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.transactionId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentId) || 'Not available'}\nBank Reference Number: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.bankReferenceNumber) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}\n\nStudent Dashboard: ${studentDashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`
+                        ? `Dear ${name},\n\nYour enrollment${normalizedInstitutionName ? ` under ${normalizedInstitutionName}` : ''} for ${courseTitle} has been approved and your payment is confirmed.\n${normalizedInstitutionName ? `Institution: ${normalizedInstitutionName}\n` : ''}Status: Approved\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nTransaction ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.transactionId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentId) || 'Not available'}\nBank Reference Number: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.bankReferenceNumber) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}\n\nStudent Dashboard: ${studentDashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`
                         : `Dear ${name},\n\nWe have received your enrollment request and payment for ${courseTitle} successfully.\nStatus: Pending Approval\nPayment Status: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentStatus) || 'Paid'}\nAmount: ${formatCurrencyAmount(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.amount, (paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.currency) || 'INR')}\nPayment Method: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentMethod) || 'Not available'}\nTransaction ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.transactionId) || 'Not available'}\nPayment ID: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paymentId) || 'Not available'}\nBank Reference Number: ${(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.bankReferenceNumber) || 'Not available'}\nPaid At: ${formatDateTime(paymentDetails === null || paymentDetails === void 0 ? void 0 : paymentDetails.paidAt)}\n\nOur admissions team will contact you with the next updates.\nStudent Dashboard: ${studentDashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
                 };
                 try {
@@ -437,6 +443,9 @@ class EmailService {
                 Access Student Dashboard
             </a>
             `
+                : '';
+            const institutionApprovalNotice = isApproved && normalizedInstitutionName
+                ? `<p>Your enrollment has been approved under <span class="highlight">${normalizedInstitutionName}</span>.</p>`
                 : '';
             const htmlContent = `
         <!DOCTYPE html>
@@ -510,6 +519,7 @@ class EmailService {
                     
                     <div class="message-body">
                         <p>Welcome to the <span class="highlight">SoVir Skilling & Training Center</span>.</p>
+                        ${institutionApprovalNotice}
                         
                         <p>We are delighted to have you with us. Our program is designed and delivered by industry-specific professional trainers, ensuring practical knowledge and real-world skill development.</p>
                         
@@ -538,7 +548,7 @@ class EmailService {
                 to,
                 subject,
                 html: htmlContent,
-                text: `Dear ${name},\n\nWelcome to SoVir Skilling & Training Center.\n\nWe are delighted to have you with us. Our program is designed and delivered by industry-specific professional trainers, ensuring practical knowledge and real-world skill development.\n\nAll further information, updates, and important announcements will be shared through your registered login email ID. Kindly check your email regularly to stay informed.\n\nOnce again, thank you for choosing SoVir Skilling & Training Center as your skilling partner. We wish you a successful and enriching learning journey with us.\n\nWarm regards,\nSoVir Skilling & Training Center Team`
+                text: `Dear ${name},\n\nWelcome to SoVir Skilling & Training Center.\n${isApproved && normalizedInstitutionName ? `\nYour enrollment has been approved under ${normalizedInstitutionName}.\n` : '\n'}\nWe are delighted to have you with us. Our program is designed and delivered by industry-specific professional trainers, ensuring practical knowledge and real-world skill development.\n\nAll further information, updates, and important announcements will be shared through your registered login email ID. Kindly check your email regularly to stay informed.\n\nOnce again, thank you for choosing SoVir Skilling & Training Center as your skilling partner. We wish you a successful and enriching learning journey with us.\n\nWarm regards,\nSoVir Skilling & Training Center Team`
             };
             try {
                 yield this.transporter.sendMail(mailOptions);
@@ -600,17 +610,23 @@ class EmailService {
     }
     sendInstitutionStudentWelcomeEmail(params) {
         return __awaiter(this, void 0, void 0, function* () {
+            const normalizedInstitutionName = String(params.institutionName || '').trim();
             const html = this.getProgramEmailTemplate({
                 name: params.studentName,
                 title: 'Your student account is now active.',
                 paragraphs: [
-                    `A student account has been created for you and enrolled in <strong>${params.courseTitle} - ${params.levelName}</strong>.`,
+                    normalizedInstitutionName
+                        ? `A student account has been created for you and approved under <strong>${normalizedInstitutionName}</strong> for <strong>${params.courseTitle} - ${params.levelName}</strong>.`
+                        : `A student account has been created for you and enrolled in <strong>${params.courseTitle} - ${params.levelName}</strong>.`,
                     'Your institution has already set the password for this account. Please contact your institution coordinator directly if you need the password or login assistance.',
                     'You can now sign in to the student portal to access your course once you have your credentials.',
                 ],
                 infoRows: [
                     { label: 'Course', value: params.courseTitle },
                     { label: 'Level', value: params.levelName },
+                    ...(normalizedInstitutionName
+                        ? [{ label: 'Institution', value: normalizedInstitutionName }]
+                        : []),
                     { label: 'Portal', value: 'Student Dashboard' },
                 ],
                 actionButton: {
@@ -622,9 +638,9 @@ class EmailService {
                 yield this.transporter.sendMail({
                     from: `"SoVir Skilling & Training Center" <${env_1.env.EMAIL_USER}>`,
                     to: params.to,
-                    subject: `Student Account Activated - ${params.courseTitle} ${params.levelName}`,
+                    subject: `Student Account Activated - ${params.courseTitle} ${params.levelName}${normalizedInstitutionName ? ` - ${normalizedInstitutionName}` : ''}`,
                     html,
-                    text: `Dear ${params.studentName},\n\nYour student account has been created and enrolled in ${params.courseTitle} - ${params.levelName}.\nYour institution has the password for this account. Please contact them if you need your login credentials.\n\nStudent Dashboard: ${studentDashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
+                    text: `Dear ${params.studentName},\n\nYour student account has been created and enrolled in ${params.courseTitle} - ${params.levelName}.${normalizedInstitutionName ? `\nInstitution: ${normalizedInstitutionName}.` : ''}\nYour institution has the password for this account. Please contact them if you need your login credentials.\n\nStudent Dashboard: ${studentDashboardLink}\n\nWarm regards,\nSoVir Skilling & Training Center Team`,
                 });
                 return true;
             }
