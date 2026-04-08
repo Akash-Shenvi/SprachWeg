@@ -5,7 +5,6 @@ import { useNotifications } from '../../context/NotificationContext';
 const PushNotificationToggle: React.FC = () => {
     const {
         pushSupported,
-        pushAvailable,
         pushPermission,
         pushEnabled,
         pushLoading,
