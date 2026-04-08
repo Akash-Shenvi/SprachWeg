@@ -35,12 +35,12 @@ const PushNotificationToggle: React.FC = () => {
                     onClick={() => void (pushEnabled ? disablePush() : enablePush())}
                     disabled={isDisabled}
                     aria-label={pushEnabled ? 'Disable browser push notifications' : 'Enable browser push notifications'}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#d6b161] focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#112240] ${
                         pushEnabled ? 'bg-[#d6b161]' : 'bg-gray-300 dark:bg-gray-700'
                     } ${isDisabled ? 'cursor-not-allowed opacity-70' : ''}`}
                 >
                     <span
-                        className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                             pushEnabled ? 'translate-x-6' : 'translate-x-1'
                         }`}
                     />
