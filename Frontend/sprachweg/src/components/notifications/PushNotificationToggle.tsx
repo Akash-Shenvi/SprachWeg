@@ -14,7 +14,7 @@ const PushNotificationToggle: React.FC = () => {
         disablePush,
     } = useNotifications();
 
-    const isDisabled = pushLoading || !pushSupported || !pushAvailable || pushPermission === 'denied';
+    const isDisabled = pushLoading || !pushSupported || pushPermission === 'denied';
 
     return (
         <div className="mt-3 rounded-xl bg-gray-50 px-3 py-3 dark:bg-[#0a192f]/80">

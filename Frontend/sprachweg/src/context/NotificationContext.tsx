@@ -254,8 +254,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         try {
             const response = await pushAPI.getPublicKey();
-            const publicKey = typeof response.publicKey === 'string' ? response.publicKey : '';
-            const available = Boolean(response.configured && publicKey);
+            const publicKey = typeof response.publicKey === 'string' ? response.publicKey.trim() : '';
+            const available = Boolean(publicKey);
 
             setPushPublicKey(publicKey);
             setPushAvailable(available);
@@ -422,9 +422,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
             if (!publicKey) {
                 const response = await pushAPI.getPublicKey();
-                publicKey = typeof response.publicKey === 'string' ? response.publicKey : '';
+                publicKey = typeof response.publicKey === 'string' ? response.publicKey.trim() : '';
                 setPushPublicKey(publicKey);
-                setPushAvailable(Boolean(response.configured && publicKey));
+                setPushAvailable(Boolean(publicKey));
             }
 
             if (!publicKey) {
