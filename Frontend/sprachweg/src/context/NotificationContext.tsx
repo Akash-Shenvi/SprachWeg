@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { API_BASE_URL, chatAPI, notificationsAPI, pushAPI } from '../lib/api';
 import {
     getBrowserPushSupportDetails,
+    getBlockedBrowserPushHelperText,
     clearBrowserPushEnabledFlag,
     getBrowserPushEnabledStorageKey,
     getExistingBrowserPushSubscription,
@@ -285,7 +286,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             setPushEnabled(false);
             setPushHelperText(
                 Notification.permission === 'denied'
-                    ? 'Blocked in browser settings.'
+                    ? getBlockedBrowserPushHelperText()
                     : DEFAULT_PUSH_HELPER
             );
         } catch (error) {
@@ -418,6 +419,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setPushLoading(true);
 
         try {
+            if (Notification.permission === 'denied') {
+                clearBrowserPushEnabledFlag(currentUserId);
+                setPushEnabled(false);
+                setPushHelperText(getBlockedBrowserPushHelperText());
+                return;
+            }
+
             let publicKey = pushPublicKey;
 
             if (!publicKey) {
@@ -444,7 +452,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 setPushEnabled(false);
                 setPushHelperText(
                     permission === 'denied'
-                        ? 'Blocked in browser settings.'
+                        ? getBlockedBrowserPushHelperText()
                         : DEFAULT_PUSH_HELPER
                 );
                 return;
@@ -489,7 +497,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             setPushEnabled(false);
             setPushHelperText(
                 Notification.permission === 'denied'
-                    ? 'Blocked in browser settings.'
+                    ? getBlockedBrowserPushHelperText()
                     : 'Browser push notifications are off for this browser.'
             );
         } catch (error) {

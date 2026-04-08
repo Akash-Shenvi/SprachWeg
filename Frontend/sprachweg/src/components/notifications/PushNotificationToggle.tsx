@@ -5,7 +5,6 @@ import { useNotifications } from '../../context/NotificationContext';
 const PushNotificationToggle: React.FC = () => {
     const {
         pushSupported,
-        pushPermission,
         pushEnabled,
         pushLoading,
         pushHelperText,
@@ -13,7 +12,7 @@ const PushNotificationToggle: React.FC = () => {
         disablePush,
     } = useNotifications();
 
-    const isDisabled = pushLoading || !pushSupported || pushPermission === 'denied';
+    const isDisabled = pushLoading || !pushSupported;
 
     return (
         <div className="mt-3 rounded-xl bg-gray-50 px-3 py-3 dark:bg-[#0a192f]/80">

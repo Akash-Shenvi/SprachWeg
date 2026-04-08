@@ -3,6 +3,12 @@ import { API_BASE_URL } from './api';
 export const PUSH_NOTIFICATION_QUERY_PARAM = 'notificationId';
 export const APPLE_HOME_SCREEN_PUSH_HELPER =
     'On iPhone and iPad, add this app to Home Screen and open it from there to enable push notifications.';
+export const BROWSER_PUSH_BLOCKED_HELPER_DESKTOP =
+    'Notifications are blocked for this site. Open your browser site settings, allow notifications for this site, then return here and tap the toggle again.';
+export const BROWSER_PUSH_BLOCKED_HELPER_ANDROID =
+    'Notifications are blocked for this site. In your mobile browser, open site settings, allow notifications, then return here and tap the toggle again.';
+export const BROWSER_PUSH_BLOCKED_HELPER_IOS =
+    'Notifications are blocked for this site. Open browser settings for this website, allow notifications, then return here and tap the toggle again.';
 
 const PUSH_SERVICE_WORKER_PATH = '/push-sw.js';
 
@@ -27,6 +33,14 @@ const isAppleMobileDevice = () => {
 
     return /iPhone|iPad|iPod/i.test(userAgent)
         || (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
+const isAndroidDevice = () => {
+    if (!isBrowserEnvironment()) {
+        return false;
+    }
+
+    return /Android/i.test(navigator.userAgent || '');
 };
 
 export const isStandaloneWebApp = () => {
@@ -74,6 +88,22 @@ export const getBrowserPushSupportDetails = (): BrowserPushSupportDetails => {
         canUse: true,
         helperText: '',
     };
+};
+
+export const getBlockedBrowserPushHelperText = () => {
+    if (!isBrowserEnvironment()) {
+        return 'Notifications are blocked in this browser.';
+    }
+
+    if (isAppleMobileDevice()) {
+        return BROWSER_PUSH_BLOCKED_HELPER_IOS;
+    }
+
+    if (isAndroidDevice()) {
+        return BROWSER_PUSH_BLOCKED_HELPER_ANDROID;
+    }
+
+    return BROWSER_PUSH_BLOCKED_HELPER_DESKTOP;
 };
 
 export const getBrowserPushEnabledStorageKey = (userId: string) => (
